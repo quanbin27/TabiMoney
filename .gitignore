@@ -1,0 +1,72 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Environment variables
+.env
+config.env
+
+# Build outputs
+dist/
+build/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Docker
+.dockerignore
+
+# Go specific
+go.sum
+*.test
+*.prof
+
+# Python specific
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# AI Service specific
+*.pkl
+*.model
+models/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Coverage reports
+coverage/
+*.cover
+
+# Air (Go live reload)
+tmp/

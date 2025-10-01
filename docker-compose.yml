@@ -1,0 +1,167 @@
+version: '3.8'
+
+services:
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: tabimoney_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-password}
+      MYSQL_DATABASE: ${DB_NAME:-tabimoney}
+      MYSQL_USER: ${DB_USER:-tabimoney}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-password}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    networks:
+      - tabimoney_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: tabimoney_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - tabimoney_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      timeout: 10s
+      retries: 5
+
+  # AI Service (Python)
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: tabimoney_ai_service
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=mysql+pymysql://${DB_USER:-tabimoney}:${DB_PASSWORD:-password}@mysql:3306/${DB_NAME:-tabimoney}
+      - REDIS_URL=redis://redis:6379/1
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - USE_OPENAI=${USE_OPENAI:-false}
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - LLM_MODEL=qwen2.5:7b-instruct
+      - DEBUG=false
+    ports:
+      - "8001:8001"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - tabimoney_network
+    volumes:
+      - ai_models:/app/models
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      timeout: 10s
+      retries: 5
+
+  # Backend API (Go)
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: tabimoney_backend
+    restart: unless-stopped
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=${DB_USER:-tabimoney}
+      - DB_PASSWORD=${DB_PASSWORD:-password}
+      - DB_NAME=${DB_NAME:-tabimoney}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-here}
+      - AI_SERVICE_URL=http://ai-service:8001
+      - ENV=production
+      - SERVER_HOST=0.0.0.0
+    ports:
+      - "8080:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ai-service:
+        condition: service_healthy
+    networks:
+      - tabimoney_network
+    volumes:
+      - ./uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      timeout: 10s
+      retries: 5
+
+  # Frontend Web App
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: tabimoney_frontend
+    restart: unless-stopped
+    environment:
+      - VITE_API_BASE_URL=/api/v1
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - tabimoney_network
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: tabimoney_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - tabimoney_network
+
+  # Ollama local LLM
+  ollama:
+    image: ollama/ollama:latest
+    container_name: tabimoney_ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_models:/root/.ollama
+    networks:
+      - tabimoney_network
+
+volumes:
+  mysql_data:
+    driver: local
+  redis_data:
+    driver: local
+  ai_models:
+    driver: local
+  ollama_models:
+    driver: local
+
+networks:
+  tabimoney_network:
+    driver: bridge

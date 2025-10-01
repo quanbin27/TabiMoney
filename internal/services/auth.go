@@ -1,0 +1,376 @@
+package services
+
+import (
+    "context"
+	"errors"
+	"fmt"
+	"time"
+
+	"tabimoney/internal/config"
+	"tabimoney/internal/database"
+	"tabimoney/internal/models"
+
+	"github.com/golang-jwt/jwt/v5"
+	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
+)
+
+type AuthService struct {
+	config *config.Config
+	db     *gorm.DB
+}
+
+func NewAuthService(cfg *config.Config) *AuthService {
+	return &AuthService{
+		config: cfg,
+		db:     database.GetDB(),
+	}
+}
+
+// Register creates a new user account
+func (s *AuthService) Register(req *models.UserCreateRequest) (*models.AuthResponse, error) {
+	// Check if user already exists
+	var existingUser models.User
+	if err := s.db.Where("email = ? OR username = ?", req.Email, req.Username).First(&existingUser).Error; err == nil {
+		return nil, errors.New("user with this email or username already exists")
+	}
+
+	// Hash password
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, fmt.Errorf("failed to hash password: %w", err)
+	}
+
+	// Create user
+	user := &models.User{
+		Email:        req.Email,
+		Username:     req.Username,
+		PasswordHash: string(hashedPassword),
+		FirstName:    req.FirstName,
+		LastName:     req.LastName,
+		Phone:        req.Phone,
+		IsVerified:   false,
+	}
+
+	if err := s.db.Create(user).Error; err != nil {
+		return nil, fmt.Errorf("failed to create user: %w", err)
+	}
+
+	// Create user profile
+	profile := &models.UserProfile{
+		UserID:        user.ID,
+		MonthlyIncome: 0,
+		Currency:      "VND",
+		Timezone:      "Asia/Ho_Chi_Minh",
+		Language:      "vi",
+		NotificationSettings: "{}",
+		AISettings:          "{}",
+	}
+
+	if err := s.db.Create(profile).Error; err != nil {
+		return nil, fmt.Errorf("failed to create user profile: %w", err)
+	}
+
+	// Generate tokens
+	accessToken, refreshToken, expiresAt, err := s.generateTokens(user.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate tokens: %w", err)
+	}
+
+	// Create session
+	if err := s.createSession(user.ID, accessToken, refreshToken, expiresAt); err != nil {
+		return nil, fmt.Errorf("failed to create session: %w", err)
+	}
+
+	// Update last login
+    now := time.Now()
+    user.LastLoginAt = &now
+	s.db.Save(user)
+
+	return &models.AuthResponse{
+		User:         s.userToResponse(user),
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+		ExpiresAt:    expiresAt,
+	}, nil
+}
+
+// Login authenticates a user
+func (s *AuthService) Login(req *models.UserLoginRequest) (*models.AuthResponse, error) {
+	// Find user
+	var user models.User
+	if err := s.db.Where("email = ?", req.Email).First(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("invalid credentials")
+		}
+		return nil, fmt.Errorf("failed to find user: %w", err)
+	}
+
+	// Check password
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
+		return nil, errors.New("invalid credentials")
+	}
+
+	// Generate tokens
+	accessToken, refreshToken, expiresAt, err := s.generateTokens(user.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate tokens: %w", err)
+	}
+
+	// Create session
+	if err := s.createSession(user.ID, accessToken, refreshToken, expiresAt); err != nil {
+		return nil, fmt.Errorf("failed to create session: %w", err)
+	}
+
+	// Update last login
+    now := time.Now()
+    user.LastLoginAt = &now
+	s.db.Save(user)
+
+	return &models.AuthResponse{
+		User:         s.userToResponse(&user),
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+		ExpiresAt:    expiresAt,
+	}, nil
+}
+
+// RefreshToken generates new access token using refresh token
+func (s *AuthService) RefreshToken(refreshToken string) (*models.AuthResponse, error) {
+	// Parse refresh token
+	token, err := jwt.Parse(refreshToken, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte(s.config.JWT.Secret), nil
+	})
+
+	if err != nil || !token.Valid {
+		return nil, errors.New("invalid refresh token")
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return nil, errors.New("invalid token claims")
+	}
+
+	userID, ok := claims["user_id"].(float64)
+	if !ok {
+		return nil, errors.New("invalid user ID in token")
+	}
+
+	// Find user
+	var user models.User
+	if err := s.db.First(&user, uint64(userID)).Error; err != nil {
+		return nil, fmt.Errorf("user not found: %w", err)
+	}
+
+	// Generate new tokens
+	accessToken, newRefreshToken, expiresAt, err := s.generateTokens(user.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate tokens: %w", err)
+	}
+
+	// Update session
+	if err := s.updateSession(user.ID, accessToken, newRefreshToken, expiresAt); err != nil {
+		return nil, fmt.Errorf("failed to update session: %w", err)
+	}
+
+	return &models.AuthResponse{
+		User:         s.userToResponse(&user),
+		AccessToken:  accessToken,
+		RefreshToken: newRefreshToken,
+		ExpiresAt:    expiresAt,
+	}, nil
+}
+
+// Logout invalidates user session
+func (s *AuthService) Logout(userID uint64, tokenHash string) error {
+	// Deactivate session
+	if err := s.db.Model(&models.UserSession{}).
+		Where("user_id = ? AND token_hash = ?", userID, tokenHash).
+		Update("is_active", false).Error; err != nil {
+		return fmt.Errorf("failed to deactivate session: %w", err)
+	}
+
+	// Delete from Redis cache
+    ctx := context.Background()
+    sessionKey := fmt.Sprintf("session:%s", tokenHash)
+    if err := database.DeleteCache(ctx, sessionKey); err != nil {
+		// Log error but don't fail logout
+		fmt.Printf("Warning: failed to delete session from cache: %v\n", err)
+	}
+
+	return nil
+}
+
+// ValidateToken validates JWT token and returns user ID
+func (s *AuthService) ValidateToken(tokenString string) (uint64, error) {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte(s.config.JWT.Secret), nil
+	})
+
+	if err != nil || !token.Valid {
+		return 0, errors.New("invalid token")
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return 0, errors.New("invalid token claims")
+	}
+
+	userID, ok := claims["user_id"].(float64)
+	if !ok {
+		return 0, errors.New("invalid user ID in token")
+	}
+
+	// Check if session is active
+	var session models.UserSession
+	if err := s.db.Where("user_id = ? AND token_hash = ? AND is_active = ?", 
+		uint64(userID), tokenString, true).First(&session).Error; err != nil {
+		return 0, errors.New("session not found or inactive")
+	}
+
+	// Check if token is expired
+	if time.Now().After(session.ExpiresAt) {
+		return 0, errors.New("token expired")
+	}
+
+	return uint64(userID), nil
+}
+
+// ChangePassword changes user password
+func (s *AuthService) ChangePassword(userID uint64, req *models.ChangePasswordRequest) error {
+	// Find user
+	var user models.User
+	if err := s.db.First(&user, userID).Error; err != nil {
+		return fmt.Errorf("user not found: %w", err)
+	}
+
+	// Verify current password
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.CurrentPassword)); err != nil {
+		return errors.New("current password is incorrect")
+	}
+
+	// Hash new password
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("failed to hash new password: %w", err)
+	}
+
+	// Update password
+	user.PasswordHash = string(hashedPassword)
+	if err := s.db.Save(&user).Error; err != nil {
+		return fmt.Errorf("failed to update password: %w", err)
+	}
+
+	// Deactivate all sessions
+	if err := s.db.Model(&models.UserSession{}).
+		Where("user_id = ?", userID).
+		Update("is_active", false).Error; err != nil {
+		return fmt.Errorf("failed to deactivate sessions: %w", err)
+	}
+
+	return nil
+}
+
+// Helper methods
+
+func (s *AuthService) generateTokens(userID uint64) (string, string, time.Time, error) {
+	now := time.Now()
+	expiresAt := now.Add(s.config.GetJWTExpiration())
+	refreshExpiresAt := now.Add(s.config.GetJWTRefreshExpiration())
+
+	// Access token
+	accessClaims := jwt.MapClaims{
+		"user_id": userID,
+		"type":    "access",
+		"exp":     expiresAt.Unix(),
+		"iat":     now.Unix(),
+	}
+	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
+	accessTokenString, err := accessToken.SignedString([]byte(s.config.JWT.Secret))
+	if err != nil {
+		return "", "", time.Time{}, err
+	}
+
+	// Refresh token
+	refreshClaims := jwt.MapClaims{
+		"user_id": userID,
+		"type":    "refresh",
+		"exp":     refreshExpiresAt.Unix(),
+		"iat":     now.Unix(),
+	}
+	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
+	refreshTokenString, err := refreshToken.SignedString([]byte(s.config.JWT.Secret))
+	if err != nil {
+		return "", "", time.Time{}, err
+	}
+
+	return accessTokenString, refreshTokenString, expiresAt, nil
+}
+
+func (s *AuthService) createSession(userID uint64, accessToken, refreshToken string, expiresAt time.Time) error {
+	session := &models.UserSession{
+		UserID:            userID,
+		TokenHash:         accessToken,
+		RefreshTokenHash:  refreshToken,
+		ExpiresAt:         expiresAt,
+		RefreshExpiresAt:  time.Now().Add(s.config.GetJWTRefreshExpiration()),
+		IsActive:          true,
+	}
+
+	return s.db.Create(session).Error
+}
+
+func (s *AuthService) updateSession(userID uint64, accessToken, refreshToken string, expiresAt time.Time) error {
+	return s.db.Model(&models.UserSession{}).
+		Where("user_id = ? AND is_active = ?", userID, true).
+		Updates(map[string]interface{}{
+			"token_hash":         accessToken,
+			"refresh_token_hash": refreshToken,
+			"expires_at":         expiresAt,
+			"refresh_expires_at": time.Now().Add(s.config.GetJWTRefreshExpiration()),
+		}).Error
+}
+
+func (s *AuthService) userToResponse(user *models.User) models.UserResponse {
+	return models.UserResponse{
+		ID:          user.ID,
+		Email:       user.Email,
+		Username:    user.Username,
+		FirstName:   user.FirstName,
+		LastName:    user.LastName,
+		Phone:       user.Phone,
+		AvatarURL:   user.AvatarURL,
+		IsVerified:  user.IsVerified,
+		LastLoginAt: user.LastLoginAt,
+		CreatedAt:   user.CreatedAt,
+		UpdatedAt:   user.UpdatedAt,
+	}
+}
+
+// DB exposes the shared database handle for handlers that need direct access
+func DB() *gorm.DB {
+    return database.GetDB()
+}
+
+// UserToResponse converts a User model to API response (exported helper)
+func UserToResponse(user *models.User) models.UserResponse {
+    return models.UserResponse{
+        ID:          user.ID,
+        Email:       user.Email,
+        Username:    user.Username,
+        FirstName:   user.FirstName,
+        LastName:    user.LastName,
+        Phone:       user.Phone,
+        AvatarURL:   user.AvatarURL,
+        IsVerified:  user.IsVerified,
+        LastLoginAt: user.LastLoginAt,
+        CreatedAt:   user.CreatedAt,
+        UpdatedAt:   user.UpdatedAt,
+    }
+}
