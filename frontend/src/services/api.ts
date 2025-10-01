@@ -96,9 +96,11 @@ export const transactionAPI = {
 }
 
 export const analyticsAPI = {
-  getDashboard: () => api.get('/analytics/dashboard'),
-  getMonthlySummary: (year: number, month: number) => api.get(`/analytics/monthly/${year}/${month}`),
+  getDashboard: (params?: any) => api.get('/analytics/dashboard', { params }),
   getCategorySpending: (params?: any) => api.get('/analytics/category-spending', { params }),
+  getSpendingPatterns: (params?: any) => api.get('/analytics/spending-patterns', { params }),
+  getAnomalies: (params?: any) => api.get('/analytics/anomalies', { params }),
+  getPredictions: (params?: any) => api.get('/analytics/predictions', { params }),
 }
 
 export const categoryAPI = {

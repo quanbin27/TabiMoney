@@ -96,8 +96,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      ai-service:
-        condition: service_healthy
     networks:
       - tabimoney_network
     volumes:
@@ -123,22 +121,7 @@ services:
     networks:
       - tabimoney_network
 
-  # Nginx Reverse Proxy
-  nginx:
-    image: nginx:alpine
-    container_name: tabimoney_nginx
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
-      - ./nginx/ssl:/etc/nginx/ssl
-    depends_on:
-      - frontend
-      - backend
-    networks:
-      - tabimoney_network
+  # Nginx Reverse Proxy (disabled; use frontend on :3000)
 
   # Ollama local LLM
   ollama:

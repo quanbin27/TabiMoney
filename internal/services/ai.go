@@ -122,8 +122,8 @@ func (s *AIService) PredictExpenses(req *models.ExpensePredictionRequest) (*mode
     // Call AI Service (Prediction)
     requestBody, err := json.Marshal(map[string]interface{}{
         "user_id":     req.UserID,
-        "start_date":  req.StartDate.Format("2006-01-02"),
-        "end_date":    req.EndDate.Format("2006-01-02"),
+        "start_date":  req.StartDate.Format("2006-01-02T15:04:05Z07:00"),
+        "end_date":    req.EndDate.Format("2006-01-02T15:04:05Z07:00"),
     })
     if err != nil {
         return nil, fmt.Errorf("failed to marshal request: %w", err)
@@ -135,23 +135,28 @@ func (s *AIService) PredictExpenses(req *models.ExpensePredictionRequest) (*mode
     }
     httpReq.Header.Set("Content-Type", "application/json")
 
+    log.Printf("Calling AI Service: %s", s.aiServiceURL+"/prediction/expenses")
+    log.Printf("Request body: %s", string(requestBody))
+
     resp, err := s.httpClient.Do(httpReq)
     if err != nil {
+        log.Printf("AI Service call failed: %v", err)
         return nil, fmt.Errorf("failed to call AI service: %w", err)
     }
     defer resp.Body.Close()
 
+    log.Printf("AI Service response status: %d", resp.StatusCode)
     if resp.StatusCode != http.StatusOK {
         return nil, fmt.Errorf("AI service returned status %d", resp.StatusCode)
     }
 
     var response models.ExpensePredictionResponse
     if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+        log.Printf("Failed to decode AI service response: %v", err)
         return nil, fmt.Errorf("failed to decode response: %w", err)
     }
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse prediction response: %w", err)
-	}
+    
+    log.Printf("AI Service response decoded successfully: %+v", response)
 
     // Cache response
     if b, err := json.Marshal(response); err == nil {
@@ -172,12 +177,12 @@ func (s *AIService) PredictExpenses(req *models.ExpensePredictionRequest) (*mode
 
 // Anomaly Detection Service
 func (s *AIService) DetectAnomalies(req *models.AnomalyDetectionRequest) (*models.AnomalyDetectionResponse, error) {
-	// Get transaction data
-	var transactions []models.Transaction
-	query := s.db.Where("user_id = ? AND transaction_date BETWEEN ? AND ?", 
-		req.UserID, req.StartDate, req.EndDate)
-	
-	if err := query.Find(&transactions).Error; err != nil {
+    // Get transaction data (preload Category to avoid nil dereference)
+    var transactions []models.Transaction
+    query := s.db.Where("user_id = ? AND transaction_date BETWEEN ? AND ?", 
+        req.UserID, req.StartDate, req.EndDate).Preload("Category")
+    
+    if err := query.Find(&transactions).Error; err != nil {
 		return nil, fmt.Errorf("failed to get transactions: %w", err)
 	}
 
@@ -614,21 +619,21 @@ func (s *AIService) analyzeSpendingPatterns(transactions []models.Transaction, g
 }
 
 func (s *AIService) generateSpendingInsights(patterns []models.SpendingPattern) []string {
-	// Generate insights based on patterns
-	insights := []string{
-		"Your spending patterns show consistent behavior across categories.",
-		"Consider reviewing your top spending categories for optimization opportunities.",
-	}
-	return insights
+    // Generate insights based on patterns (Vietnamese)
+    insights := []string{
+        "Mẫu chi tiêu của bạn cho thấy hành vi ổn định giữa các danh mục.",
+        "Hãy xem lại các danh mục chi tiêu hàng đầu để tối ưu hoá.",
+    }
+    return insights
 }
 
 func (s *AIService) generateSpendingRecommendations(patterns []models.SpendingPattern) []string {
-	// Generate recommendations based on patterns
-	recommendations := []string{
-		"Set up budget alerts for your top spending categories.",
-		"Consider setting monthly spending limits for discretionary categories.",
-	}
-	return recommendations
+    // Generate recommendations based on patterns (Vietnamese)
+    recommendations := []string{
+        "Thiết lập cảnh báo ngân sách cho các danh mục chi tiêu hàng đầu.",
+        "Cân nhắc đặt hạn mức chi tiêu hàng tháng cho các danh mục tuỳ ý.",
+    }
+    return recommendations
 }
 
 func (s *AIService) calculateGoalProgress(goal models.FinancialGoal, transactions []models.Transaction) float64 {

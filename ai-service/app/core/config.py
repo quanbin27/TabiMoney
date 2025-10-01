@@ -34,8 +34,8 @@ class Settings(BaseSettings):
     OPENAI_TEMPERATURE: float = 0.3
 
     # Local LLM (Ollama)
-    USE_OPENAI: bool = True
-    OLLAMA_BASE_URL: str = "http://localhost:11434"
+    USE_OPENAI: bool = False
+    OLLAMA_BASE_URL: str = "http://ollama:11434"
     LLM_MODEL: str = "qwen2.5:7b-instruct"
     
     # ML Models

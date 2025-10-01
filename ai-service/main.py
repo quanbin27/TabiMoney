@@ -20,6 +20,7 @@ from app.core.database import init_db
 from app.core.redis import init_redis
 from app.api.v1.api import api_router
 from app.core.logging import setup_logging
+from app.core.dependencies import set_services
 from app.services.ml_service import MLService
 from app.services.nlu_service import NLUService
 from app.services.prediction_service import PredictionService
@@ -76,6 +77,10 @@ async def lifespan(app: FastAPI):
     anomaly_service = AnomalyService(ml_service)
     await anomaly_service.initialize()
     logger.info("Anomaly Service initialized")
+    
+    # Set global service instances for dependency injection
+    set_services(nlu_service, prediction_service, anomaly_service, ml_service)
+    logger.info("Services registered for dependency injection")
     
     logger.info("AI Service started successfully")
     

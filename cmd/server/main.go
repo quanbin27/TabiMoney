@@ -125,6 +125,15 @@ func main() {
     ai := api.Group("/ai", appmw.AuthMiddleware(authService))
     ai.POST("/suggest-category", aiHandler.SuggestCategory)
 
+    // Analytics routes
+    analyticsHandler := handlers.NewAnalyticsHandler(cfg)
+    analytics := api.Group("/analytics", appmw.AuthMiddleware(authService))
+    analytics.GET("/dashboard", analyticsHandler.GetDashboardAnalytics)
+    analytics.GET("/category-spending", analyticsHandler.GetCategorySpending)
+    analytics.GET("/spending-patterns", analyticsHandler.GetSpendingPatterns)
+    analytics.GET("/anomalies", analyticsHandler.GetAnomalies)
+    analytics.GET("/predictions", analyticsHandler.GetPredictions)
+
 	// Start server
 	server := &http.Server{
 		Addr:         cfg.GetServerAddr(),

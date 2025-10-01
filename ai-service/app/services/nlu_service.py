@@ -50,8 +50,8 @@ class NLUService:
         logger.info("Initializing NLU Service...")
         
         try:
-            if not settings.OPENAI_API_KEY:
-                logger.warning("OpenAI API key not provided, using rule-based NLU")
+            if not settings.USE_OPENAI or not settings.OPENAI_API_KEY:
+                logger.warning("OpenAI disabled or API key not provided, using rule-based NLU")
                 self.is_initialized = True
                 return
             

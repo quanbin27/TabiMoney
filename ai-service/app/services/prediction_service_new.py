@@ -64,14 +64,10 @@ class PredictionService:
             raise RuntimeError("Prediction Service not ready")
         
         try:
-            logger.info(f"Starting prediction for user {request.user_id}")
-            
             # Get historical data from database
             historical_data = await self._get_historical_data(request.user_id, request.start_date, request.end_date)
-            logger.info(f"Retrieved {len(historical_data)} historical transactions")
             
             if len(historical_data) < 5:  # Need at least 5 transactions for prediction
-                logger.warning(f"Not enough data for prediction: {len(historical_data)} transactions")
                 return ExpensePredictionResponse(
                     user_id=request.user_id,
                     predicted_amount=0,
@@ -122,7 +118,7 @@ class PredictionService:
                 category_breakdown=category_breakdown,
                 trends=trends,
                 recommendations=recommendations,
-                generated_at=datetime.now().isoformat() + "Z"
+                generated_at=datetime.now()
             )
             
         except Exception as e:
@@ -134,7 +130,7 @@ class PredictionService:
                 category_breakdown=[],
                 trends=[],
                 recommendations=[f"Lỗi trong quá trình dự đoán: {str(e)}"],
-                generated_at=datetime.now().isoformat() + "Z"
+                generated_at=datetime.now()
             )
     
     async def _get_historical_data(self, user_id: int, start_date: str, end_date: str) -> List[Dict[str, Any]]:
@@ -242,11 +238,11 @@ class PredictionService:
             breakdown = []
             for _, row in category_summary.head(5).iterrows():
                 breakdown.append({
-                    'category_id': 0,  # Default category ID
-                    'category_name': row['category'],
-                    'predicted_amount': float(row['total_amount']),
-                    'confidence_score': 0.8,
-                    'trend': 'stable'
+                    'category': row['category'],
+                    'total_amount': float(row['total_amount']),
+                    'transaction_count': int(row['transaction_count']),
+                    'average_amount': float(row['average_amount']),
+                    'percentage': float(row['total_amount'] / df['amount'].sum() * 100)
                 })
             
             return breakdown
@@ -275,7 +271,6 @@ class PredictionService:
                 trends.append({
                     'period': row['month'],
                     'amount': float(row['amount']),
-                    'change_percentage': 0.0,  # Simplified
                     'trend': 'increasing' if len(trends) > 0 and row['amount'] > trends[-1]['amount'] else 'stable'
                 })
             
@@ -331,3 +326,7 @@ class PredictionService:
         except Exception as e:
             logger.error(f"Failed to generate recommendations: {e}")
             return ["Không thể tạo khuyến nghị do lỗi xử lý dữ liệu"]
+
+
+
+
