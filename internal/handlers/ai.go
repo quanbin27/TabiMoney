@@ -31,4 +31,18 @@ func (h *AIHandler) SuggestCategory(c echo.Context) error {
     return c.JSON(http.StatusOK, resp)
 }
 
+func (h *AIHandler) ProcessChat(c echo.Context) error {
+    userID := c.Get("user_id").(uint64)
+    var req models.ChatRequest
+    if err := c.Bind(&req); err != nil {
+        return c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid request", Message: err.Error()})
+    }
+    req.UserID = userID
+    resp, err := h.svc.ProcessChat(&req)
+    if err != nil {
+        return c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Chat processing failed", Message: err.Error()})
+    }
+    return c.JSON(http.StatusOK, resp)
+}
+
 

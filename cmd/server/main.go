@@ -124,6 +124,7 @@ func main() {
     // AI endpoints
     ai := api.Group("/ai", appmw.AuthMiddleware(authService))
     ai.POST("/suggest-category", aiHandler.SuggestCategory)
+    ai.POST("/chat", aiHandler.ProcessChat)
 
     // Analytics routes
     analyticsHandler := handlers.NewAnalyticsHandler(cfg)

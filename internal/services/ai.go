@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"log"
 	"net/http"
 	"os"
@@ -22,6 +23,7 @@ type AIService struct {
 	db          *gorm.DB
 	httpClient  *http.Client
 	aiServiceURL string
+    intentHandlers map[string]func(*models.ChatRequest, *models.ChatResponse)
 }
 
 func NewAIService(cfg *config.Config) *AIService {
@@ -29,12 +31,17 @@ func NewAIService(cfg *config.Config) *AIService {
 	if aiURL == "" {
 		aiURL = "http://localhost:8001"
 	}
-	return &AIService{
+    svc := &AIService{
 		config:       cfg,
 		db:           database.GetDB(),
 		httpClient:   &http.Client{Timeout: 30 * time.Second},
 		aiServiceURL: aiURL + "/api/v1",
-	}
+    }
+    svc.intentHandlers = map[string]func(*models.ChatRequest, *models.ChatResponse){
+        "query_balance": svc.handleQueryBalance,
+        "add_transaction": svc.handleAddTransaction,
+    }
+    return svc
 }
 
 // NLU (Natural Language Understanding) Service
@@ -400,6 +407,11 @@ func (s *AIService) ProcessChat(req *models.ChatRequest) (*models.ChatResponse, 
         return nil, fmt.Errorf("failed to decode response: %w", err)
     }
 
+    // Route to handler if available
+    if handler, ok := s.intentHandlers[response.Intent]; ok {
+        handler(req, &response)
+    }
+
 	// Save chat message
 	chatMessage := &models.ChatMessage{
 		UserID:      req.UserID,
@@ -411,6 +423,82 @@ func (s *AIService) ProcessChat(req *models.ChatRequest) (*models.ChatResponse, 
 	s.db.Create(chatMessage)
 
     return &response, nil
+}
+
+// Handlers
+func (s *AIService) handleQueryBalance(req *models.ChatRequest, resp *models.ChatResponse) {
+    now := time.Now().UTC()
+    startDate := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
+    endDate := startDate.AddDate(0, 1, 0).Add(-time.Nanosecond)
+
+    type totalsRow struct {
+        TotalIncome  float64 `gorm:"column:total_income"`
+        TotalExpense float64 `gorm:"column:total_expense"`
+    }
+    var totals totalsRow
+    if err := s.db.Table("transactions").
+        Select("SUM(CASE WHEN transaction_type = 'income' THEN amount ELSE 0 END) as total_income, SUM(CASE WHEN transaction_type = 'expense' THEN amount ELSE 0 END) as total_expense").
+        Where("user_id = ? AND transaction_date BETWEEN ? AND ?", req.UserID, startDate, endDate).
+        Scan(&totals).Error; err == nil {
+        netAmount := totals.TotalIncome - totals.TotalExpense
+        resp.Response = fmt.Sprintf("Tháng %02d/%d: Tổng chi tiêu %.2f VND, tổng thu %.2f VND, chênh lệch %.2f VND.",
+            now.Month(), now.Year(), totals.TotalExpense, totals.TotalIncome, netAmount)
+    }
+    return
+}
+
+func (s *AIService) handleAddTransaction(req *models.ChatRequest, resp *models.ChatResponse) {
+    var amount float64
+    var categoryName string
+    for _, e := range resp.Entities {
+        switch e.Type {
+        case "amount":
+            if v, err := strconv.ParseFloat(e.Value, 64); err == nil && v > 0 {
+                if v > amount {
+                    amount = v
+                }
+            }
+        case "category":
+            if categoryName == "" {
+                categoryName = e.Value
+            }
+        }
+    }
+
+    if amount <= 0 {
+        return
+    }
+
+    var category models.Category
+    if err := s.db.Where("name = ?", categoryName).First(&category).Error; err != nil {
+        if categoryName == "ăn uống" || categoryName == "an uong" {
+            s.db.Where("name = ?", "Ăn uống").First(&category)
+        }
+    }
+    if category.ID == 0 {
+        s.db.Where("name = ?", "Khác").First(&category)
+    }
+
+    today := time.Now().UTC().Format("2006-01-02")
+    createReq := &models.TransactionCreateRequest{
+        CategoryID:      category.ID,
+        Amount:          amount,
+        Description:     req.Message,
+        TransactionType: "expense",
+        TransactionDate: today,
+    }
+
+    txnSvc := NewTransactionService()
+    if _, err := txnSvc.CreateTransaction(req.UserID, createReq); err != nil {
+        log.Printf("AI chat add_transaction: failed to create transaction: %v", err)
+        return
+    }
+    if category.ID != 0 {
+        resp.Response = fmt.Sprintf("Đã thêm giao dịch %.0f VND cho danh mục %s.", amount, category.Name)
+    } else {
+        resp.Response = fmt.Sprintf("Đã thêm giao dịch %.0f VND.", amount)
+    }
+    return
 }
 
 // Helper methods for prompt building and response parsing

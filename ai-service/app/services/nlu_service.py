@@ -8,12 +8,14 @@ import logging
 from typing import Dict, Any, List, Optional, Tuple
 import re
 from datetime import datetime, timedelta
+import httpx
+import json
 
 import openai
 from openai import AsyncOpenAI
 
 from app.core.config import settings
-from app.models.nlu import NLURequest, NLUResponse, Entity
+from app.models.nlu import NLURequest, NLUResponse, Entity, ChatRequest, ChatResponse
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +25,7 @@ class NLUService:
     
     def __init__(self):
         self.client: Optional[AsyncOpenAI] = None
+        self.ollama_client: Optional[httpx.AsyncClient] = None
         self.is_initialized = False
         
         # Common patterns for entity extraction
@@ -50,19 +53,18 @@ class NLUService:
         logger.info("Initializing NLU Service...")
         
         try:
-            if not settings.USE_OPENAI or not settings.OPENAI_API_KEY:
-                logger.warning("OpenAI disabled or API key not provided, using rule-based NLU")
-                self.is_initialized = True
-                return
-            
-            # Initialize OpenAI client
-            self.client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
-            
-            # Test connection
-            await self._test_openai_connection()
+            if settings.USE_OPENAI and settings.OPENAI_API_KEY:
+                # Initialize OpenAI client
+                self.client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+                await self._test_openai_connection()
+                logger.info("NLU Service initialized with OpenAI")
+            else:
+                # Initialize Ollama client (shorter timeout to avoid FE 502s)
+                self.ollama_client = httpx.AsyncClient(timeout=10.0)
+                await self._test_ollama_connection()
+                logger.info("NLU Service initialized with Ollama")
             
             self.is_initialized = True
-            logger.info("NLU Service initialized successfully")
             
         except Exception as e:
             logger.error(f"Failed to initialize NLU Service: {e}")
@@ -74,6 +76,8 @@ class NLUService:
         """Cleanup NLU service"""
         logger.info("Cleaning up NLU Service...")
         self.client = None
+        if self.ollama_client:
+            await self.ollama_client.aclose()
         self.is_initialized = False
     
     def is_ready(self) -> bool:
@@ -93,15 +97,36 @@ class NLUService:
             logger.error(f"OpenAI API connection failed: {e}")
             raise
     
+    async def _test_ollama_connection(self):
+        """Test Ollama connection"""
+        try:
+            response = await self.ollama_client.post(
+                f"{settings.OLLAMA_BASE_URL}/api/generate",
+                json={
+                    "model": settings.LLM_MODEL,
+                    "prompt": "Hello",
+                    "stream": False
+                }
+            )
+            if response.status_code == 200:
+                logger.info("Ollama connection test successful")
+            else:
+                raise Exception(f"Ollama returned status {response.status_code}")
+        except Exception as e:
+            logger.error(f"Ollama connection test failed: {e}")
+            raise
+    
     async def process_nlu(self, request: NLURequest) -> NLUResponse:
         """Process Natural Language Understanding request"""
         if not self.is_ready():
             raise RuntimeError("NLU Service not ready")
         
         try:
-            # Try OpenAI first if available
+            # Try AI service first if available
             if self.client:
                 return await self._process_with_openai(request)
+            elif self.ollama_client:
+                return await self._process_with_ollama(request)
             else:
                 return await self._process_with_rules(request)
                 
@@ -134,6 +159,47 @@ class NLUService:
             logger.error(f"OpenAI NLU processing failed: {e}")
             raise
     
+    async def _process_with_ollama(self, request: NLURequest) -> NLUResponse:
+        """Process NLU using Ollama"""
+        try:
+            prompt = self._build_nlu_prompt(request.text, request.context)
+            
+            response = await self.ollama_client.post(
+                f"{settings.OLLAMA_BASE_URL}/api/generate",
+                json={
+                    "model": settings.LLM_MODEL,
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {
+                        "temperature": 0.3,
+                        "max_tokens": 1000
+                    }
+                }
+            )
+            
+            if response.status_code != 200:
+                raise Exception(f"Ollama returned status {response.status_code}")
+            
+            # Ollama returns JSON with { response: "..." }
+            # Read as text first for resilience
+            text_body = await response.aread()
+            try:
+                result = json.loads(text_body.decode("utf-8", errors="ignore"))
+                content = result.get("response", "")
+            except Exception:
+                content = text_body.decode("utf-8", errors="ignore")
+
+            # Try to parse structured JSON from model output
+            try:
+                return self._parse_openai_response(self._extract_json_block(content), request.user_id)
+            except Exception:
+                logger.warning("Falling back to rule-based NLU due to parse failure")
+                return await self._process_with_rules(request)
+            
+        except Exception as e:
+            logger.error(f"Ollama NLU processing failed: {e}")
+            raise
+    
     async def _process_with_rules(self, request: NLURequest) -> NLUResponse:
         """Process NLU using rule-based approach"""
         try:
@@ -155,7 +221,7 @@ class NLUService:
                 confidence=0.7,  # Rule-based confidence
                 suggested_action=self._get_suggested_action(intent),
                 response=response_text,
-                generated_at=datetime.now()
+                generated_at=datetime.now().isoformat() + "Z"
             )
             
         except Exception as e:
@@ -163,15 +229,15 @@ class NLUService:
             raise
     
     def _build_nlu_prompt(self, text: str, context: str) -> str:
-        """Build prompt for OpenAI NLU processing"""
+        """Build prompt for AI NLU processing"""
         return f"""
-You are a financial assistant for TabiMoney. Analyze the following user input and extract:
+Bạn là trợ lý tài chính cho TabiMoney. Phân tích input của user và trích xuất:
 
-1. Intent (add_transaction, query_balance, ask_question, etc.)
+1. Intent (add_transaction, query_balance, ask_question, general)
 2. Entities (amounts, categories, dates, descriptions)
 3. Confidence score (0-1)
 4. Suggested action
-5. Response
+5. Response (bằng tiếng Việt)
 
 User input: {text}
 Context: {context}
@@ -181,12 +247,24 @@ Return JSON format:
   "intent": "add_transaction",
   "entities": [
     {{"type": "amount", "value": "50000", "confidence": 0.95, "start_pos": 0, "end_pos": 5}},
-    {{"type": "category", "value": "food", "confidence": 0.9, "start_pos": 10, "end_pos": 14}}
+    {{"type": "category", "value": "ăn uống", "confidence": 0.9, "start_pos": 10, "end_pos": 17}}
   ],
   "confidence": 0.92,
   "suggested_action": "create_transaction",
-  "response": "I'll help you add this transaction..."
+  "response": "Tôi sẽ giúp bạn thêm giao dịch này..."
 }}
+
+Possible intents:
+- add_transaction: user muốn thêm giao dịch mới
+- query_balance: user muốn biết về số dư, chi tiêu, thu nhập
+- ask_question: user hỏi câu hỏi về tài chính
+- general: chào hỏi hoặc không xác định được
+
+Possible entities:
+- amount: số tiền
+- category: danh mục chi tiêu
+- date: ngày tháng
+- description: mô tả giao dịch
 """
     
     def _parse_openai_response(self, content: str, user_id: int) -> NLUResponse:
@@ -213,12 +291,28 @@ Return JSON format:
                 confidence=data['confidence'],
                 suggested_action=data['suggested_action'],
                 response=data['response'],
-                generated_at=datetime.now()
+                generated_at=datetime.now().isoformat() + "Z"
             )
             
         except Exception as e:
             logger.error(f"Failed to parse OpenAI response: {e}")
             raise
+
+    def _extract_json_block(self, content: str) -> str:
+        """Extract JSON block from LLM output (handles code fences and extra text)."""
+        if not content:
+            raise ValueError("empty content")
+        # Remove code fences
+        content = content.strip()
+        if content.startswith("```"):
+            content = content.strip('`')
+        # Find first {...} JSON object
+        import re
+        match = re.search(r"\{[\s\S]*\}", content)
+        if match:
+            return match.group(0)
+        # If not found, assume content itself is JSON
+        return content
     
     def _extract_entities_rule_based(self, text: str) -> List[Entity]:
         """Extract entities using rule-based approach"""
@@ -281,15 +375,15 @@ Return JSON format:
     
     def _determine_intent_rule_based(self, text: str, entities: List[Entity]) -> str:
         """Determine intent using rule-based approach"""
+        # Check for query keywords first (more specific)
+        query_keywords = ['bao nhiêu', 'tổng', 'tổng cộng', 'chi tiêu', 'thu nhập', 'số dư', 'muốn biết', 'kiểm tra']
+        if any(keyword in text for keyword in query_keywords):
+            return "query_balance"
+        
         # Check for transaction-related keywords
         transaction_keywords = ['mua', 'mua', 'chi', 'tiêu', 'ăn', 'uống', 'đi', 'mua sắm']
         if any(keyword in text for keyword in transaction_keywords):
             return "add_transaction"
-        
-        # Check for query keywords
-        query_keywords = ['bao nhiêu', 'tổng', 'tổng cộng', 'chi tiêu', 'thu nhập', 'số dư']
-        if any(keyword in text for keyword in query_keywords):
-            return "query_balance"
         
         # Check for question keywords
         question_keywords = ['tại sao', 'như thế nào', 'làm sao', 'có thể', 'có nên']
@@ -313,7 +407,7 @@ Return JSON format:
                 return "Tôi sẽ giúp bạn thêm giao dịch mới."
         
         elif intent == "query_balance":
-            return "Tôi sẽ kiểm tra số dư và chi tiêu của bạn."
+            return "Tôi sẽ kiểm tra số dư và chi tiêu của bạn. Bạn có thể xem chi tiết trong trang Analytics hoặc Dashboard."
         
         elif intent == "ask_question":
             return "Tôi sẽ cố gắng trả lời câu hỏi của bạn về tài chính."
@@ -370,3 +464,76 @@ Return JSON format:
                 return f"{year}-{month.zfill(2)}-{day.zfill(2)}"
         
         return today.strftime('%Y-%m-%d')
+    
+    async def process_chat(self, request: ChatRequest) -> ChatResponse:
+        """Process chat message and return AI response"""
+        if not self.is_ready():
+            raise RuntimeError("NLU Service not ready")
+        
+        try:
+            # Convert chat request to NLU request
+            nlu_request = NLURequest(
+                text=request.message,
+                user_id=request.user_id,
+                context="chat"
+            )
+            
+            # Process with NLU
+            nlu_response = await self.process_nlu(nlu_request)
+            
+            # Generate suggestions based on intent
+            suggestions = self._generate_chat_suggestions(nlu_response.intent)
+            
+            return ChatResponse(
+                user_id=request.user_id,
+                message=request.message,
+                response=nlu_response.response,
+                intent=nlu_response.intent,
+                entities=nlu_response.entities,
+                suggestions=suggestions,
+                generated_at=datetime.now().isoformat() + "Z"
+            )
+            
+        except Exception as e:
+            logger.error(f"Failed to process chat: {e}")
+            # Return fallback response
+            return ChatResponse(
+                user_id=request.user_id,
+                message=request.message,
+                response="Xin lỗi, tôi không thể xử lý tin nhắn của bạn lúc này. Vui lòng thử lại sau.",
+                intent="error",
+                entities=[],
+                suggestions=["Thử hỏi về chi tiêu", "Kiểm tra số dư", "Thêm giao dịch mới"],
+                generated_at=datetime.now().isoformat() + "Z"
+            )
+    
+    def _generate_chat_suggestions(self, intent: str) -> List[str]:
+        """Generate chat suggestions based on intent"""
+        suggestion_map = {
+            "add_transaction": [
+                "Thêm giao dịch khác",
+                "Xem danh mục chi tiêu",
+                "Kiểm tra số dư"
+            ],
+            "query_balance": [
+                "Xem chi tiết chi tiêu",
+                "Phân tích xu hướng",
+                "Dự đoán chi tiêu"
+            ],
+            "ask_question": [
+                "Cách tiết kiệm tiền",
+                "Quản lý ngân sách",
+                "Đầu tư cá nhân"
+            ],
+            "general": [
+                "Thêm giao dịch",
+                "Xem báo cáo",
+                "Phân tích tài chính"
+            ]
+        }
+        
+        return suggestion_map.get(intent, [
+            "Thêm giao dịch",
+            "Xem báo cáo",
+            "Phân tích tài chính"
+        ])
