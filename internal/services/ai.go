@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"tabimoney/internal/config"
@@ -34,12 +35,18 @@ func NewAIService(cfg *config.Config) *AIService {
     svc := &AIService{
 		config:       cfg,
 		db:           database.GetDB(),
-		httpClient:   &http.Client{Timeout: 30 * time.Second},
+		httpClient:   &http.Client{Timeout: 60 * time.Second},
 		aiServiceURL: aiURL + "/api/v1",
     }
     svc.intentHandlers = map[string]func(*models.ChatRequest, *models.ChatResponse){
         "query_balance": svc.handleQueryBalance,
         "add_transaction": svc.handleAddTransaction,
+        "create_goal": svc.handleCreateGoal,
+        "list_goals": svc.handleListGoals,
+        "update_goal": svc.handleUpdateGoal,
+        "create_budget": svc.handleCreateBudget,
+        "list_budgets": svc.handleListBudgets,
+        "update_budget": svc.handleUpdateBudget,
     }
     return svc
 }
@@ -284,10 +291,10 @@ func (s *AIService) AnalyzeSpendingPattern(req *models.SpendingPatternRequest) (
 		return nil, fmt.Errorf("failed to get transactions: %w", err)
 	}
 
-	// Analyze patterns
-	patterns := s.analyzeSpendingPatterns(transactions, req.Granularity)
-	insights := s.generateSpendingInsights(patterns)
-	recommendations := s.generateSpendingRecommendations(patterns)
+    // Analyze patterns (aggregate locally)
+    patterns := s.analyzeSpendingPatterns(transactions, req.Granularity)
+    // Ask AI service for dynamic insights
+    insights, recommendations := s.fetchDynamicSpendingInsights(req.UserID, patterns)
 
 	response := &models.SpendingPatternResponse{
 		UserID:          req.UserID,
@@ -308,6 +315,52 @@ func (s *AIService) AnalyzeSpendingPattern(req *models.SpendingPatternRequest) (
 	s.db.Create(analysis)
 
 	return response, nil
+}
+
+// fetchDynamicSpendingInsights calls AI service to get dynamic insights; falls back to rule-based
+func (s *AIService) fetchDynamicSpendingInsights(userID uint64, patterns []models.SpendingPattern) ([]string, []string) {
+    // Build minimal payload for AI-service /analysis/spending
+    type cs struct {
+        CategoryID       uint64  `json:"category_id"`
+        CategoryName     string  `json:"category_name"`
+        TotalAmount      float64 `json:"total_amount"`
+        TransactionCount int     `json:"transaction_count"`
+    }
+    payload := map[string]interface{}{
+        "user_id": userID,
+        "patterns": []cs{},
+    }
+    arr := make([]cs, 0, len(patterns))
+    for _, p := range patterns {
+        arr = append(arr, cs{CategoryID: p.CategoryID, CategoryName: p.CategoryName, TotalAmount: p.TotalAmount, TransactionCount: p.TransactionCount})
+    }
+    payload["patterns"] = arr
+
+    b, _ := json.Marshal(payload)
+    req, err := http.NewRequest("POST", s.aiServiceURL+"/analysis/spending", bytes.NewBuffer(b))
+    if err != nil {
+        return s.generateSpendingInsights(patterns), s.generateSpendingRecommendations(patterns)
+    }
+    req.Header.Set("Content-Type", "application/json")
+    resp, err := s.httpClient.Do(req)
+    if err != nil || resp.StatusCode != http.StatusOK {
+        return s.generateSpendingInsights(patterns), s.generateSpendingRecommendations(patterns)
+    }
+    defer resp.Body.Close()
+    var out struct {
+        Insights        []string `json:"insights"`
+        Recommendations []string `json:"recommendations"`
+    }
+    if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+        return s.generateSpendingInsights(patterns), s.generateSpendingRecommendations(patterns)
+    }
+    if out.Insights == nil {
+        out.Insights = []string{}
+    }
+    if out.Recommendations == nil {
+        out.Recommendations = []string{}
+    }
+    return out.Insights, out.Recommendations
 }
 
 // Goal Analysis
@@ -407,22 +460,83 @@ func (s *AIService) ProcessChat(req *models.ChatRequest) (*models.ChatResponse, 
         return nil, fmt.Errorf("failed to decode response: %w", err)
     }
 
+    // Apply short-term context memory to backfill missing entities
+    s.applyShortTermContext(req.UserID, &response)
+
     // Route to handler if available
     if handler, ok := s.intentHandlers[response.Intent]; ok {
         handler(req, &response)
     }
 
 	// Save chat message
-	chatMessage := &models.ChatMessage{
+    entitiesJSON, _ := json.Marshal(response.Entities)
+    chatMessage := &models.ChatMessage{
 		UserID:      req.UserID,
 		Message:     req.Message,
 		Response:    response.Response,
 		Intent:      response.Intent,
+        Entities:    string(entitiesJSON),
 		IsProcessed: true,
 	}
 	s.db.Create(chatMessage)
 
     return &response, nil
+}
+
+// applyShortTermContext backfills missing common entities (amount, category, title, period)
+func (s *AIService) applyShortTermContext(userID uint64, resp *models.ChatResponse) {
+    has := func(t string) bool {
+        for _, e := range resp.Entities {
+            if e.Type == t && e.Value != "" {
+                return true
+            }
+        }
+        return false
+    }
+
+    needAmount := !has("amount")
+    needCategory := !has("category")
+    needTitle := !has("title")
+    needPeriod := !has("period")
+    if !(needAmount || needCategory || needTitle || needPeriod) {
+        return
+    }
+
+    var chats []models.ChatMessage
+    if err := s.db.Where("user_id = ?", userID).Order("created_at DESC").Limit(5).Find(&chats).Error; err != nil || len(chats) == 0 {
+        return
+    }
+
+    for _, cm := range chats {
+        if cm.Entities == "" {
+            continue
+        }
+        var ents []models.Entity
+        if err := json.Unmarshal([]byte(cm.Entities), &ents); err != nil {
+            continue
+        }
+        for _, e := range ents {
+            if needAmount && e.Type == "amount" && e.Value != "" {
+                resp.Entities = append(resp.Entities, e)
+                needAmount = false
+            }
+            if needCategory && e.Type == "category" && e.Value != "" {
+                resp.Entities = append(resp.Entities, e)
+                needCategory = false
+            }
+            if needTitle && e.Type == "title" && e.Value != "" {
+                resp.Entities = append(resp.Entities, e)
+                needTitle = false
+            }
+            if needPeriod && e.Type == "period" && e.Value != "" {
+                resp.Entities = append(resp.Entities, e)
+                needPeriod = false
+            }
+        }
+        if !(needAmount || needCategory || needTitle || needPeriod) {
+            break
+        }
+    }
 }
 
 // Handlers
@@ -449,6 +563,7 @@ func (s *AIService) handleQueryBalance(req *models.ChatRequest, resp *models.Cha
 
 func (s *AIService) handleAddTransaction(req *models.ChatRequest, resp *models.ChatResponse) {
     var amount float64
+    var amountMaxConfidence float64
     var categoryName string
     for _, e := range resp.Entities {
         switch e.Type {
@@ -456,6 +571,9 @@ func (s *AIService) handleAddTransaction(req *models.ChatRequest, resp *models.C
             if v, err := strconv.ParseFloat(e.Value, 64); err == nil && v > 0 {
                 if v > amount {
                     amount = v
+                }
+                if e.Confidence > amountMaxConfidence {
+                    amountMaxConfidence = e.Confidence
                 }
             }
         case "category":
@@ -466,6 +584,12 @@ func (s *AIService) handleAddTransaction(req *models.ChatRequest, resp *models.C
     }
 
     if amount <= 0 {
+        return
+    }
+
+    // Confidence threshold for confirmation
+    if amountMaxConfidence > 0 && amountMaxConfidence < 0.6 {
+        resp.Response = fmt.Sprintf("Tôi hiểu bạn muốn thêm giao dịch khoảng %.0f VND. Bạn xác nhận số tiền này chứ?", amount)
         return
     }
 
@@ -753,19 +877,19 @@ func (s *AIService) projectGoalCompletion(goal models.FinancialGoal, progress fl
 }
 
 func (s *AIService) generateGoalRecommendations(goal models.FinancialGoal, progress float64) []string {
-	recommendations := []string{
-		"Consider increasing your monthly savings to reach your goal faster.",
-		"Review your spending to identify areas where you can save more.",
-	}
-	return recommendations
+    recommendations := []string{
+        "Hãy tăng mức tiết kiệm hàng tháng để đạt mục tiêu nhanh hơn.",
+        "Xem lại các khoản chi để tìm cơ hội tiết kiệm thêm.",
+    }
+    return recommendations
 }
 
 func (s *AIService) identifyGoalRiskFactors(goal models.FinancialGoal, progress float64) []string {
-	riskFactors := []string{
-		"Low progress may indicate insufficient savings rate.",
-		"Market volatility could affect investment goals.",
-	}
-	return riskFactors
+    riskFactors := []string{
+        "Tiến độ thấp có thể cho thấy tỷ lệ tiết kiệm chưa đủ.",
+        "Biến động thị trường có thể ảnh hưởng đến mục tiêu đầu tư.",
+    }
+    return riskFactors
 }
 
 func (s *AIService) marshalToJSON(data interface{}) string {
@@ -775,4 +899,396 @@ func (s *AIService) marshalToJSON(data interface{}) string {
 		return "{}"
 	}
 	return string(jsonData)
+}
+
+func formatCurrency(amount float64) string {
+    // Format number with thousand separators
+    s := fmt.Sprintf("%.0f", amount)
+    n := len(s)
+    if n <= 3 {
+        return s
+    }
+    var b strings.Builder
+    pre := n % 3
+    if pre == 0 {
+        pre = 3
+    }
+    b.WriteString(s[:pre])
+    for i := pre; i < n; i += 3 {
+        b.WriteString(",")
+        b.WriteString(s[i : i+3])
+    }
+    return b.String()
+}
+
+func (s *AIService) handleCreateGoal(req *models.ChatRequest, resp *models.ChatResponse) {
+    var amount float64
+    var amountMaxConfidence float64
+    var title, goalType string
+    var titleConfidence float64
+
+    // Extract entities
+    for _, e := range resp.Entities {
+        switch e.Type {
+        case "amount":
+            if v, err := strconv.ParseFloat(e.Value, 64); err == nil && v > 0 {
+                if v > amount {
+                    amount = v
+                }
+                if e.Confidence > amountMaxConfidence {
+                    amountMaxConfidence = e.Confidence
+                }
+            }
+        case "goal_type":
+            goalType = e.Value
+        case "title":
+            title = e.Value
+            if e.Confidence > titleConfidence {
+                titleConfidence = e.Confidence
+            }
+        }
+    }
+
+    if amount <= 0 {
+        resp.Response = "Vui lòng cung cấp số tiền mục tiêu để tạo mục tiêu tài chính."
+        return
+    }
+
+    // Confidence threshold for confirmation
+    if amountMaxConfidence > 0 && amountMaxConfidence < 0.6 {
+        resp.Response = fmt.Sprintf("Bạn muốn tạo mục tiêu với số tiền %s VND? Vui lòng xác nhận hoặc cung cấp lại số tiền.", formatCurrency(amount))
+        return
+    }
+
+    if title == "" {
+        title = "Mục tiêu tài chính"
+    }
+    // Ask confirmation if title detected with low confidence
+    if titleConfidence > 0 && titleConfidence < 0.6 {
+        resp.Response = fmt.Sprintf("Bạn muốn đặt tên mục tiêu là '%s' chứ? Vui lòng xác nhận hoặc cung cấp tên khác.", title)
+        return
+    }
+    if goalType == "" {
+        goalType = "savings"
+    }
+
+    // Map Vietnamese goal types
+    goalTypeMap := map[string]string{
+        "tiết kiệm": "savings",
+        "mua sắm": "purchase",
+        "đầu tư": "investment",
+        "trả nợ": "debt_payment",
+    }
+    if mapped, exists := goalTypeMap[goalType]; exists {
+        goalType = mapped
+    }
+
+    createReq := &models.FinancialGoalCreateRequest{
+        Title:       title,
+        Description: req.Message,
+        TargetAmount: amount,
+        GoalType:    goalType,
+        Priority:    "medium",
+    }
+
+    goalService := NewGoalService()
+    if goal, err := goalService.CreateGoal(req.UserID, createReq); err != nil {
+        log.Printf("AI chat create_goal: failed to create goal: %v", err)
+        resp.Response = "Không thể tạo mục tiêu tài chính. Vui lòng thử lại."
+    } else {
+        resp.Response = fmt.Sprintf("Đã tạo mục tiêu '%s' với số tiền %s VND.", goal.Title, formatCurrency(goal.TargetAmount))
+    }
+}
+
+func (s *AIService) handleListGoals(req *models.ChatRequest, resp *models.ChatResponse) {
+    goalService := NewGoalService()
+    goals, err := goalService.GetGoals(req.UserID)
+    if err != nil {
+        log.Printf("AI chat list_goals: failed to get goals: %v", err)
+        resp.Response = "Không thể lấy danh sách mục tiêu. Vui lòng thử lại."
+        return
+    }
+
+    if len(goals) == 0 {
+        resp.Response = "Bạn chưa có mục tiêu tài chính nào. Hãy tạo mục tiêu đầu tiên!"
+        return
+    }
+
+    resp.Response = fmt.Sprintf("Bạn có %d mục tiêu tài chính:\n", len(goals))
+    for i, goal := range goals {
+        if i >= 5 { // Limit to 5 goals for readability
+            resp.Response += "..."
+            break
+        }
+        progress := (goal.CurrentAmount / goal.TargetAmount) * 100
+        resp.Response += fmt.Sprintf("- %s: %s/%s VND (%.1f%%)\n", 
+            goal.Title, formatCurrency(goal.CurrentAmount), formatCurrency(goal.TargetAmount), progress)
+    }
+}
+
+func (s *AIService) handleUpdateGoal(req *models.ChatRequest, resp *models.ChatResponse) {
+    var amount float64
+    var goalID uint64
+
+    // Extract entities
+    for _, e := range resp.Entities {
+        switch e.Type {
+        case "amount":
+            if v, err := strconv.ParseFloat(e.Value, 64); err == nil && v > 0 {
+                amount = v
+            }
+        case "goal_id":
+            if v, err := strconv.ParseUint(e.Value, 10, 64); err == nil {
+                goalID = v
+            }
+        }
+    }
+
+    if amount <= 0 {
+        resp.Response = "Vui lòng cung cấp số tiền để cập nhật mục tiêu."
+        return
+    }
+
+    // If no goal ID specified, get the first goal
+    if goalID == 0 {
+        goalService := NewGoalService()
+        goals, err := goalService.GetGoals(req.UserID)
+        if err != nil || len(goals) == 0 {
+            resp.Response = "Không tìm thấy mục tiêu nào để cập nhật."
+            return
+        }
+        goalID = goals[0].ID
+    }
+
+    goalService := NewGoalService()
+    if goal, err := goalService.AddContribution(req.UserID, goalID, amount, req.Message); err != nil {
+        log.Printf("AI chat update_goal: failed to update goal: %v", err)
+        resp.Response = "Không thể cập nhật mục tiêu. Vui lòng thử lại."
+    } else {
+        progress := (goal.CurrentAmount / goal.TargetAmount) * 100
+        resp.Response = fmt.Sprintf("Đã thêm %s VND vào mục tiêu '%s'. Tiến độ: %.1f%%", 
+            formatCurrency(amount), goal.Title, progress)
+    }
+}
+
+func (s *AIService) handleCreateBudget(req *models.ChatRequest, resp *models.ChatResponse) {
+    var amount float64
+    var amountMaxConfidence float64
+    var name, period string
+    var categoryConfidence, periodConfidence float64
+    var categoryID *uint64
+    var alertThreshold *float64
+
+    // Extract entities
+    for _, e := range resp.Entities {
+        switch e.Type {
+        case "amount":
+            if v, err := strconv.ParseFloat(e.Value, 64); err == nil && v > 0 {
+                if v > amount {
+                    amount = v
+                }
+                if e.Confidence > amountMaxConfidence {
+                    amountMaxConfidence = e.Confidence
+                }
+            }
+        case "category":
+            // Map Vietnamese category names to category IDs
+            categoryMap := map[string]uint64{
+                "ăn uống": 1,
+                "giao thông": 2,
+                "mua sắm": 3,
+                "giải trí": 4,
+            }
+            if id, exists := categoryMap[e.Value]; exists {
+                categoryID = &id
+            }
+            if e.Confidence > categoryConfidence {
+                categoryConfidence = e.Confidence
+            }
+        case "period":
+            period = e.Value
+            if e.Confidence > periodConfidence {
+                periodConfidence = e.Confidence
+            }
+        case "title":
+            name = e.Value
+        }
+    }
+
+    // Parse alert threshold phrases like "cảnh báo 70%"
+    lower := strings.ToLower(req.Message)
+    if strings.Contains(lower, "cảnh báo") && strings.Contains(lower, "%") {
+        // extract number before %
+        for i := 0; i < len(lower); i++ {
+            if lower[i] >= '0' && lower[i] <= '9' {
+                j := i
+                for j < len(lower) && ((lower[j] >= '0' && lower[j] <= '9') || lower[j] == '.') {
+                    j++
+                }
+                if j < len(lower) && lower[j] == '%' {
+                    if v, err := strconv.ParseFloat(lower[i:j], 64); err == nil && v > 0 {
+                        alertThreshold = &v
+                    }
+                    break
+                }
+            }
+        }
+    }
+
+    if amount <= 0 {
+        resp.Response = "Vui lòng cung cấp số tiền ngân sách để tạo ngân sách."
+        return
+    }
+
+    // Confidence threshold for confirmation
+    if amountMaxConfidence > 0 && amountMaxConfidence < 0.6 {
+        resp.Response = fmt.Sprintf("Bạn muốn tạo ngân sách %s VND? Vui lòng xác nhận hoặc cung cấp lại số tiền.", formatCurrency(amount))
+        return
+    }
+
+    if name == "" {
+        name = "Ngân sách hàng tháng"
+    }
+    if period == "" {
+        period = "monthly"
+    }
+    // Confirmation prompts for low-confidence entities
+    if categoryID == nil && categoryConfidence > 0 && categoryConfidence < 0.6 {
+        resp.Response = "Bạn muốn tạo ngân sách cho danh mục nào? Vui lòng xác nhận danh mục."
+        return
+    }
+    if periodConfidence > 0 && periodConfidence < 0.6 {
+        resp.Response = "Kỳ ngân sách bạn mong muốn là hàng tuần, hàng tháng hay hàng năm?"
+        return
+    }
+
+    // Map Vietnamese periods
+    periodMap := map[string]string{
+        "hàng tuần": "weekly",
+        "hàng tháng": "monthly", 
+        "hàng năm": "yearly",
+    }
+    if mapped, exists := periodMap[period]; exists {
+        period = mapped
+    }
+
+    // Set default dates for monthly budget
+    now := time.Now()
+    startDate := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+    endDate := startDate.AddDate(0, 1, -1)
+
+    createReq := &models.BudgetCreateRequest{
+        CategoryID:     categoryID,
+        Name:           name,
+        Amount:         amount,
+        Period:         period,
+        StartDate:      startDate,
+        EndDate:        endDate,
+        AlertThreshold: func() float64 { if alertThreshold != nil { return *alertThreshold } ; return 80.0 }(),
+    }
+
+    budgetService := NewBudgetService()
+    if budget, err := budgetService.CreateBudget(req.UserID, createReq); err != nil {
+        log.Printf("AI chat create_budget: failed to create budget: %v", err)
+        resp.Response = "Không thể tạo ngân sách. Vui lòng thử lại."
+    } else {
+        resp.Response = fmt.Sprintf("Đã tạo ngân sách '%s' với số tiền %s VND cho kỳ %s.", 
+            budget.Name, formatCurrency(budget.Amount), period)
+    }
+}
+
+func (s *AIService) handleListBudgets(req *models.ChatRequest, resp *models.ChatResponse) {
+    budgetService := NewBudgetService()
+    budgets, err := budgetService.GetBudgets(req.UserID)
+    if err != nil {
+        log.Printf("AI chat list_budgets: failed to get budgets: %v", err)
+        resp.Response = "Không thể lấy danh sách ngân sách. Vui lòng thử lại."
+        return
+    }
+
+    if len(budgets) == 0 {
+        resp.Response = "Bạn chưa có ngân sách nào. Hãy tạo ngân sách đầu tiên!"
+        return
+    }
+
+    resp.Response = fmt.Sprintf("Bạn có %d ngân sách:\n", len(budgets))
+    for i, budget := range budgets {
+        if i >= 5 { // Limit to 5 budgets for readability
+            resp.Response += "..."
+            break
+        }
+        categoryName := "Tất cả"
+        if budget.Category != nil {
+            categoryName = budget.Category.Name
+        }
+        resp.Response += fmt.Sprintf("- %s (%s): %s/%s VND (%.1f%%)\n", 
+            budget.Name, categoryName, formatCurrency(budget.SpentAmount), 
+            formatCurrency(budget.Amount), budget.UsagePercentage)
+    }
+}
+
+func (s *AIService) handleUpdateBudget(req *models.ChatRequest, resp *models.ChatResponse) {
+    var amount float64
+    var budgetID uint64
+
+    // Extract entities
+    for _, e := range resp.Entities {
+        switch e.Type {
+        case "amount":
+            if v, err := strconv.ParseFloat(e.Value, 64); err == nil && v > 0 {
+                amount = v
+            }
+        case "budget_id":
+            if v, err := strconv.ParseUint(e.Value, 10, 64); err == nil {
+                budgetID = v
+            }
+        }
+    }
+
+    if amount <= 0 {
+        resp.Response = "Vui lòng cung cấp số tiền để cập nhật ngân sách."
+        return
+    }
+
+    // If no budget ID specified, get the first budget
+    if budgetID == 0 {
+        budgetService := NewBudgetService()
+        budgets, err := budgetService.GetBudgets(req.UserID)
+        if err != nil || len(budgets) == 0 {
+            resp.Response = "Không tìm thấy ngân sách nào để cập nhật."
+            return
+        }
+        budgetID = budgets[0].ID
+    }
+
+    // For now, just show current budget status
+    budgetService := NewBudgetService()
+    budgets, err := budgetService.GetBudgets(req.UserID)
+    if err != nil {
+        log.Printf("AI chat update_budget: failed to get budgets: %v", err)
+        resp.Response = "Không thể cập nhật ngân sách. Vui lòng thử lại."
+        return
+    }
+
+    var budget *models.Budget
+    for i := range budgets {
+        if budgets[i].ID == budgetID {
+            budget = &budgets[i]
+            break
+        }
+    }
+
+    if budget == nil {
+        resp.Response = "Không tìm thấy ngân sách để cập nhật."
+        return
+    }
+
+    categoryName := "Tất cả"
+    if budget.Category != nil {
+        categoryName = budget.Category.Name
+    }
+
+    resp.Response = fmt.Sprintf("Ngân sách '%s' (%s): Đã chi %s/%s VND (%.1f%%). Còn lại %s VND.", 
+        budget.Name, categoryName, formatCurrency(budget.SpentAmount), 
+        formatCurrency(budget.Amount), budget.UsagePercentage, formatCurrency(budget.RemainingAmount))
 }

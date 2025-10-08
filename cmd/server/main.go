@@ -121,6 +121,26 @@ func main() {
     cat.PUT("/:id", categoryHandler.Update)
     cat.DELETE("/:id", categoryHandler.Delete)
 
+    // Goals routes
+    goalHandler := handlers.NewGoalHandler()
+    goals := api.Group("/goals", appmw.AuthMiddleware(authService))
+    goals.GET("", goalHandler.GetGoals)
+    goals.GET("/:id", goalHandler.GetGoal)
+    goals.POST("", goalHandler.CreateGoal)
+    goals.PUT("/:id", goalHandler.UpdateGoal)
+    goals.DELETE("/:id", goalHandler.DeleteGoal)
+    goals.POST("/:id/contribute", goalHandler.AddContribution)
+
+    // Budgets routes
+    budgetHandler := handlers.NewBudgetHandler()
+    budgets := api.Group("/budgets", appmw.AuthMiddleware(authService))
+    budgets.GET("", budgetHandler.GetBudgets)
+    budgets.GET("/:id", budgetHandler.GetBudget)
+    budgets.POST("", budgetHandler.CreateBudget)
+    budgets.PUT("/:id", budgetHandler.UpdateBudget)
+    budgets.DELETE("/:id", budgetHandler.DeleteBudget)
+    budgets.GET("/alerts", budgetHandler.GetBudgetAlerts)
+
     // AI endpoints
     ai := api.Group("/ai", appmw.AuthMiddleware(authService))
     ai.POST("/suggest-category", aiHandler.SuggestCategory)

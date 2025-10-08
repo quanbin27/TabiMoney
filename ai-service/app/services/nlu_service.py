@@ -53,16 +53,21 @@ class NLUService:
         logger.info("Initializing NLU Service...")
         
         try:
-            if settings.USE_OPENAI and settings.OPENAI_API_KEY:
+            if not settings.USE_OPENAI:
+                # Force use Ollama when USE_OPENAI is False
+                self.ollama_client = httpx.AsyncClient(timeout=30.0)
+                await self._test_ollama_connection()
+                logger.info("NLU Service initialized with Ollama (forced)")
+            elif settings.USE_OPENAI and settings.OPENAI_API_KEY:
                 # Initialize OpenAI client
                 self.client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
                 await self._test_openai_connection()
                 logger.info("NLU Service initialized with OpenAI")
             else:
-                # Initialize Ollama client (shorter timeout to avoid FE 502s)
-                self.ollama_client = httpx.AsyncClient(timeout=10.0)
+                # Initialize Ollama client as fallback
+                self.ollama_client = httpx.AsyncClient(timeout=30.0)
                 await self._test_ollama_connection()
-                logger.info("NLU Service initialized with Ollama")
+                logger.info("NLU Service initialized with Ollama (fallback)")
             
             self.is_initialized = True
             
@@ -230,42 +235,30 @@ class NLUService:
     
     def _build_nlu_prompt(self, text: str, context: str) -> str:
         """Build prompt for AI NLU processing"""
-        return f"""
-Bạn là trợ lý tài chính cho TabiMoney. Phân tích input của user và trích xuất:
+        return f"""Phân tích: "{text}"
 
-1. Intent (add_transaction, query_balance, ask_question, general)
-2. Entities (amounts, categories, dates, descriptions)
-3. Confidence score (0-1)
-4. Suggested action
-5. Response (bằng tiếng Việt)
+Yêu cầu: Trả về CHỈ JSON hợp lệ (không có giải thích thêm).
+Schema:
+{
+  "intent": "add_transaction|query_balance|create_goal|list_goals|update_goal|create_budget|list_budgets|update_budget|ask_question|general",
+  "entities": [{
+    "type": "amount|category|date|description|title|goal_type|period",
+    "value": "...",
+    "confidence": 0.9,
+    "start_pos": 0,
+    "end_pos": 5
+  }],
+  "confidence": 0.9,
+  "suggested_action": "action",
+  "response": "Phản hồi tiếng Việt"
+}
 
-User input: {text}
-Context: {context}
+QUY TẮC QUAN TRỌNG:
+- Với entity type "amount": trả về GIÁ TRỊ SỐ (VND) thuần, không đơn vị, không dấu phân tách. Ví dụ: "10 triệu" -> 10000000; "50 nghìn" -> 50000.
+- Các trường khác giữ nguyên dạng chuỗi.
 
-Return JSON format:
-{{
-  "intent": "add_transaction",
-  "entities": [
-    {{"type": "amount", "value": "50000", "confidence": 0.95, "start_pos": 0, "end_pos": 5}},
-    {{"type": "category", "value": "ăn uống", "confidence": 0.9, "start_pos": 10, "end_pos": 17}}
-  ],
-  "confidence": 0.92,
-  "suggested_action": "create_transaction",
-  "response": "Tôi sẽ giúp bạn thêm giao dịch này..."
-}}
-
-Possible intents:
-- add_transaction: user muốn thêm giao dịch mới
-- query_balance: user muốn biết về số dư, chi tiêu, thu nhập
-- ask_question: user hỏi câu hỏi về tài chính
-- general: chào hỏi hoặc không xác định được
-
-Possible entities:
-- amount: số tiền
-- category: danh mục chi tiêu
-- date: ngày tháng
-- description: mô tả giao dịch
-"""
+Intents: add_transaction, query_balance, create_goal, list_goals, update_goal, create_budget, list_budgets, update_budget, ask_question, general
+Entities: amount, category, date, description, title, goal_type, period"""
     
     def _parse_openai_response(self, content: str, user_id: int) -> NLUResponse:
         """Parse OpenAI response"""
@@ -275,10 +268,21 @@ Possible entities:
             
             entities = []
             for entity_data in data.get('entities', []):
+                value = entity_data.get('value')
+                ent_type = entity_data.get('type')
+                # Normalize amount values like "10 triệu" -> 10000000
+                if ent_type == 'amount' and isinstance(value, str):
+                    # Extract first number in the text and scale by suffix
+                    num_match = re.search(r"\d+(?:[\.,]\d+)?", value)
+                    if num_match:
+                        num_text = num_match.group(0).replace(',', '.')
+                        parsed_amount = self._parse_amount(num_text, value)
+                        if parsed_amount > 0:
+                            value = str(parsed_amount)
                 entity = Entity(
-                    type=entity_data['type'],
-                    value=entity_data['value'],
-                    confidence=entity_data['confidence'],
+                    type=ent_type,
+                    value=value,
+                    confidence=entity_data.get('confidence', 0.0),
                     start_pos=entity_data.get('start_pos', 0),
                     end_pos=entity_data.get('end_pos', 0)
                 )
@@ -286,11 +290,11 @@ Possible entities:
             
             return NLUResponse(
                 user_id=user_id,
-                intent=data['intent'],
+                intent=data.get('intent', 'general'),
                 entities=entities,
-                confidence=data['confidence'],
-                suggested_action=data['suggested_action'],
-                response=data['response'],
+                confidence=data.get('confidence', 0.0),
+                suggested_action=data.get('suggested_action', 'general_response'),
+                response=data.get('response', 'Xin lỗi, tôi không hiểu yêu cầu của bạn.'),
                 generated_at=datetime.now().isoformat() + "Z"
             )
             
@@ -380,6 +384,30 @@ Possible entities:
         if any(keyword in text for keyword in query_keywords):
             return "query_balance"
         
+        # Check for goals keywords
+        goal_keywords = ['mục tiêu', 'goal', 'tiết kiệm', 'đầu tư', 'mua sắm', 'trả nợ']
+        if any(keyword in text for keyword in goal_keywords):
+            if 'tạo' in text or ('thêm' in text and 'mới' in text):
+                return "create_goal"
+            elif 'xem' in text or 'danh sách' in text or 'list' in text:
+                return "list_goals"
+            elif 'cập nhật' in text or 'đóng góp' in text or ('thêm' in text and 'tiền' in text) or ('tiết kiệm' in text and 'thêm' in text):
+                return "update_goal"
+            else:
+                return "list_goals"  # Default to list if unclear
+        
+        # Check for budget keywords
+        budget_keywords = ['ngân sách', 'budget', 'hạn mức', 'chi tiêu']
+        if any(keyword in text for keyword in budget_keywords):
+            if 'tạo' in text or ('thêm' in text and 'mới' in text):
+                return "create_budget"
+            elif 'xem' in text or 'danh sách' in text or 'list' in text or 'kiểm tra' in text:
+                return "list_budgets"
+            elif 'cập nhật' in text or 'trạng thái' in text or 'tình hình' in text:
+                return "update_budget"
+            else:
+                return "list_budgets"  # Default to list if unclear
+        
         # Check for transaction-related keywords
         transaction_keywords = ['mua', 'mua', 'chi', 'tiêu', 'ăn', 'uống', 'đi', 'mua sắm']
         if any(keyword in text for keyword in transaction_keywords):
@@ -433,7 +461,7 @@ Possible entities:
             # Handle Vietnamese number suffixes
             if 'k' in full_match.lower() or 'nghìn' in full_match.lower():
                 amount *= 1000
-            elif 'tr' in full_match.lower() or 'triệu' in full_match.lower():
+            elif 'triệu' in full_match.lower() or 'tr' in full_match.lower():
                 amount *= 1000000
             elif 'tỷ' in full_match.lower():
                 amount *= 1000000000
