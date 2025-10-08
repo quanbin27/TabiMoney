@@ -594,9 +594,11 @@ func (s *AIService) handleAddTransaction(req *models.ChatRequest, resp *models.C
     }
 
     var category models.Category
-    if err := s.db.Where("name = ?", categoryName).First(&category).Error; err != nil {
-        if categoryName == "ăn uống" || categoryName == "an uong" {
-            s.db.Where("name = ?", "Ăn uống").First(&category)
+    if err := s.db.Where("LOWER(name) = ?", strings.ToLower(categoryName)).First(&category).Error; err != nil {
+        // normalize common Vietnamese variants
+        lower := strings.ToLower(categoryName)
+        if strings.Contains(lower, "an uong") || strings.Contains(lower, "ăn uống") {
+            s.db.Where("LOWER(name) = ?", strings.ToLower("Ăn uống")).First(&category)
         }
     }
     if category.ID == 0 {
@@ -1078,6 +1080,7 @@ func (s *AIService) handleCreateBudget(req *models.ChatRequest, resp *models.Cha
     var categoryConfidence, periodConfidence float64
     var categoryID *uint64
     var alertThreshold *float64
+    var categoryName string
 
     // Extract entities
     for _, e := range resp.Entities {
@@ -1092,15 +1095,9 @@ func (s *AIService) handleCreateBudget(req *models.ChatRequest, resp *models.Cha
                 }
             }
         case "category":
-            // Map Vietnamese category names to category IDs
-            categoryMap := map[string]uint64{
-                "ăn uống": 1,
-                "giao thông": 2,
-                "mua sắm": 3,
-                "giải trí": 4,
-            }
-            if id, exists := categoryMap[e.Value]; exists {
-                categoryID = &id
+            // Try resolve category by name from DB instead of static map
+            if categoryName == "" {
+                categoryName = e.Value
             }
             if e.Confidence > categoryConfidence {
                 categoryConfidence = e.Confidence
@@ -1170,6 +1167,22 @@ func (s *AIService) handleCreateBudget(req *models.ChatRequest, resp *models.Cha
     }
     if mapped, exists := periodMap[period]; exists {
         period = mapped
+    }
+
+    // Resolve categoryID by name if provided
+    if categoryID == nil && categoryName != "" {
+        var cat models.Category
+        // Try exact and normalized matching
+        if err := s.db.Where("LOWER(name) = ?", strings.ToLower(categoryName)).First(&cat).Error; err != nil {
+            // fallback common name variants
+            if strings.Contains(strings.ToLower(categoryName), "an uong") || strings.Contains(strings.ToLower(categoryName), "ăn uống") {
+                s.db.Where("LOWER(name) = ?", strings.ToLower("Ăn uống")).First(&cat)
+            }
+        }
+        if cat.ID != 0 {
+            id := cat.ID
+            categoryID = &id
+        }
     }
 
     // Set default dates for monthly budget

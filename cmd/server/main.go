@@ -133,6 +133,11 @@ func main() {
 
     // Budgets routes
     budgetHandler := handlers.NewBudgetHandler()
+    // Notifications routes
+    notificationHandler := handlers.NewNotificationHandler()
+    notifications := api.Group("/notifications", appmw.AuthMiddleware(authService))
+    notifications.GET("", notificationHandler.List)
+    notifications.POST(":id/read", notificationHandler.MarkRead)
     budgets := api.Group("/budgets", appmw.AuthMiddleware(authService))
     budgets.GET("", budgetHandler.GetBudgets)
     budgets.GET("/:id", budgetHandler.GetBudget)
