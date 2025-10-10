@@ -104,6 +104,8 @@ func main() {
     auth.POST("/change-password", authHandler.ChangePassword, appmw.AuthMiddleware(authService))
     auth.GET("/profile", authHandler.GetProfile, appmw.AuthMiddleware(authService))
     auth.PUT("/profile", authHandler.UpdateProfile, appmw.AuthMiddleware(authService))
+    auth.GET("/income", authHandler.GetMonthlyIncome, appmw.AuthMiddleware(authService))
+    auth.PUT("/income", authHandler.SetMonthlyIncome, appmw.AuthMiddleware(authService))
 
     // Transactions routes
     tx := api.Group("/transactions", appmw.AuthMiddleware(authService))

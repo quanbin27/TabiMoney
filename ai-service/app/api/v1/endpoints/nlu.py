@@ -30,6 +30,7 @@ class NLUResponseModel(BaseModel):
     confidence: float
     suggested_action: str
     response: str
+    needs_confirmation: bool = False
     generated_at: str
 
 
@@ -60,6 +61,7 @@ async def process_nlu(
             confidence=response.confidence,
             suggested_action=response.suggested_action,
             response=response.response,
+            needs_confirmation=response.needs_confirmation,
             generated_at=response.generated_at.isoformat()
         )
         

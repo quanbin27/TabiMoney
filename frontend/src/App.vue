@@ -13,6 +13,34 @@
       
       <v-spacer />
       
+      <!-- Notifications -->
+      <v-menu v-if="authStore.isAuthenticated" offset-y>
+        <template v-slot:activator="{ props }">
+          <v-btn icon v-bind="props" @click="loadNotifications">
+            <v-badge :content="unreadCount" color="red" v-if="unreadCount > 0" overlap>
+              <v-icon>mdi-bell</v-icon>
+            </v-badge>
+            <v-icon v-else>mdi-bell</v-icon>
+          </v-btn>
+        </template>
+        <v-list style="min-width: 320px; max-width: 420px;">
+          <v-list-subheader>Notifications</v-list-subheader>
+          <v-list-item v-if="notifications.length === 0">
+            <v-list-item-title>No notifications</v-list-item-title>
+          </v-list-item>
+          <v-list-item v-for="n in notifications" :key="n.id" :class="{ 'opacity-70': n.is_read }">
+            <v-list-item-title class="d-flex align-center justify-space-between">
+              <span>{{ n.title }}</span>
+              <v-chip size="x-small" :color="chipColor(n.notification_type)">{{ n.notification_type }}</v-chip>
+            </v-list-item-title>
+            <v-list-item-subtitle>{{ n.message }}</v-list-item-subtitle>
+            <template v-slot:append>
+              <v-btn v-if="!n.is_read" size="x-small" variant="text" @click.stop="markRead(n.id)">Mark read</v-btn>
+            </template>
+          </v-list-item>
+        </v-list>
+      </v-menu>
+
       <!-- User Menu -->
       <v-menu v-if="authStore.isAuthenticated" offset-y>
         <template v-slot:activator="{ props }">
@@ -117,6 +145,7 @@ import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from './stores/auth'
 import { useAppStore } from './stores/app'
+import { notificationsAPI } from './services/api'
 
 const route = useRoute()
 const router = useRouter()
@@ -125,6 +154,8 @@ const appStore = useAppStore()
 
 const drawer = ref(false)
 const loading = computed(() => appStore.loading)
+const notifications = ref<any[]>([])
+const unreadCount = ref(0)
 
 // Navigation items
 const navigationItems = [
@@ -160,6 +191,28 @@ const goToProfile = () => {
 const logout = async () => {
   await authStore.logout()
   router.push('/auth/login')
+}
+
+const loadNotifications = async () => {
+  try {
+    const [allRes, unreadRes] = await Promise.all([
+      notificationsAPI.list(false),
+      notificationsAPI.list(true),
+    ])
+    notifications.value = allRes.data.data || []
+    unreadCount.value = Array.isArray(unreadRes.data.data) ? unreadRes.data.data.length : 0
+  } catch (e) {
+    // silent fail in header
+  }
+}
+
+const markRead = async (id: number) => {
+  try {
+    await notificationsAPI.markRead(id)
+    // update local state
+    notifications.value = notifications.value.map(n => n.id === id ? { ...n, is_read: true } : n)
+    unreadCount.value = Math.max(0, unreadCount.value - 1)
+  } catch (e) {}
 }
 </script>
 

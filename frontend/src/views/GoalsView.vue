@@ -52,7 +52,7 @@
                 {{ getGoalIcon(goal) }}
               </v-icon>
               <div>
-                <h3 class="text-h6">{{ goal.name }}</h3>
+                <h3 class="text-h6">{{ goal.title }}</h3>
                 <p class="text-caption mb-0">{{ goal.description }}</p>
               </div>
             </div>
@@ -134,7 +134,7 @@
             <v-btn
               color="primary"
               variant="text"
-              @click="viewGoalDetails(goal)"
+              @click="openDetails(goal)"
             >
               View Details
             </v-btn>
@@ -178,12 +178,13 @@
           {{ isEditing ? 'Edit Goal' : 'Create New Goal' }}
         </v-card-title>
         <v-card-text>
-          <v-form ref="form" v-model="formValid">
+          <v-form ref="formRef" validate-on="submit">
             <v-text-field
-              v-model="form.name"
-              label="Goal Name"
+              v-model="form.title"
+              label="Goal Title"
               :rules="[rules.required]"
               required
+              clearable
             ></v-text-field>
             
             <v-textarea
@@ -199,6 +200,7 @@
               :rules="[rules.required, rules.positive]"
               prefix="₫"
               required
+              clearable
             ></v-text-field>
             
             <v-text-field
@@ -207,10 +209,11 @@
               type="number"
               :rules="[rules.positive]"
               prefix="₫"
+              clearable
             ></v-text-field>
             
             <v-text-field
-              v-model="form.target_date"
+              v-model.lazy="form.target_date"
               label="Target Date"
               type="date"
               :rules="[rules.required, rules.futureDate]"
@@ -221,6 +224,8 @@
               v-model="form.goal_type"
               label="Goal Type"
               :items="goalTypes"
+              item-title="title"
+              item-value="value"
               :rules="[rules.required]"
               required
             ></v-select>
@@ -229,6 +234,8 @@
               v-model="form.priority"
               label="Priority"
               :items="priorities"
+              item-title="title"
+              item-value="value"
               :rules="[rules.required]"
               required
             ></v-select>
@@ -238,9 +245,9 @@
           <v-spacer></v-spacer>
           <v-btn @click="closeDialog">Cancel</v-btn>
           <v-btn
+            type="submit"
             color="primary"
             @click="saveGoal"
-            :disabled="!formValid"
             :loading="saving"
           >
             {{ isEditing ? 'Update' : 'Create' }}
@@ -254,7 +261,7 @@
       <v-card>
         <v-card-title>Add Contribution</v-card-title>
         <v-card-text>
-          <v-form ref="contributionForm" v-model="contributionFormValid">
+          <v-form ref="contributionFormRef" v-model="contributionFormValid" validate-on="submit">
             <v-text-field
               v-model="contributionForm.amount"
               label="Amount"
@@ -286,10 +293,54 @@
       </v-card>
     </v-dialog>
   </v-container>
+  <!-- Goal Details Dialog (read-only) placed outside conditional blocks to avoid v-else adjacency issues -->
+  <v-dialog v-model="detailsDialog" max-width="600">
+    <v-card>
+      <v-card-title>Goal Details</v-card-title>
+      <v-card-text>
+        <v-list density="compact">
+          <v-list-item>
+            <v-list-item-title class="font-weight-bold">Title</v-list-item-title>
+            <v-list-item-subtitle>{{ detailsGoal?.title }}</v-list-item-subtitle>
+          </v-list-item>
+          <v-list-item>
+            <v-list-item-title class="font-weight-bold">Description</v-list-item-title>
+            <v-list-item-subtitle>{{ detailsGoal?.description || '—' }}</v-list-item-subtitle>
+          </v-list-item>
+          <v-list-item>
+            <v-list-item-title class="font-weight-bold">Target Amount</v-list-item-title>
+            <v-list-item-subtitle>{{ formatCurrency(detailsGoal?.target_amount || 0) }}</v-list-item-subtitle>
+          </v-list-item>
+          <v-list-item>
+            <v-list-item-title class="font-weight-bold">Current Amount</v-list-item-title>
+            <v-list-item-subtitle>{{ formatCurrency(detailsGoal?.current_amount || 0) }}</v-list-item-subtitle>
+          </v-list-item>
+          <v-list-item>
+            <v-list-item-title class="font-weight-bold">Target Date</v-list-item-title>
+            <v-list-item-subtitle>{{ formatDate(detailsGoal?.target_date) }}</v-list-item-subtitle>
+          </v-list-item>
+          <v-list-item>
+            <v-list-item-title class="font-weight-bold">Type</v-list-item-title>
+            <v-list-item-subtitle>{{ detailsGoal?.goal_type }}</v-list-item-subtitle>
+          </v-list-item>
+          <v-list-item>
+            <v-list-item-title class="font-weight-bold">Priority</v-list-item-title>
+            <v-list-item-subtitle>{{ detailsGoal?.priority }}</v-list-item-subtitle>
+          </v-list-item>
+        </v-list>
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer></v-spacer>
+        <v-btn variant="text" @click="detailsDialog = false">Close</v-btn>
+        <v-btn color="primary" variant="text" @click="goEdit(detailsGoal)">Edit</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { goalAPI } from '@/services/api'
 import { formatCurrency, formatDate } from '@/utils/formatters'
 import { useAppStore } from '@/stores/app'
@@ -304,32 +355,33 @@ const savingContribution = ref(false)
 const formValid = ref(false)
 const contributionFormValid = ref(false)
 const selectedGoal = ref<any>(null)
+const detailsDialog = ref(false)
+const detailsGoal = ref<any>(null)
 
 // Form data
+const formRef = ref()
 const form = ref({
-  name: '',
+  title: '',
   description: '',
-  target_amount: 0,
-  current_amount: 0,
-  target_date: '',
-  goal_type: '',
-  priority: ''
+  target_amount: null as number | null,
+  current_amount: 0 as number | null,
+  target_date: '' as string,
+  goal_type: null as string | null,
+  priority: null as string | null,
 })
 
+const contributionFormRef = ref()
 const contributionForm = ref({
-  amount: 0,
+  amount: null as number | null,
   note: ''
 })
 
 // Options
 const goalTypes = [
-  { title: 'Emergency Fund', value: 'emergency_fund' },
-  { title: 'Vacation', value: 'vacation' },
-  { title: 'Home Purchase', value: 'home_purchase' },
-  { title: 'Car Purchase', value: 'car_purchase' },
-  { title: 'Education', value: 'education' },
-  { title: 'Retirement', value: 'retirement' },
+  { title: 'Savings', value: 'savings' },
+  { title: 'Debt Payment', value: 'debt_payment' },
   { title: 'Investment', value: 'investment' },
+  { title: 'Purchase', value: 'purchase' },
   { title: 'Other', value: 'other' }
 ]
 
@@ -337,16 +389,26 @@ const priorities = [
   { title: 'Low', value: 'low' },
   { title: 'Medium', value: 'medium' },
   { title: 'High', value: 'high' },
-  { title: 'Critical', value: 'critical' }
+  { title: 'Urgent', value: 'urgent' }
 ]
 
 // Validation rules
 const rules = {
-  required: (value: any) => !!value || 'This field is required',
-  positive: (value: number) => value >= 0 || 'Value must be positive',
+  required: (value: any) => {
+    if (value === null || value === undefined) return 'This field is required'
+    if (typeof value === 'number') return true // allow 0 as valid
+    if (typeof value === 'string') return value.trim().length > 0 || 'This field is required'
+    return !!value || 'This field is required'
+  },
+  positive: (value: number) => {
+    if (value === null || value === undefined) return true
+    return value >= 0 || 'Value must be positive'
+  },
   futureDate: (value: string) => {
     if (!value) return true
-    return new Date(value) > new Date() || 'Date must be in the future'
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    return new Date(value) > today || 'Date must be in the future'
   }
 }
 
@@ -364,13 +426,13 @@ const loadGoals = async () => {
 const openCreateDialog = () => {
   isEditing.value = false
   form.value = {
-    name: '',
+    title: '',
     description: '',
-    target_amount: 0,
+    target_amount: null,
     current_amount: 0,
     target_date: '',
-    goal_type: '',
-    priority: ''
+    goal_type: null,
+    priority: null
   }
   dialog.value = true
 }
@@ -378,11 +440,11 @@ const openCreateDialog = () => {
 const openEditDialog = (goal: any) => {
   isEditing.value = true
   form.value = {
-    name: goal.name,
+    title: goal.title,
     description: goal.description,
     target_amount: goal.target_amount,
     current_amount: goal.current_amount,
-    target_date: goal.target_date,
+    target_date: goal.target_date ? new Date(goal.target_date).toISOString().slice(0, 10) : '',
     goal_type: goal.goal_type,
     priority: goal.priority
   }
@@ -396,12 +458,29 @@ const closeDialog = () => {
 }
 
 const saveGoal = async () => {
+  if (formRef.value) {
+    const { valid } = await formRef.value.validate()
+    if (!valid) return
+  }
   saving.value = true
   try {
+    const basePayload = {
+      title: (form.value.title || '').trim(),
+      description: form.value.description?.trim() || '',
+      target_amount: form.value.target_amount != null ? Number(form.value.target_amount) : null,
+      target_date: form.value.target_date ? `${form.value.target_date}T23:59:59Z` : null,
+      goal_type: form.value.goal_type,
+      priority: form.value.priority,
+    }
+
     if (isEditing.value) {
-      await goalAPI.updateGoal(selectedGoal.value.id, form.value)
+      const updatePayload = {
+        ...basePayload,
+        current_amount: form.value.current_amount != null ? Number(form.value.current_amount) : 0,
+      }
+      await goalAPI.updateGoal(selectedGoal.value.id, updatePayload)
     } else {
-      await goalAPI.createGoal(form.value)
+      await goalAPI.createGoal(basePayload)
     }
     await loadGoals()
     closeDialog()
@@ -444,15 +523,16 @@ const closeContributionDialog = () => {
 }
 
 const saveContribution = async () => {
+  if (contributionFormRef.value) {
+    const { valid } = await contributionFormRef.value.validate()
+    if (!valid) return
+  }
   savingContribution.value = true
   try {
-    // This would typically be a separate API endpoint
-    // For now, we'll update the goal's current amount
-    const updatedGoal = {
-      ...selectedGoal.value,
-      current_amount: selectedGoal.value.current_amount + contributionForm.value.amount
-    }
-    await goalAPI.updateGoal(selectedGoal.value.id, updatedGoal)
+    await goalAPI.addContribution(selectedGoal.value.id, {
+      amount: Number(contributionForm.value.amount),
+      note: contributionForm.value.note?.trim() || undefined,
+    })
     await loadGoals()
     closeContributionDialog()
     useAppStore().showSuccess('Contribution added successfully')
@@ -464,9 +544,14 @@ const saveContribution = async () => {
   }
 }
 
-const viewGoalDetails = (goal: any) => {
-  // Navigate to goal details page or show detailed modal
-  console.log('View goal details:', goal)
+const openDetails = (goal: any) => {
+  detailsGoal.value = goal
+  detailsDialog.value = true
+}
+
+const goEdit = (goal: any) => {
+  detailsDialog.value = false
+  router.push({ name: 'EditGoal', params: { id: goal.id } })
 }
 
 // Helper methods

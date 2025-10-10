@@ -33,6 +33,13 @@ class Settings(BaseSettings):
     OPENAI_MAX_TOKENS: int = 1000
     OPENAI_TEMPERATURE: float = 0.3
 
+    # Google Gemini
+    USE_GEMINI: bool = False
+    GEMINI_API_KEY: str = ""
+    GEMINI_MODEL: str = "gemini-1.5-flash"
+    GEMINI_MAX_TOKENS: int = 512
+    GEMINI_TEMPERATURE: float = 0.3
+
     # Local LLM (Ollama)
     USE_OPENAI: bool = False
     OLLAMA_BASE_URL: str = "http://ollama:11434"

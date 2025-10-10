@@ -262,9 +262,42 @@ func (s *AIService) SuggestCategory(req *models.CategorySuggestionRequest) (*mod
     }
     httpReq.Header.Set("Content-Type", "application/json")
 
-    resp, err := s.httpClient.Do(httpReq)
+    // Use shorter timeout for suggest to keep UX snappy
+    client := &http.Client{Timeout: 8 * time.Second}
+    resp, err := client.Do(httpReq)
     if err != nil {
-        return nil, fmt.Errorf("failed to call AI service: %w", err)
+        // Fallback: return recent matching categories heuristically
+        fallback := &models.CategorySuggestionResponse{
+            UserID: req.UserID,
+            Description: req.Description,
+            Amount: req.Amount,
+            Suggestions: []models.CategorySuggestion{},
+            ConfidenceScore: 0.0,
+            GeneratedAt: time.Now(),
+        }
+        for _, c := range categories {
+            if strings.Contains(strings.ToLower(req.Description), strings.ToLower(c.Name)) {
+                fallback.Suggestions = append(fallback.Suggestions, models.CategorySuggestion{
+                    CategoryID: c.ID,
+                    CategoryName: c.Name,
+                    ConfidenceScore: 0.4,
+                    Reason: "Heuristic match from description",
+                    IsUserCategory: c.UserID != nil,
+                })
+            }
+        }
+        if len(fallback.Suggestions) == 0 && len(categories) > 0 {
+            // add top user category as minimal fallback
+            c := categories[0]
+            fallback.Suggestions = append(fallback.Suggestions, models.CategorySuggestion{
+                CategoryID: c.ID,
+                CategoryName: c.Name,
+                ConfidenceScore: 0.2,
+                Reason: "Fallback suggestion",
+                IsUserCategory: c.UserID != nil,
+            })
+        }
+        return fallback, nil
     }
     defer resp.Body.Close()
 
@@ -282,39 +315,65 @@ func (s *AIService) SuggestCategory(req *models.CategorySuggestionRequest) (*mod
 
 // Spending Pattern Analysis
 func (s *AIService) AnalyzeSpendingPattern(req *models.SpendingPatternRequest) (*models.SpendingPatternResponse, error) {
-	// Get transaction data
-	var transactions []models.Transaction
-	query := s.db.Where("user_id = ? AND transaction_date BETWEEN ? AND ?", 
-		req.UserID, req.StartDate, req.EndDate)
-	
-	if err := query.Preload("Category").Find(&transactions).Error; err != nil {
-		return nil, fmt.Errorf("failed to get transactions: %w", err)
-	}
+    // Try cache first for this user and window
+    ctx := context.Background()
+    cacheKey := fmt.Sprintf("ai_analysis:%d:spending:%s:%s:%s", req.UserID, req.Granularity, req.StartDate.Format("2006-01-02"), req.EndDate.Format("2006-01-02"))
+    if cached, err := database.GetCache(ctx, cacheKey); err == nil && len(cached) > 0 {
+        var resp models.SpendingPatternResponse
+        if json.Unmarshal([]byte(cached), &resp) == nil {
+            return &resp, nil
+        }
+    }
 
-    // Analyze patterns (aggregate locally)
+    // Compute fast local result
+    var transactions []models.Transaction
+    query := s.db.Where("user_id = ? AND transaction_date BETWEEN ? AND ?",
+        req.UserID, req.StartDate, req.EndDate)
+    if err := query.Preload("Category").Find(&transactions).Error; err != nil {
+        return nil, fmt.Errorf("failed to get transactions: %w", err)
+    }
+
     patterns := s.analyzeSpendingPatterns(transactions, req.Granularity)
-    // Ask AI service for dynamic insights
-    insights, recommendations := s.fetchDynamicSpendingInsights(req.UserID, patterns)
+    // Immediate rule-based insights as fallback
+    rbInsights := s.generateSpendingInsights(patterns)
+    rbRecs := s.generateSpendingRecommendations(patterns)
+    immediate := &models.SpendingPatternResponse{
+        UserID:          req.UserID,
+        Patterns:        patterns,
+        Insights:        rbInsights,
+        Recommendations: rbRecs,
+        GeneratedAt:     time.Now(),
+    }
 
-	response := &models.SpendingPatternResponse{
-		UserID:          req.UserID,
-		Patterns:        patterns,
-		Insights:        insights,
-		Recommendations: recommendations,
-		GeneratedAt:     time.Now(),
-	}
+    // Return immediately, then spawn background to enrich via AI-service and cache
+    go func() {
+        defer func() { recover() }()
+        insights, recommendations := s.fetchDynamicSpendingInsights(req.UserID, patterns)
+        enriched := &models.SpendingPatternResponse{
+            UserID:          req.UserID,
+            Patterns:        patterns,
+            Insights:        insights,
+            Recommendations: recommendations,
+            GeneratedAt:     time.Now(),
+        }
+        var bb []byte
+        if b, err := json.Marshal(enriched); err == nil {
+            bb = b
+            // Cache for 1 hour
+            _ = database.SetCache(ctx, cacheKey, bb, time.Hour)
+        }
+        // Persist AI analysis (best-effort)
+        analysis := &models.AIAnalysis{
+            UserID:          req.UserID,
+            AnalysisType:    "spending_pattern",
+            Data:            stringMust(bb),
+            ConfidenceScore: 0.85,
+            ModelVersion:    "custom",
+        }
+        _ = s.db.Create(analysis).Error
+    }()
 
-	// Save to database
-	analysis := &models.AIAnalysis{
-		UserID:          req.UserID,
-		AnalysisType:    "spending_pattern",
-		Data:            s.marshalToJSON(response),
-		ConfidenceScore: 0.85, // Based on pattern analysis
-		ModelVersion:    "custom",
-	}
-	s.db.Create(analysis)
-
-	return response, nil
+    return immediate, nil
 }
 
 // fetchDynamicSpendingInsights calls AI service to get dynamic insights; falls back to rule-based
@@ -463,10 +522,8 @@ func (s *AIService) ProcessChat(req *models.ChatRequest) (*models.ChatResponse, 
     // Apply short-term context memory to backfill missing entities
     s.applyShortTermContext(req.UserID, &response)
 
-    // Route to handler if available
-    if handler, ok := s.intentHandlers[response.Intent]; ok {
-        handler(req, &response)
-    }
+    // AI service now handles transactions directly, so we just return the response
+    // No need for backend handlers anymore
 
 	// Save chat message
     entitiesJSON, _ := json.Marshal(response.Entities)
@@ -495,7 +552,7 @@ func (s *AIService) applyShortTermContext(userID uint64, resp *models.ChatRespon
     }
 
     needAmount := !has("amount")
-    needCategory := !has("category")
+    needCategory := !has("category") && !has("category_id")  // Don't add category if category_id exists
     needTitle := !has("title")
     needPeriod := !has("period")
     if !(needAmount || needCategory || needTitle || needPeriod) {
@@ -564,6 +621,7 @@ func (s *AIService) handleQueryBalance(req *models.ChatRequest, resp *models.Cha
 func (s *AIService) handleAddTransaction(req *models.ChatRequest, resp *models.ChatResponse) {
     var amount float64
     var amountMaxConfidence float64
+    var categoryID uint64
     var categoryName string
     for _, e := range resp.Entities {
         switch e.Type {
@@ -576,8 +634,12 @@ func (s *AIService) handleAddTransaction(req *models.ChatRequest, resp *models.C
                     amountMaxConfidence = e.Confidence
                 }
             }
+        case "category_id":
+            if v, err := strconv.ParseUint(e.Value, 10, 64); err == nil && v > 0 {
+                categoryID = v
+            }
         case "category":
-            if categoryName == "" {
+            if categoryName == "" && categoryID == 0 {
                 categoryName = e.Value
             }
         }
@@ -592,25 +654,39 @@ func (s *AIService) handleAddTransaction(req *models.ChatRequest, resp *models.C
         resp.Response = fmt.Sprintf("Tôi hiểu bạn muốn thêm giao dịch khoảng %.0f VND. Bạn xác nhận số tiền này chứ?", amount)
         return
     }
-
+    
     var category models.Category
-    if err := s.db.Where("LOWER(name) = ?", strings.ToLower(categoryName)).First(&category).Error; err != nil {
-        // normalize common Vietnamese variants
-        lower := strings.ToLower(categoryName)
-        if strings.Contains(lower, "an uong") || strings.Contains(lower, "ăn uống") {
-            s.db.Where("LOWER(name) = ?", strings.ToLower("Ăn uống")).First(&category)
+    if categoryID > 0 {
+        // Use category_id directly if available
+        s.db.First(&category, categoryID)
+    } else if categoryName != "" {
+        // Fallback to category name lookup
+        if err := s.db.Where("LOWER(name) = ?", strings.ToLower(categoryName)).First(&category).Error; err != nil {
+            // normalize common Vietnamese variants
+            lower := strings.ToLower(categoryName)
+            if strings.Contains(lower, "an uong") || strings.Contains(lower, "ăn uống") {
+                s.db.Where("LOWER(name) = ?", strings.ToLower("Ăn uống")).First(&category)
+            }
         }
     }
     if category.ID == 0 {
         s.db.Where("name = ?", "Khác").First(&category)
     }
 
+
     today := time.Now().UTC().Format("2006-01-02")
+    
+    // Determine transaction type based on category
+    transactionType := "expense"
+    if category.ID == 8 { // Thu nhập category
+        transactionType = "income"
+    }
+    
     createReq := &models.TransactionCreateRequest{
         CategoryID:      category.ID,
         Amount:          amount,
         Description:     req.Message,
-        TransactionType: "expense",
+        TransactionType: transactionType,
         TransactionDate: today,
     }
 
@@ -1305,3 +1381,6 @@ func (s *AIService) handleUpdateBudget(req *models.ChatRequest, resp *models.Cha
         budget.Name, categoryName, formatCurrency(budget.SpentAmount), 
         formatCurrency(budget.Amount), budget.UsagePercentage, formatCurrency(budget.RemainingAmount))
 }
+
+// stringMust is a tiny helper to avoid panics in background goroutines
+func stringMust(b []byte) string { if b == nil { return "{}" }; return string(b) }

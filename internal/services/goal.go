@@ -50,7 +50,11 @@ func (s *GoalService) GetGoals(userID uint64) ([]models.FinancialGoal, error) {
 
 	// Calculate progress for each goal
 	for i := range goals {
-		goals[i].Progress = (goals[i].CurrentAmount / goals[i].TargetAmount) * 100
+		if goals[i].TargetAmount <= 0 {
+			goals[i].Progress = 0
+		} else {
+			goals[i].Progress = (goals[i].CurrentAmount / goals[i].TargetAmount) * 100
+		}
 	}
 
 	return goals, nil
@@ -84,7 +88,11 @@ func (s *GoalService) UpdateGoal(userID uint64, goalID uint64, req *models.Finan
 	}
 
 	// Calculate progress
-	goal.Progress = (goal.CurrentAmount / goal.TargetAmount) * 100
+	if goal.TargetAmount <= 0 {
+		goal.Progress = 0
+	} else {
+		goal.Progress = (goal.CurrentAmount / goal.TargetAmount) * 100
+	}
 
 	return &goal, nil
 }
@@ -122,7 +130,11 @@ func (s *GoalService) AddContribution(userID uint64, goalID uint64, amount float
 	}
 
 	// Calculate progress
-	goal.Progress = (goal.CurrentAmount / goal.TargetAmount) * 100
+	if goal.TargetAmount <= 0 {
+		goal.Progress = 0
+	} else {
+		goal.Progress = (goal.CurrentAmount / goal.TargetAmount) * 100
+	}
 
 	return &goal, nil
 }

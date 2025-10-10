@@ -4,7 +4,7 @@ import { useAppStore } from '../stores/app'
 
 // Create axios instance
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '/api/v1',
+  baseURL: (import.meta as any)?.env?.VITE_API_BASE_URL || '/api/v1',
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
@@ -85,6 +85,8 @@ export const authAPI = {
   getProfile: () => api.get('/auth/profile'),
   updateProfile: (profileData: any) => api.put('/auth/profile', profileData),
   changePassword: (passwordData: any) => api.post('/auth/change-password', passwordData),
+  getIncome: () => api.get('/auth/income'),
+  setIncome: (monthly_income: number) => api.put('/auth/income', { monthly_income }),
 }
 
 export const transactionAPI = {
@@ -103,6 +105,11 @@ export const analyticsAPI = {
   getPredictions: (params?: any) => api.get('/analytics/predictions', { params }),
 }
 
+export const notificationsAPI = {
+  list: (unreadOnly = false) => api.get('/notifications', { params: unreadOnly ? { unread: true } : {} }),
+  markRead: (id: number) => api.post(`/notifications/${id}/read`),
+}
+
 export const categoryAPI = {
   getCategories: () => api.get('/categories'),
   getCategory: (id: number) => api.get(`/categories/${id}`),
@@ -117,6 +124,7 @@ export const goalAPI = {
   createGoal: (data: any) => api.post('/goals', data),
   updateGoal: (id: number, data: any) => api.put(`/goals/${id}`, data),
   deleteGoal: (id: number) => api.delete(`/goals/${id}`),
+  addContribution: (id: number, data: { amount: number; note?: string }) => api.post(`/goals/${id}/contribute`, data),
 }
 
 export const budgetAPI = {
@@ -127,12 +135,24 @@ export const budgetAPI = {
   deleteBudget: (id: number) => api.delete(`/budgets/${id}`),
 }
 
+// AI Service direct client (bypass backend)
+const aiServiceApi = axios.create({
+  baseURL: import.meta.env.VITE_AI_SERVICE_URL || 'http://localhost:8001',
+  timeout: 30000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+})
+
 export const aiAPI = {
-  processNLU: (data: any) => api.post('/ai/nlu', data),
+  // Direct AI service calls
+  processChat: (data: any) => aiServiceApi.post('/api/v1/chat/process', data),
+  processNLU: (data: any) => aiServiceApi.post('/api/v1/nlu/process', data),
+  
+  // Backend proxy calls (for other AI features)
   predictExpenses: (data: any) => api.post('/ai/predict-expenses', data),
   detectAnomalies: (data: any) => api.post('/ai/detect-anomalies', data),
   suggestCategory: (data: any) => api.post('/ai/suggest-category', data),
   analyzeSpending: (data: any) => api.post('/ai/analyze-spending', data),
   analyzeGoal: (data: any) => api.post('/ai/analyze-goal', data),
-  processChat: (data: any) => api.post('/ai/chat', data),
 }

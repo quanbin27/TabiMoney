@@ -189,6 +189,7 @@
 import { ref, onMounted, nextTick } from 'vue'
 import { aiAPI, transactionAPI } from '@/services/api'
 import { formatCurrency, formatDate } from '@/utils/formatters'
+import { useAuthStore } from '@/stores/auth'
 
 // Reactive data
 const messages = ref<Array<{
@@ -213,6 +214,9 @@ const quickSuggestions = ref([
 
 const recentTransactions = ref<any[]>([])
 
+// Auth store
+const authStore = useAuthStore()
+
 // Methods
 const sendMessage = async () => {
   if (!inputMessage.value.trim() || isTyping.value) return
@@ -233,7 +237,7 @@ const sendMessage = async () => {
   try {
     const response = await aiAPI.processChat({
       message: userMessage,
-      user_id: 0 // Will be set by backend from JWT
+      user_id: authStore.user?.id || 0 // Use actual user ID from auth store
     })
 
     // Simulate typing delay

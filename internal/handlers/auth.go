@@ -304,3 +304,56 @@ type ErrorResponse struct {
 type SuccessResponse struct {
 	Message string `json:"message"`
 }
+
+// IncomeResponse payload
+type IncomeResponse struct {
+    MonthlyIncome float64 `json:"monthly_income"`
+}
+
+// GetMonthlyIncome godoc
+// @Summary Get monthly income
+// @Description Get user's configured monthly income
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} IncomeResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /auth/income [get]
+func (h *AuthHandler) GetMonthlyIncome(c echo.Context) error {
+    userID := c.Get("user_id").(uint64)
+    amount, err := h.authService.GetMonthlyIncome(userID)
+    if err != nil {
+        return c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to get income", Message: err.Error()})
+    }
+    return c.JSON(http.StatusOK, IncomeResponse{MonthlyIncome: amount})
+}
+
+// SetMonthlyIncome godoc
+// @Summary Set monthly income
+// @Description Update user's monthly income
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body IncomeResponse true "Monthly income"
+// @Success 200 {object} SuccessResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /auth/income [put]
+func (h *AuthHandler) SetMonthlyIncome(c echo.Context) error {
+    userID := c.Get("user_id").(uint64)
+    var req IncomeResponse
+    if err := c.Bind(&req); err != nil {
+        return c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid request body", Message: err.Error()})
+    }
+    if req.MonthlyIncome < 0 {
+        return c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Validation failed", Message: "monthly_income must be >= 0"})
+    }
+    if err := h.authService.SetMonthlyIncome(userID, req.MonthlyIncome); err != nil {
+        return c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to set income", Message: err.Error()})
+    }
+    return c.JSON(http.StatusOK, SuccessResponse{Message: "Monthly income updated"})
+}

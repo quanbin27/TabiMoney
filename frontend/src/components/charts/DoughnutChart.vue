@@ -38,7 +38,7 @@ const chartRef = ref<HTMLCanvasElement>()
 let chartInstance: ChartJS | null = null
 
 const createChart = () => {
-  if (!chartRef.value) return
+  if (!chartRef.value || !props.data || !props.data.labels?.length) return
 
   const config: ChartConfiguration = {
     type: 'doughnut',
@@ -74,9 +74,12 @@ const createChart = () => {
 }
 
 const updateChart = () => {
+  if (!props.data || !props.data.labels?.length) return
   if (chartInstance) {
     chartInstance.data = props.data
     chartInstance.update()
+  } else {
+    createChart()
   }
 }
 

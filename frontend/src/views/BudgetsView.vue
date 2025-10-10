@@ -83,12 +83,12 @@
                   <v-icon class="mr-2" :color="getCategoryColor(item.category_id)">
                     {{ getCategoryIcon(item.category_id) }}
                   </v-icon>
-                  {{ item.category_name }}
+                  {{ getCategoryName(item.category_id) }}
                 </div>
               </template>
 
-              <template v-slot:item.budget_amount="{ item }">
-                <span class="font-weight-bold">{{ formatCurrency(item.budget_amount) }}</span>
+              <template v-slot:item.amount="{ item }">
+                <span class="font-weight-bold">{{ formatCurrency(item.amount) }}</span>
               </template>
 
               <template v-slot:item.spent_amount="{ item }">
@@ -174,7 +174,7 @@
           {{ isEditing ? 'Edit Budget' : 'Create New Budget' }}
         </v-card-title>
         <v-card-text>
-          <v-form ref="form" v-model="formValid">
+          <v-form ref="formRef" validate-on="submit">
             <v-select
               v-model="form.category_id"
               label="Category"
@@ -186,43 +186,67 @@
             ></v-select>
             
             <v-text-field
-              v-model="form.budget_amount"
+              v-model="form.name"
+              label="Budget Name"
+              :rules="[rules.required]"
+              required
+              clearable
+            ></v-text-field>
+            
+            <v-text-field
+              v-model="form.amount"
               label="Budget Amount"
               type="number"
               :rules="[rules.required, rules.positive]"
               prefix="₫"
               required
-            ></v-text-field>
-            
-            <v-text-field
-              v-model="form.month"
-              label="Month"
-              type="month"
-              :rules="[rules.required]"
-              required
-            ></v-text-field>
-            
-            <v-text-field
-              v-model="form.description"
-              label="Description (Optional)"
+              clearable
             ></v-text-field>
             
             <v-select
-              v-model="form.budget_type"
-              label="Budget Type"
+              v-model="form.period"
+              label="Period"
               :items="budgetTypes"
+              item-title="title"
+              item-value="value"
               :rules="[rules.required]"
               required
             ></v-select>
+            
+            <v-text-field
+              v-model.lazy="form.start_date"
+              label="Start Date"
+              type="date"
+              :rules="[rules.required]"
+              required
+            ></v-text-field>
+            
+            <v-text-field
+              v-model.lazy="form.end_date"
+              label="End Date"
+              type="date"
+              :rules="[rules.required]"
+              required
+            ></v-text-field>
+            
+            <v-text-field
+              v-model="form.alert_threshold"
+              label="Alert Threshold (%)"
+              type="number"
+              :rules="[rules.required, rules.positive]"
+              suffix="%"
+              min="0"
+              max="100"
+            ></v-text-field>
           </v-form>
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn @click="closeDialog">Cancel</v-btn>
           <v-btn
+            type="submit"
             color="primary"
             @click="saveBudget"
-            :disabled="!formValid"
             :loading="saving"
           >
             {{ isEditing ? 'Update' : 'Create' }}
@@ -260,7 +284,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, nextTick } from 'vue'
+import { ref, reactive, onMounted, computed, nextTick } from 'vue'
 import { budgetAPI, categoryAPI } from '@/services/api'
 import { formatCurrency } from '@/utils/formatters'
 import { useAppStore } from '@/stores/app'
@@ -279,18 +303,22 @@ const budgetChart = ref<HTMLCanvasElement>()
 const categoryChart = ref<HTMLCanvasElement>()
 
 // Form data
-const form = ref({
-  category_id: null,
-  budget_amount: 0,
-  month: '',
-  description: '',
-  budget_type: ''
+const formRef = ref()
+const form = reactive({
+  category_id: null as number | null,
+  name: '' as string,
+  amount: null as number | null,
+  period: 'monthly' as string,
+  start_date: '' as string,
+  end_date: '' as string,
+  alert_threshold: 80 as number
 })
 
 // Table headers
 const headers = [
+  { title: 'Name', key: 'name', sortable: true },
   { title: 'Category', key: 'category_name', sortable: true },
-  { title: 'Budget Amount', key: 'budget_amount', sortable: true },
+  { title: 'Budget Amount', key: 'amount', sortable: true },
   { title: 'Spent Amount', key: 'spent_amount', sortable: true },
   { title: 'Remaining', key: 'remaining_amount', sortable: true },
   { title: 'Progress', key: 'progress', sortable: false },
@@ -300,21 +328,28 @@ const headers = [
 
 // Options
 const budgetTypes = [
-  { title: 'Monthly', value: 'monthly' },
   { title: 'Weekly', value: 'weekly' },
-  { title: 'Yearly', value: 'yearly' },
-  { title: 'Custom', value: 'custom' }
+  { title: 'Monthly', value: 'monthly' },
+  { title: 'Yearly', value: 'yearly' }
 ]
 
 // Validation rules
 const rules = {
-  required: (value: any) => !!value || 'This field is required',
-  positive: (value: number) => value > 0 || 'Value must be positive'
+  required: (value: any) => {
+    if (value === null || value === undefined) return 'This field is required'
+    if (typeof value === 'number') return true // allow 0 as valid
+    if (typeof value === 'string') return value.trim().length > 0 || 'This field is required'
+    return !!value || 'This field is required'
+  },
+  positive: (value: number) => {
+    if (value === null || value === undefined) return true
+    return Number(value) > 0 || 'Value must be positive'
+  }
 }
 
 // Computed properties
 const totalBudget = computed(() => {
-  return budgets.value.reduce((sum, budget) => sum + budget.budget_amount, 0)
+  return budgets.value.reduce((sum, budget) => sum + budget.amount, 0)
 })
 
 const totalSpent = computed(() => {
@@ -355,7 +390,9 @@ const loadBudgets = async () => {
 const loadCategories = async () => {
   try {
     const response = await categoryAPI.getCategories()
-    categories.value = response.data.data || []
+    const raw = response.data
+    // Handle both wrapped ({ data: [...] }) and unwrapped ([]) responses
+    categories.value = Array.isArray(raw) ? raw : (raw?.data ?? [])
   } catch (error) {
     console.error('Failed to load categories:', error)
   }
@@ -363,12 +400,18 @@ const loadCategories = async () => {
 
 const openCreateDialog = () => {
   isEditing.value = false
+  const now = new Date()
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+  
   form.value = {
     category_id: null,
-    budget_amount: 0,
-    month: new Date().toISOString().slice(0, 7), // Current month
-    description: '',
-    budget_type: 'monthly'
+    name: '',
+    amount: null,
+    period: 'monthly',
+    start_date: startOfMonth.toISOString().split('T')[0],
+    end_date: endOfMonth.toISOString().split('T')[0],
+    alert_threshold: 80
   }
   dialog.value = true
 }
@@ -377,10 +420,12 @@ const openEditDialog = (budget: any) => {
   isEditing.value = true
   form.value = {
     category_id: budget.category_id,
-    budget_amount: budget.budget_amount,
-    month: budget.month,
-    description: budget.description || '',
-    budget_type: budget.budget_type
+    name: budget.name,
+    amount: budget.amount,
+    period: budget.period,
+    start_date: budget.start_date,
+    end_date: budget.end_date,
+    alert_threshold: budget.alert_threshold
   }
   selectedBudget.value = budget
   dialog.value = true
@@ -392,12 +437,27 @@ const closeDialog = () => {
 }
 
 const saveBudget = async () => {
+  if (formRef.value) {
+    const { valid } = await formRef.value.validate()
+    if (!valid) return
+  }
   saving.value = true
   try {
+    // Normalize payload for backend (RFC3339 dates, numeric fields)
+    const payload = {
+      category_id: form.value.category_id,
+      name: (form.value.name || '').trim(),
+      amount: form.value.amount != null ? Number(form.value.amount) : null,
+      period: form.value.period,
+      start_date: form.value.start_date ? `${form.value.start_date}T00:00:00Z` : null,
+      end_date: form.value.end_date ? `${form.value.end_date}T23:59:59Z` : null,
+      alert_threshold: form.value.alert_threshold != null ? Number(form.value.alert_threshold) : 80,
+    }
+
     if (isEditing.value) {
-      await budgetAPI.updateBudget(selectedBudget.value.id, form.value)
+      await budgetAPI.updateBudget(selectedBudget.value.id, payload)
     } else {
-      await budgetAPI.createBudget(form.value)
+      await budgetAPI.createBudget(payload)
     }
     await loadBudgets()
     closeDialog()
@@ -427,8 +487,8 @@ const deleteBudget = async (budgetId: number) => {
 
 // Helper methods
 const getProgressPercentage = (budget: any) => {
-  if (budget.budget_amount === 0) return 0
-  return Math.min((budget.spent_amount / budget.budget_amount) * 100, 100)
+  if (budget.amount === 0) return 0
+  return Math.min((budget.spent_amount / budget.amount) * 100, 100)
 }
 
 const getProgressColor = (budget: any) => {
@@ -466,6 +526,11 @@ const getCategoryIcon = (categoryId: number) => {
   return icons[categoryId % icons.length]
 }
 
+const getCategoryName = (categoryId: number) => {
+  const cat = categories.value.find((c: any) => c.id === categoryId)
+  return cat?.name ?? '—'
+}
+
 const createCharts = async () => {
   await nextTick()
   
@@ -497,10 +562,10 @@ const createCharts = async () => {
     new Chart(categoryChart.value, {
       type: 'bar',
       data: {
-        labels: budgets.value.map(b => b.category_name),
+        labels: budgets.value.map(b => b.name),
         datasets: [{
           label: 'Budget',
-          data: budgets.value.map(b => b.budget_amount),
+          data: budgets.value.map(b => b.amount),
           backgroundColor: '#2196F3'
         }, {
           label: 'Spent',

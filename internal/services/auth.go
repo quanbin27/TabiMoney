@@ -277,6 +277,40 @@ func (s *AuthService) ChangePassword(userID uint64, req *models.ChangePasswordRe
 	return nil
 }
 
+// GetMonthlyIncome returns the user's configured monthly income from profile
+func (s *AuthService) GetMonthlyIncome(userID uint64) (float64, error) {
+    var profile models.UserProfile
+    if err := s.db.Where("user_id = ?", userID).First(&profile).Error; err != nil {
+        if errors.Is(err, gorm.ErrRecordNotFound) {
+            // Ensure profile exists
+            profile = models.UserProfile{UserID: userID}
+            if err := s.db.Create(&profile).Error; err != nil {
+                return 0, fmt.Errorf("failed to create profile: %w", err)
+            }
+            return profile.MonthlyIncome, nil
+        }
+        return 0, fmt.Errorf("failed to get profile: %w", err)
+    }
+    return profile.MonthlyIncome, nil
+}
+
+// SetMonthlyIncome updates the user's monthly income in profile
+func (s *AuthService) SetMonthlyIncome(userID uint64, amount float64) error {
+    if amount < 0 {
+        return errors.New("monthly income must be non-negative")
+    }
+    var profile models.UserProfile
+    if err := s.db.Where("user_id = ?", userID).First(&profile).Error; err != nil {
+        if errors.Is(err, gorm.ErrRecordNotFound) {
+            profile = models.UserProfile{UserID: userID, MonthlyIncome: amount}
+            return s.db.Create(&profile).Error
+        }
+        return fmt.Errorf("failed to get profile: %w", err)
+    }
+    profile.MonthlyIncome = amount
+    return s.db.Save(&profile).Error
+}
+
 // Helper methods
 
 func (s *AuthService) generateTokens(userID uint64) (string, string, time.Time, error) {

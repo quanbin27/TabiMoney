@@ -14,6 +14,63 @@
       </v-col>
     </v-row>
 
+    <!-- Monthly Income Settings -->
+    <v-row class="mt-2">
+      <v-col cols="12" md="6">
+        <v-card variant="outlined">
+          <v-card-title>
+            <v-icon class="mr-2">mdi-currency-usd</v-icon>
+            Monthly Income
+          </v-card-title>
+          <v-card-text class="d-flex align-center gap-2">
+            <v-text-field
+              v-model.number="monthlyIncome"
+              type="number"
+              label="Monthly income"
+              prefix="₫"
+              density="comfortable"
+              hide-details
+              class="mr-2"
+            />
+            <v-btn color="primary" :loading="incomeSaving" @click="saveIncome">Save</v-btn>
+            <div class="ml-4 text-caption" v-if="dashboardData">
+              Spent this month: <strong>{{ percentOfIncome.toFixed(1) }}%</strong>
+            </div>
+          </v-card-text>
+        </v-card>
+      </v-col>
+      <v-col cols="12" md="6">
+        <v-card variant="outlined">
+          <v-card-title>
+            <v-icon class="mr-2">mdi-compare</v-icon>
+            Month over Month
+          </v-card-title>
+          <v-card-text>
+            <div v-if="mom">
+              <div class="d-flex justify-space-between">
+                <div>
+                  <div class="text-caption">Current</div>
+                  <div class="text-body-2">Income: {{ formatCurrency(mom.current.income) }}</div>
+                  <div class="text-body-2">Expense: {{ formatCurrency(mom.current.expense) }}</div>
+                </div>
+                <div class="text-right">
+                  <div class="text-caption">Previous</div>
+                  <div class="text-body-2">Income: {{ formatCurrency(mom.prev.income) }}</div>
+                  <div class="text-body-2">Expense: {{ formatCurrency(mom.prev.expense) }}</div>
+                </div>
+              </div>
+              <v-divider class="my-2" />
+              <div>
+                <div>Income change: <strong :class="mom.incomeChange >= 0 ? 'text-success' : 'text-error'">{{ mom.incomeChange.toFixed(1) }}%</strong></div>
+                <div>Expense change: <strong :class="mom.expenseChange >= 0 ? 'text-error' : 'text-success'">{{ mom.expenseChange.toFixed(1) }}%</strong></div>
+              </div>
+            </div>
+            <div v-else class="text-caption">Select a month to compare.</div>
+          </v-card-text>
+        </v-card>
+      </v-col>
+    </v-row>
+
     <!-- Date Range Filter -->
     <v-row>
       <v-col cols="12" md="3">
@@ -49,6 +106,25 @@
           <v-icon class="mr-2">mdi-refresh</v-icon>
           Refresh
         </v-btn>
+      </v-col>
+    </v-row>
+
+    <!-- Transaction Filters (Interactive) -->
+    <v-row class="mt-1">
+      <v-col cols="12" md="2">
+        <v-select :items="txTypeOptions" v-model="txType" label="Type" clearable />
+      </v-col>
+      <v-col cols="12" md="2">
+        <v-text-field v-model.number="minAmount" type="number" label="Min Amount" />
+      </v-col>
+      <v-col cols="12" md="2">
+        <v-text-field v-model.number="maxAmount" type="number" label="Max Amount" />
+      </v-col>
+      <v-col cols="12" md="4">
+        <v-text-field v-model="search" label="Search description/location" clearable />
+      </v-col>
+      <v-col cols="12" md="2" class="d-flex align-center">
+        <v-btn color="secondary" :loading="txLoading" @click="loadFilteredTransactions">Apply</v-btn>
       </v-col>
     </v-row>
 
@@ -94,6 +170,38 @@
       </v-col>
     </v-row>
 
+    <!-- Filtered Transactions Summary -->
+    <v-row>
+      <v-col cols="12">
+        <v-card>
+          <v-card-title>
+            <v-icon class="mr-2">mdi-filter</v-icon>
+            Filtered Transactions
+          </v-card-title>
+          <v-card-text class="d-flex align-center justify-space-between">
+            <div>
+              <div class="text-body-2">Results: <strong>{{ filteredTotal }}</strong></div>
+              <div class="text-caption">Showing latest {{ Math.min(10, filteredItems.length) }} of {{ filteredTotal }}</div>
+            </div>
+            <div class="text-caption" v-if="filteredItems.length">
+              Sum: <strong>{{ formatCurrency(filteredItems.reduce((a, t:any) => a + Number(t.amount || 0), 0)) }}</strong>
+            </div>
+          </v-card-text>
+          <v-divider />
+          <v-card-text>
+            <v-list density="compact">
+              <v-list-item v-for="t in filteredItems.slice(0,10)" :key="t.id">
+                <v-list-item-title>{{ t.description || '(no description)' }}</v-list-item-title>
+                <v-list-item-subtitle>
+                  {{ t.transaction_type }} · {{ t.category?.name || 'Uncategorized' }} · {{ formatCurrency(t.amount) }} · {{ new Date(t.transaction_date).toLocaleDateString() }}
+                </v-list-item-subtitle>
+              </v-list-item>
+            </v-list>
+          </v-card-text>
+        </v-card>
+      </v-col>
+    </v-row>
+
     <!-- Charts Row -->
     <v-row>
       <!-- Category Spending Chart -->
@@ -104,7 +212,7 @@
             Spending by Category
           </v-card-title>
           <v-card-text>
-            <div v-if="categorySpending.length > 0" style="height: 300px;">
+            <div v-if="categorySpendingChartData" style="height: 300px;">
               <DoughnutChart
                 :data="categorySpendingChartData"
                 :options="doughnutChartOptions"
@@ -280,7 +388,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { analyticsAPI } from '@/services/api'
+import { analyticsAPI, authAPI, transactionAPI } from '@/services/api'
 import { formatCurrency, formatDate } from '@/utils/formatters'
 import DoughnutChart from '@/components/charts/DoughnutChart.vue'
 
@@ -291,6 +399,9 @@ const categorySpending = ref([])
 const spendingPatterns = ref(null)
 const anomalies = ref(null)
 const predictions = ref(null)
+const monthlyIncome = ref<number>(0)
+const incomeSaving = ref(false)
+const mom = ref<any | null>(null)
 
 // Date range
 const selectedPeriod = ref('last_month')
@@ -305,22 +416,60 @@ const periodOptions = [
   { title: 'Custom Range', value: 'custom' }
 ]
 
-// Chart data
+// Tx filters
+const txTypeOptions = [
+  { title: 'Income', value: 'income' },
+  { title: 'Expense', value: 'expense' },
+  { title: 'Transfer', value: 'transfer' },
+]
+const txType = ref<string | null>(null)
+const minAmount = ref<number | null>(null)
+const maxAmount = ref<number | null>(null)
+const search = ref<string>('')
+const txLoading = ref(false)
+const filteredItems = ref<any[]>([])
+const filteredTotal = ref(0)
+
+// Chart data (fallback to AI patterns if spending breakdown empty)
 const categorySpendingChartData = computed(() => {
-  if (!categorySpending.value.length) return null
-  
-  return {
-    labels: categorySpending.value.map(item => item.category_name),
-    datasets: [{
-      data: categorySpending.value.map(item => item.amount),
-      backgroundColor: [
-        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
-        '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF6384'
-      ],
-      borderWidth: 1,
-      borderColor: '#ffffff'
-    }]
+  if (categorySpending.value.length > 0) {
+    return {
+      labels: categorySpending.value.map((item: any) => item.category_name),
+      datasets: [{
+        data: categorySpending.value.map((item: any) => Number(item.amount || 0)),
+        backgroundColor: [
+          '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
+          '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF6384'
+        ],
+        borderWidth: 1,
+        borderColor: '#ffffff'
+      }]
+    }
   }
+
+  const patterns = (spendingPatterns.value && (spendingPatterns.value as any).patterns) || []
+  if (Array.isArray(patterns) && patterns.length > 0) {
+    // Use only expense-like categories (exclude obvious income names)
+    const expenseLike = patterns.filter((p: any) => {
+      const name = String(p.category_name || '').toLowerCase()
+      return !name.includes('thu nhập') && !name.includes('income')
+    })
+    if (expenseLike.length === 0) return null
+    return {
+      labels: expenseLike.map((p: any) => p.category_name),
+      datasets: [{
+        data: expenseLike.map((p: any) => Number(p.total_amount || 0)),
+        backgroundColor: [
+          '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
+          '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF6384'
+        ],
+        borderWidth: 1,
+        borderColor: '#ffffff'
+      }]
+    }
+  }
+
+  return null
 })
 
 const doughnutChartOptions = {
@@ -445,6 +594,83 @@ const getRecommendationIcon = (priority: string) => {
   }
 }
 
+const loadIncome = async () => {
+  try {
+    const res = await authAPI.getIncome()
+    monthlyIncome.value = Number(res.data?.monthly_income ?? 0)
+  } catch (e) {
+    monthlyIncome.value = 0
+  }
+}
+
+const saveIncome = async () => {
+  try {
+    incomeSaving.value = true
+    await authAPI.setIncome(Number(monthlyIncome.value || 0))
+    await loadAnalytics()
+  } finally {
+    incomeSaving.value = false
+  }
+}
+
+const computeMoM = async () => {
+  try {
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = now.getMonth() + 1
+    const prevDate = new Date(year, month - 2, 1)
+    const [cur, prev] = await Promise.all([
+      analyticsAPI.getDashboard({ year, month }),
+      analyticsAPI.getDashboard({ year: prevDate.getFullYear(), month: prevDate.getMonth() + 1 }),
+    ])
+    const c = cur.data
+    const p = prev.data
+    const incomeChange = p.total_income ? ((c.total_income - p.total_income) / p.total_income) * 100 : 0
+    const expenseChange = p.total_expense ? ((c.total_expense - p.total_expense) / p.total_expense) * 100 : 0
+    mom.value = {
+      current: { income: c.total_income, expense: c.total_expense },
+      prev: { income: p.total_income, expense: p.total_expense },
+      incomeChange,
+      expenseChange,
+    }
+  } catch (e) {
+    mom.value = null
+  }
+}
+
+const loadFilteredTransactions = async () => {
+  txLoading.value = true
+  try {
+    const params: any = {
+      page: 1,
+      limit: 50,
+      start_date: startDate.value,
+      end_date: endDate.value,
+      search: search.value || undefined,
+      min_amount: minAmount.value || undefined,
+      max_amount: maxAmount.value || undefined,
+      transaction_type: txType.value || undefined,
+      sort_by: 'transaction_date',
+      sort_order: 'desc',
+    }
+    const res = await transactionAPI.getTransactions(params)
+    filteredItems.value = Array.isArray(res.data?.data) ? res.data.data : res.data?.items || []
+    filteredTotal.value = Number(res.data?.total || (res.data?.pagination?.total ?? filteredItems.value.length))
+  } catch (e) {
+    filteredItems.value = []
+    filteredTotal.value = 0
+  } finally {
+    txLoading.value = false
+  }
+}
+
+const percentOfIncome = computed(() => {
+  const exp = Number((dashboardData.value as any)?.total_expense || 0)
+  const inc = Number(monthlyIncome.value || 0)
+  if (!inc || inc <= 0) return 0
+  return (exp / inc) * 100
+})
+
 // Initialize date range
 const initializeDateRange = () => {
   const now = new Date()
@@ -459,5 +685,7 @@ const initializeDateRange = () => {
 onMounted(() => {
   initializeDateRange()
   loadAnalytics()
+  loadIncome()
+  computeMoM()
 })
 </script>
