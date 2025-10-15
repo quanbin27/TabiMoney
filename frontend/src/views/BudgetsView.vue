@@ -214,7 +214,7 @@
             ></v-select>
             
             <v-text-field
-              v-model.lazy="form.start_date"
+              v-model="form.start_date"
               label="Start Date"
               type="date"
               :rules="[rules.required]"
@@ -222,7 +222,7 @@
             ></v-text-field>
             
             <v-text-field
-              v-model.lazy="form.end_date"
+              v-model="form.end_date"
               label="End Date"
               type="date"
               :rules="[rules.required]"
@@ -304,7 +304,7 @@ const categoryChart = ref<HTMLCanvasElement>()
 
 // Form data
 const formRef = ref()
-const form = reactive({
+const form = ref({
   category_id: null as number | null,
   name: '' as string,
   amount: null as number | null,
@@ -423,8 +423,8 @@ const openEditDialog = (budget: any) => {
     name: budget.name,
     amount: budget.amount,
     period: budget.period,
-    start_date: budget.start_date,
-    end_date: budget.end_date,
+    start_date: budget.start_date ? new Date(budget.start_date).toISOString().split('T')[0] : '',
+    end_date: budget.end_date ? new Date(budget.end_date).toISOString().split('T')[0] : '',
     alert_threshold: budget.alert_threshold
   }
   selectedBudget.value = budget
