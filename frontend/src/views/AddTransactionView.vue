@@ -46,7 +46,7 @@
     </v-dialog>
   </v-container>
 </template>
-<script setup lang="ts">
+<script setup>
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { transactionAPI, categoryAPI, aiAPI } from '../services/api'
@@ -56,11 +56,11 @@ const router = useRouter()
 const app = useAppStore()
 const loading = ref(false)
 const formRef = ref()
-const categoryItems = ref<any[]>([])
+const categoryItems = ref([])
 const aiLoading = ref(false)
 const createDialog = ref(false)
-const newCategory = reactive<any>({ name: '', description: '' })
-function formatCategoryTitle(c:any){
+const newCategory = reactive({ name: '', description: '' })
+function formatCategoryTitle(c){
   if(!c) return ''
   if (c.name_en) return `${c.name} (${c.name_en})`
   return c.name
@@ -72,7 +72,7 @@ const typeItems = [
   { label: 'Transfer', value: 'transfer' },
 ]
 
-const form = reactive<any>({
+const form = reactive({
   category_id: 1,
   amount: 0,
   description: '',
@@ -88,7 +88,7 @@ async function handleSubmit() {
   if (!result?.valid) return
   loading.value = true
   try {
-    const payload: any = { ...form }
+    const payload = { ...form }
     
     // Handle transaction_time - keep as HH:MM format or remove if empty
     if (!payload.transaction_time || !payload.transaction_time.trim()) {
@@ -117,7 +117,7 @@ async function handleSubmit() {
     await transactionAPI.createTransaction(payload)
     app.showSuccess('Created')
     router.push({ name: 'Transactions' })
-  } catch (e: any) {
+  } catch (e) {
     app.showError(e?.message || 'Create failed')
   } finally {
     loading.value = false
@@ -128,7 +128,7 @@ async function loadCategories() {
   try {
     const { data } = await categoryAPI.getCategories()
     categoryItems.value = Array.isArray(data) ? data : []
-  } catch (e: any) {
+  } catch (e) {
     app.showError(e?.message || 'Failed to load categories')
   }
 }
@@ -161,7 +161,7 @@ async function suggestCategory() {
       // AI already determined if category exists
       if (top.is_existing) {
         // Find the existing category by name
-        const found = categoryItems.value.find((c:any) => {
+        const found = categoryItems.value.find((c) => {
           const existingName = (c.name || '').toLowerCase().trim()
           const existingNameEn = (c.name_en || '').toLowerCase().trim()
           const topName = (top.category_name || '').toLowerCase().trim()
@@ -184,7 +184,7 @@ async function suggestCategory() {
     } else {
       app.showInfo('No suggestion')
     }
-  } catch (e:any) {
+  } catch (e) {
     app.showError(e?.message || 'AI suggestion failed')
   } finally {
     aiLoading.value = false
@@ -201,7 +201,7 @@ async function createCategoryFromSuggestion() {
     form.category_id = data.id
     createDialog.value = false
     app.showSuccess('Category created')
-  } catch (e:any) {
+  } catch (e) {
     app.showError(e?.message || 'Create category failed')
   }
 }

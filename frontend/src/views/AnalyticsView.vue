@@ -184,7 +184,7 @@
               <div class="text-caption">Showing latest {{ Math.min(10, filteredItems.length) }} of {{ filteredTotal }}</div>
             </div>
             <div class="text-caption" v-if="filteredItems.length">
-              Sum: <strong>{{ formatCurrency(filteredItems.reduce((a, t:any) => a + Number(t.amount || 0), 0)) }}</strong>
+              Sum: <strong>{{ formatCurrency(filteredItems.reduce((a, t) => a + Number(t.amount || 0), 0)) }}</strong>
             </div>
           </v-card-text>
           <v-divider />
@@ -386,7 +386,7 @@
   </v-container>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { ref, onMounted, computed } from 'vue'
 import { analyticsAPI, authAPI, transactionAPI } from '@/services/api'
 import { formatCurrency, formatDate } from '@/utils/formatters'
@@ -399,9 +399,9 @@ const categorySpending = ref([])
 const spendingPatterns = ref(null)
 const anomalies = ref(null)
 const predictions = ref(null)
-const monthlyIncome = ref<number>(0)
+const monthlyIncome = ref(0)
 const incomeSaving = ref(false)
-const mom = ref<any | null>(null)
+const mom = ref(null)
 
 // Date range
 const selectedPeriod = ref('last_month')
@@ -422,21 +422,21 @@ const txTypeOptions = [
   { title: 'Expense', value: 'expense' },
   { title: 'Transfer', value: 'transfer' },
 ]
-const txType = ref<string | null>(null)
-const minAmount = ref<number | null>(null)
-const maxAmount = ref<number | null>(null)
-const search = ref<string>('')
+const txType = ref(null)
+const minAmount = ref(null)
+const maxAmount = ref(null)
+const search = ref('')
 const txLoading = ref(false)
-const filteredItems = ref<any[]>([])
+const filteredItems = ref([])
 const filteredTotal = ref(0)
 
 // Chart data (fallback to AI patterns if spending breakdown empty)
 const categorySpendingChartData = computed(() => {
   if (categorySpending.value.length > 0) {
     return {
-      labels: categorySpending.value.map((item: any) => item.category_name),
+      labels: categorySpending.value.map((item) => item.category_name),
       datasets: [{
-        data: categorySpending.value.map((item: any) => Number(item.amount || 0)),
+        data: categorySpending.value.map((item) => Number(item.amount || 0)),
         backgroundColor: [
           '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
           '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF6384'
@@ -447,18 +447,18 @@ const categorySpendingChartData = computed(() => {
     }
   }
 
-  const patterns = (spendingPatterns.value && (spendingPatterns.value as any).patterns) || []
+  const patterns = (spendingPatterns.value && spendingPatterns.value.patterns) || []
   if (Array.isArray(patterns) && patterns.length > 0) {
     // Use only expense-like categories (exclude obvious income names)
-    const expenseLike = patterns.filter((p: any) => {
+    const expenseLike = patterns.filter((p) => {
       const name = String(p.category_name || '').toLowerCase()
       return !name.includes('thu nhập') && !name.includes('income')
     })
     if (expenseLike.length === 0) return null
     return {
-      labels: expenseLike.map((p: any) => p.category_name),
+      labels: expenseLike.map((p) => p.category_name),
       datasets: [{
-        data: expenseLike.map((p: any) => Number(p.total_amount || 0)),
+        data: expenseLike.map((p) => Number(p.total_amount || 0)),
         backgroundColor: [
           '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
           '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF6384'
@@ -502,7 +502,7 @@ const loadAnalytics = async () => {
     // Normalize spending patterns to support both string and object formats
     const patternsData = patterns.data || {}
     const normalizedInsights = Array.isArray(patternsData.insights)
-      ? patternsData.insights.map((it: any) => {
+      ? patternsData.insights.map((it) => {
           if (typeof it === 'string') {
             return { type: 'info', description: it }
           }
@@ -512,9 +512,9 @@ const loadAnalytics = async () => {
           }
         })
       : []
-    const translateToVi = (text: string) => {
+    const translateToVi = (text) => {
       if (!text) return text
-      const map: Record<string, string> = {
+      const map = {
         'Set up budget alerts for your top spending categories.': 'Thiết lập cảnh báo ngân sách cho các danh mục chi tiêu hàng đầu của bạn.',
         'Consider setting monthly spending limits for discretionary categories.': 'Cân nhắc đặt hạn mức chi tiêu hàng tháng cho các danh mục tùy ý.',
         'Your spending patterns show consistent behavior across categories.': 'Mẫu chi tiêu của bạn cho thấy hành vi ổn định giữa các danh mục.',
@@ -523,7 +523,7 @@ const loadAnalytics = async () => {
       return map[text] || text
     }
     const normalizedRecs = Array.isArray(patternsData.recommendations)
-      ? patternsData.recommendations.map((it: any) => {
+      ? patternsData.recommendations.map((it) => {
           if (typeof it === 'string') {
             return { title: 'Gợi ý', description: translateToVi(it), priority: 'medium' }
           }
@@ -553,7 +553,7 @@ const loadAnalytics = async () => {
 }
 
 const getDateRangeParams = () => {
-  const params: any = {}
+  const params = {}
   
   if (selectedPeriod.value === 'custom') {
     if (startDate.value) params.start_date = startDate.value
@@ -585,7 +585,7 @@ const getDateRangeParams = () => {
   return params
 }
 
-const getRecommendationIcon = (priority: string) => {
+const getRecommendationIcon = (priority) => {
   switch (priority) {
     case 'high': return 'mdi-alert-circle'
     case 'medium': return 'mdi-information'
@@ -641,7 +641,7 @@ const computeMoM = async () => {
 const loadFilteredTransactions = async () => {
   txLoading.value = true
   try {
-    const params: any = {
+    const params = {
       page: 1,
       limit: 50,
       start_date: startDate.value,
@@ -665,7 +665,7 @@ const loadFilteredTransactions = async () => {
 }
 
 const percentOfIncome = computed(() => {
-  const exp = Number((dashboardData.value as any)?.total_expense || 0)
+  const exp = Number(dashboardData.value?.total_expense || 0)
   const inc = Number(monthlyIncome.value || 0)
   if (!inc || inc <= 0) return 0
   return (exp / inc) * 100

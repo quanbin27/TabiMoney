@@ -20,7 +20,7 @@
   </v-container>
   
 </template>
-<script setup lang="ts">
+<script setup>
 import { onMounted, ref } from 'vue'
 import { transactionAPI } from '../services/api'
 import { useAppStore } from '../stores/app'
@@ -34,10 +34,10 @@ const headers = [
   { title: 'Amount', key: 'amount' },
 ]
 
-const items = ref<any[]>([])
+const items = ref([])
 const loading = ref(false)
 
-function formatCurrency(value: number) {
+function formatCurrency(value) {
   return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'VND' }).format(value)
 }
 
@@ -46,7 +46,7 @@ async function load() {
   try {
     const { data } = await transactionAPI.getTransactions({ page: 1, limit: 50 })
     items.value = Array.isArray(data.data) ? data.data : []
-  } catch (e: any) {
+  } catch (e) {
     app.showError(e?.message || 'Failed to load transactions')
   } finally {
     loading.value = false

@@ -73,7 +73,7 @@
   </v-container>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { ref, computed, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
@@ -92,21 +92,21 @@ const form = reactive({
 
 // Form validation
 const emailRules = [
-  (v: string) => !!v || 'Email is required',
-  (v: string) => /.+@.+\..+/.test(v) || 'Email must be valid',
+  (v) => !!v || 'Email is required',
+  (v) => /.+@.+\..+/.test(v) || 'Email must be valid',
 ]
 
 const passwordRules = [
-  (v: string) => !!v || 'Password is required',
-  (v: string) => v.length >= 6 || 'Password must be at least 6 characters',
+  (v) => !!v || 'Password is required',
+  (v) => v.length >= 6 || 'Password must be at least 6 characters',
 ]
 
 // Form state
 const formRef = ref()
 const loading = ref(false)
 const errors = reactive({
-  email: [] as string[],
-  password: [] as string[],
+  email: [],
+  password: [],
 })
 
 // Computed
@@ -131,7 +131,7 @@ const handleLogin = async () => {
     })
     
     appStore.showSuccess('Login successful!')
-  } catch (error: any) {
+  } catch (error) {
     if (error.message.includes('email')) {
       errors.email = [error.message]
     } else if (error.message.includes('password')) {

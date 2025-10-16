@@ -4,10 +4,7 @@ import { useAuthStore } from '../stores/auth'
 const router = createRouter({
   history: createWebHistory(),
   routes: [
-    {
-      path: '/',
-      redirect: '/dashboard',
-    },
+    { path: '/', redirect: '/dashboard' },
     {
       path: '/auth',
       children: [
@@ -138,19 +135,16 @@ const router = createRouter({
 // Navigation guards
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
-  
-  // Initialize auth store if not already done
+
   if (!authStore.initialized) {
     await authStore.initialize()
   }
 
-  // Check if route requires authentication
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     next('/auth/login')
     return
   }
 
-  // Check if route requires guest (not authenticated)
   if (to.meta.requiresGuest && authStore.isAuthenticated) {
     next('/dashboard')
     return
@@ -160,3 +154,5 @@ router.beforeEach(async (to, from, next) => {
 })
 
 export default router
+
+

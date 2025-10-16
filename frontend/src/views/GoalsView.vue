@@ -338,7 +338,7 @@
   </v-dialog>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { goalAPI } from '@/services/api'
@@ -346,7 +346,7 @@ import { formatCurrency, formatDate } from '@/utils/formatters'
 import { useAppStore } from '@/stores/app'
 
 // Reactive data
-const goals = ref<any[]>([])
+const goals = ref([])
 const dialog = ref(false)
 const contributionDialog = ref(false)
 const isEditing = ref(false)
@@ -354,25 +354,25 @@ const saving = ref(false)
 const savingContribution = ref(false)
 const formValid = ref(false)
 const contributionFormValid = ref(false)
-const selectedGoal = ref<any>(null)
+const selectedGoal = ref(null)
 const detailsDialog = ref(false)
-const detailsGoal = ref<any>(null)
+const detailsGoal = ref(null)
 
 // Form data
 const formRef = ref()
 const form = ref({
   title: '',
   description: '',
-  target_amount: null as number | null,
-  current_amount: 0 as number | null,
-  target_date: '' as string,
-  goal_type: null as string | null,
-  priority: null as string | null,
+  target_amount: null,
+  current_amount: 0,
+  target_date: '',
+  goal_type: null,
+  priority: null,
 })
 
 const contributionFormRef = ref()
 const contributionForm = ref({
-  amount: null as number | null,
+  amount: null,
   note: ''
 })
 
@@ -394,17 +394,17 @@ const priorities = [
 
 // Validation rules
 const rules = {
-  required: (value: any) => {
+  required: (value) => {
     if (value === null || value === undefined) return 'This field is required'
     if (typeof value === 'number') return true // allow 0 as valid
     if (typeof value === 'string') return value.trim().length > 0 || 'This field is required'
     return !!value || 'This field is required'
   },
-  positive: (value: number) => {
+  positive: (value) => {
     if (value === null || value === undefined) return true
     return value >= 0 || 'Value must be positive'
   },
-  futureDate: (value: string) => {
+  futureDate: (value) => {
     if (!value) return true
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -437,7 +437,7 @@ const openCreateDialog = () => {
   dialog.value = true
 }
 
-const openEditDialog = (goal: any) => {
+const openEditDialog = (goal) => {
   isEditing.value = true
   form.value = {
     title: goal.title,
@@ -495,7 +495,7 @@ const saveGoal = async () => {
   }
 }
 
-const deleteGoal = async (goalId: number) => {
+const deleteGoal = async (goalId) => {
   if (confirm('Are you sure you want to delete this goal?')) {
     try {
       await goalAPI.deleteGoal(goalId)
@@ -508,7 +508,7 @@ const deleteGoal = async (goalId: number) => {
   }
 }
 
-const addContribution = (goal: any) => {
+const addContribution = (goal) => {
   selectedGoal.value = goal
   contributionForm.value = {
     amount: 0,
@@ -544,23 +544,23 @@ const saveContribution = async () => {
   }
 }
 
-const openDetails = (goal: any) => {
+const openDetails = (goal) => {
   detailsGoal.value = goal
   detailsDialog.value = true
 }
 
-const goEdit = (goal: any) => {
+const goEdit = (goal) => {
   detailsDialog.value = false
   router.push({ name: 'EditGoal', params: { id: goal.id } })
 }
 
 // Helper methods
-const getProgressPercentage = (goal: any) => {
+const getProgressPercentage = (goal) => {
   if (goal.target_amount === 0) return 0
   return Math.min((goal.current_amount / goal.target_amount) * 100, 100)
 }
 
-const getGoalStatus = (goal: any) => {
+const getGoalStatus = (goal) => {
   const progress = getProgressPercentage(goal)
   const now = new Date()
   const targetDate = new Date(goal.target_date)
@@ -572,7 +572,7 @@ const getGoalStatus = (goal: any) => {
   return 'not_started'
 }
 
-const getGoalStatusText = (goal: any) => {
+const getGoalStatusText = (goal) => {
   const status = getGoalStatus(goal)
   const statusMap = {
     completed: 'Completed',
@@ -584,7 +584,7 @@ const getGoalStatusText = (goal: any) => {
   return statusMap[status] || 'Unknown'
 }
 
-const getGoalStatusColor = (goal: any) => {
+const getGoalStatusColor = (goal) => {
   const status = getGoalStatus(goal)
   const colorMap = {
     completed: 'success',
@@ -596,12 +596,12 @@ const getGoalStatusColor = (goal: any) => {
   return colorMap[status] || 'grey'
 }
 
-const getGoalStatusClass = (goal: any) => {
+const getGoalStatusClass = (goal) => {
   const status = getGoalStatus(goal)
   return `goal-${status}`
 }
 
-const getGoalIcon = (goal: any) => {
+const getGoalIcon = (goal) => {
   const status = getGoalStatus(goal)
   const iconMap = {
     completed: 'mdi-check-circle',

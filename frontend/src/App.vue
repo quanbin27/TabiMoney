@@ -140,7 +140,7 @@
   </v-app>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from './stores/auth'
@@ -154,7 +154,7 @@ const appStore = useAppStore()
 
 const drawer = ref(false)
 const loading = computed(() => appStore.loading)
-const notifications = ref<any[]>([])
+const notifications = ref([])
 const unreadCount = ref(0)
 
 // Navigation items
@@ -206,7 +206,7 @@ const loadNotifications = async () => {
   }
 }
 
-const markRead = async (id: number) => {
+const markRead = async (id) => {
   try {
     await notificationsAPI.markRead(id)
     // update local state

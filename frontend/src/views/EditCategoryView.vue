@@ -79,12 +79,11 @@
   </v-container>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { categoryAPI } from '../services/api'
 import { useAppStore } from '../stores/app'
-import type { Category } from '../types'
 
 const router = useRouter()
 const route = useRoute()
@@ -92,7 +91,7 @@ const app = useAppStore()
 
 const loading = ref(false)
 const formRef = ref()
-const category = ref<Category | null>(null)
+const category = ref(null)
 
 const form = reactive({
   name: '',
@@ -101,7 +100,7 @@ const form = reactive({
 })
 
 async function loadCategory() {
-  const categoryId = route.params.id as string
+  const categoryId = String(route.params.id || '')
   if (!categoryId) {
     router.push({ name: 'Categories' })
     return
@@ -116,7 +115,7 @@ async function loadCategory() {
     form.name = category.value.name || ''
     form.name_en = category.value.name_en || ''
     form.description = category.value.description || ''
-  } catch (e: any) {
+  } catch (e) {
     app.showError(e?.message || 'Failed to load category')
     router.push({ name: 'Categories' })
   } finally {
@@ -139,7 +138,7 @@ async function handleSubmit() {
     
     app.showSuccess('Category updated successfully!')
     router.push({ name: 'Categories' })
-  } catch (e: any) {
+  } catch (e) {
     app.showError(e?.message || 'Failed to update category')
   } finally {
     loading.value = false

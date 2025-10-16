@@ -283,7 +283,7 @@
   </v-container>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { ref, reactive, onMounted, computed, nextTick } from 'vue'
 import { budgetAPI, categoryAPI } from '@/services/api'
 import { formatCurrency } from '@/utils/formatters'
@@ -291,27 +291,27 @@ import { useAppStore } from '@/stores/app'
 import Chart from 'chart.js/auto'
 
 // Reactive data
-const budgets = ref<any[]>([])
-const categories = ref<any[]>([])
+const budgets = ref([])
+const categories = ref([])
 const dialog = ref(false)
 const isEditing = ref(false)
 const saving = ref(false)
 const loading = ref(false)
 const formValid = ref(false)
-const selectedBudget = ref<any>(null)
-const budgetChart = ref<HTMLCanvasElement>()
-const categoryChart = ref<HTMLCanvasElement>()
+const selectedBudget = ref(null)
+const budgetChart = ref(null)
+const categoryChart = ref(null)
 
 // Form data
 const formRef = ref()
 const form = ref({
-  category_id: null as number | null,
-  name: '' as string,
-  amount: null as number | null,
-  period: 'monthly' as string,
-  start_date: '' as string,
-  end_date: '' as string,
-  alert_threshold: 80 as number
+  category_id: null,
+  name: '',
+  amount: null,
+  period: 'monthly',
+  start_date: '',
+  end_date: '',
+  alert_threshold: 80
 })
 
 // Table headers
@@ -335,13 +335,13 @@ const budgetTypes = [
 
 // Validation rules
 const rules = {
-  required: (value: any) => {
+  required: (value) => {
     if (value === null || value === undefined) return 'This field is required'
     if (typeof value === 'number') return true // allow 0 as valid
     if (typeof value === 'string') return value.trim().length > 0 || 'This field is required'
     return !!value || 'This field is required'
   },
-  positive: (value: number) => {
+  positive: (value) => {
     if (value === null || value === undefined) return true
     return Number(value) > 0 || 'Value must be positive'
   }
@@ -416,7 +416,7 @@ const openCreateDialog = () => {
   dialog.value = true
 }
 
-const openEditDialog = (budget: any) => {
+const openEditDialog = (budget) => {
   isEditing.value = true
   form.value = {
     category_id: budget.category_id,
@@ -472,7 +472,7 @@ const saveBudget = async () => {
   }
 }
 
-const deleteBudget = async (budgetId: number) => {
+const deleteBudget = async (budgetId) => {
   if (confirm('Are you sure you want to delete this budget?')) {
     try {
       await budgetAPI.deleteBudget(budgetId)
@@ -486,48 +486,48 @@ const deleteBudget = async (budgetId: number) => {
 }
 
 // Helper methods
-const getProgressPercentage = (budget: any) => {
+const getProgressPercentage = (budget) => {
   if (budget.amount === 0) return 0
   return Math.min((budget.spent_amount / budget.amount) * 100, 100)
 }
 
-const getProgressColor = (budget: any) => {
+const getProgressColor = (budget) => {
   const percentage = getProgressPercentage(budget)
   if (percentage >= 100) return 'error'
   if (percentage >= 80) return 'warning'
   return 'success'
 }
 
-const getStatusText = (budget: any) => {
+const getStatusText = (budget) => {
   const percentage = getProgressPercentage(budget)
   if (percentage >= 100) return 'Over Budget'
   if (percentage >= 80) return 'Near Limit'
   return 'On Track'
 }
 
-const getStatusColor = (budget: any) => {
+const getStatusColor = (budget) => {
   const percentage = getProgressPercentage(budget)
   if (percentage >= 100) return 'error'
   if (percentage >= 80) return 'warning'
   return 'success'
 }
 
-const getRemainingAmountClass = (amount: number) => {
+const getRemainingAmountClass = (amount) => {
   return amount < 0 ? 'text-error' : 'text-success'
 }
 
-const getCategoryColor = (categoryId: number) => {
+const getCategoryColor = (categoryId) => {
   const colors = ['primary', 'secondary', 'success', 'warning', 'error', 'info']
   return colors[categoryId % colors.length]
 }
 
-const getCategoryIcon = (categoryId: number) => {
+const getCategoryIcon = (categoryId) => {
   const icons = ['mdi-home', 'mdi-car', 'mdi-food', 'mdi-shopping', 'mdi-gamepad', 'mdi-medical-bag']
   return icons[categoryId % icons.length]
 }
 
-const getCategoryName = (categoryId: number) => {
-  const cat = categories.value.find((c: any) => c.id === categoryId)
+const getCategoryName = (categoryId) => {
+  const cat = categories.value.find((c) => c.id === categoryId)
   return cat?.name ?? '—'
 }
 

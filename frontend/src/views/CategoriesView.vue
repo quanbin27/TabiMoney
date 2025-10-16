@@ -69,19 +69,18 @@
   </v-container>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { categoryAPI } from '../services/api'
 import { useAppStore } from '../stores/app'
-import type { Category } from '../types'
 
 const router = useRouter()
 const app = useAppStore()
 
 const loading = ref(false)
-const categories = ref<Category[]>([])
-const filteredCategories = ref<Category[]>([])
+const categories = ref([])
+const filteredCategories = ref([])
 const totalCategories = ref(0)
 const search = ref('')
 
@@ -98,14 +97,14 @@ const headers = [
   { title: 'Actions', key: 'actions', sortable: false },
 ]
 
-async function loadCategories(options: any = {}) {
+async function loadCategories(options = {}) {
   loading.value = true
   try {
     const response = await categoryAPI.getCategories()
     categories.value = response.data || []
     filteredCategories.value = categories.value
     totalCategories.value = categories.value.length
-  } catch (e: any) {
+  } catch (e) {
     app.showError(e?.message || 'Failed to load categories')
   } finally {
     loading.value = false
@@ -126,11 +125,11 @@ function filterCategories() {
   )
 }
 
-function editCategory(category: Category) {
+function editCategory(category) {
   router.push({ name: 'EditCategory', params: { id: category.id } })
 }
 
-async function deleteCategory(category: Category) {
+async function deleteCategory(category) {
   if (category.is_system) {
     app.showWarning('Cannot delete system categories')
     return
@@ -141,7 +140,7 @@ async function deleteCategory(category: Category) {
       await categoryAPI.deleteCategory(category.id)
       app.showSuccess('Category deleted')
       await loadCategories()
-    } catch (e: any) {
+  } catch (e) {
       app.showError(e?.message || 'Failed to delete category')
     }
   }

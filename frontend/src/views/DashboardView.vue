@@ -225,7 +225,7 @@
   </v-container>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
@@ -233,15 +233,14 @@ import { useAppStore } from '../stores/app'
 import { analyticsAPI, transactionAPI } from '../services/api'
 import { formatCurrency, formatDate } from '../utils/formatters'
 import DoughnutChart from '../components/charts/DoughnutChart.vue'
-import type { DashboardAnalytics, Transaction } from '../types'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const appStore = useAppStore()
 
 // State
-const analytics = ref<DashboardAnalytics | null>(null)
-const recentTransactions = ref<Transaction[]>([])
+const analytics = ref(null)
+const recentTransactions = ref([])
 const loading = ref(false)
 
 // Computed
@@ -288,9 +287,7 @@ const chartOptions = {
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
-    legend: {
-      position: 'bottom' as const,
-    },
+    legend: { position: 'bottom' },
   },
 }
 
@@ -320,15 +317,15 @@ const loadDashboardData = async () => {
   }
 }
 
-const getAmountClass = (type: string) => {
+const getAmountClass = (type) => {
   return type === 'income' ? 'text-success' : 'text-error'
 }
 
-const editTransaction = (id: number) => {
+const editTransaction = (id) => {
   router.push(`/transactions/${id}/edit`)
 }
 
-const deleteTransaction = async (id: number) => {
+const deleteTransaction = async (id) => {
   if (confirm('Are you sure you want to delete this transaction?')) {
     try {
       await transactionAPI.deleteTransaction(id)

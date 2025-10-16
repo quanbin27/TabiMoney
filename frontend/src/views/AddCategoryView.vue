@@ -61,7 +61,7 @@
   </v-container>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { categoryAPI } from '../services/api'
@@ -94,7 +94,7 @@ async function handleSubmit() {
     
     app.showSuccess('Category created successfully!')
     router.push({ name: 'Categories' })
-  } catch (e: any) {
+  } catch (e) {
     app.showError(e?.message || 'Failed to create category')
   } finally {
     loading.value = false

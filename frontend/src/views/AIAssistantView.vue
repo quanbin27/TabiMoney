@@ -185,22 +185,18 @@
   </v-container>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { ref, onMounted, nextTick } from 'vue'
 import { aiAPI, transactionAPI } from '@/services/api'
 import { formatCurrency, formatDate } from '@/utils/formatters'
 import { useAuthStore } from '@/stores/auth'
 
 // Reactive data
-const messages = ref<Array<{
-  content: string
-  isUser: boolean
-  timestamp: Date
-}>>([])
+const messages = ref([])
 
 const inputMessage = ref('')
 const isTyping = ref(false)
-const chatMessages = ref<HTMLElement>()
+const chatMessages = ref(null)
 
 // Quick suggestions
 const quickSuggestions = ref([
@@ -212,7 +208,7 @@ const quickSuggestions = ref([
   'Phân tích xu hướng chi tiêu'
 ])
 
-const recentTransactions = ref<any[]>([])
+const recentTransactions = ref([])
 
 // Auth store
 const authStore = useAuthStore()
@@ -263,7 +259,7 @@ const sendMessage = async () => {
   }
 }
 
-const sendQuickMessage = (suggestion: string) => {
+const sendQuickMessage = (suggestion) => {
   inputMessage.value = suggestion
   sendMessage()
 }
@@ -276,7 +272,7 @@ const scrollToBottom = () => {
   })
 }
 
-const formatMessage = (content: string) => {
+const formatMessage = (content) => {
   // Simple formatting for better readability
   return content
     .replace(/\n/g, '<br>')
@@ -284,7 +280,7 @@ const formatMessage = (content: string) => {
     .replace(/\*(.*?)\*/g, '<em>$1</em>')
 }
 
-const formatTime = (date: Date) => {
+const formatTime = (date) => {
   return date.toLocaleTimeString('vi-VN', { 
     hour: '2-digit', 
     minute: '2-digit' 

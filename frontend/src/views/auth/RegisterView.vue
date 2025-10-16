@@ -26,7 +26,7 @@
               <v-text-field
                 v-model="form.username"
                 label="Username"
-                :rules="[(v: string) => !!v || 'Username is required']"
+                :rules="[(v) => !!v || 'Username is required']"
                 :error-messages="errors.username"
                 required
                 class="mb-3"
@@ -77,7 +77,7 @@
   </v-container>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { ref, computed, reactive } from 'vue'
 import { useAuthStore } from '../../stores/auth'
 import { useAppStore } from '../../stores/app'
@@ -98,19 +98,19 @@ const form = reactive({
 })
 
 const errors = reactive({
-  email: [] as string[],
-  username: [] as string[],
-  password: [] as string[],
+  email: [],
+  username: [],
+  password: [],
 })
 
 const emailRules = [
-  (v: string) => !!v || 'Email is required',
-  (v: string) => /.+@.+\..+/.test(v) || 'Email must be valid',
+  (v) => !!v || 'Email is required',
+  (v) => /.+@.+\..+/.test(v) || 'Email must be valid',
 ]
 
 const passwordRules = [
-  (v: string) => !!v || 'Password is required',
-  (v: string) => v.length >= 6 || 'Password must be at least 6 characters',
+  (v) => !!v || 'Password is required',
+  (v) => v.length >= 6 || 'Password must be at least 6 characters',
 ]
 
 const isFormValid = computed(() => {
@@ -140,7 +140,7 @@ const handleRegister = async () => {
     })
 
     appStore.showSuccess('Registration successful!')
-  } catch (error: any) {
+  } catch (error) {
     const message = error?.message || ''
     if (message.includes('email')) {
       errors.email = [message]

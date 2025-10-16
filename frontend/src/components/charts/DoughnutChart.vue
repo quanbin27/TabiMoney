@@ -4,43 +4,25 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { ref, onMounted, watch, nextTick } from 'vue'
-import {
-  Chart as ChartJS,
-  ArcElement,
-  Tooltip,
-  Legend,
-  type ChartConfiguration,
-} from 'chart.js'
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js'
 
 // Register Chart.js components
 ChartJS.register(ArcElement, Tooltip, Legend)
 
-interface Props {
-  data: {
-    labels: string[]
-    datasets: {
-      data: number[]
-      backgroundColor: string[]
-      borderWidth: number
-      borderColor: string
-    }[]
-  }
-  options?: any
-}
-
-const props = withDefaults(defineProps<Props>(), {
-  options: () => ({})
+const props = defineProps({
+  data: { type: Object, required: true },
+  options: { type: Object, default: () => ({}) },
 })
 
-const chartRef = ref<HTMLCanvasElement>()
-let chartInstance: ChartJS | null = null
+const chartRef = ref(null)
+let chartInstance = null
 
 const createChart = () => {
   if (!chartRef.value || !props.data || !props.data.labels?.length) return
 
-  const config: ChartConfiguration = {
+  const config = {
     type: 'doughnut',
     data: props.data,
     options: {

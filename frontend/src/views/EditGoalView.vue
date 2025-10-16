@@ -82,7 +82,7 @@
   
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { goalAPI } from '@/services/api'
@@ -101,11 +101,11 @@ const formRef = ref()
 const form = reactive({
   title: '',
   description: '',
-  target_amount: null as number | null,
-  current_amount: 0 as number | null,
-  target_date: '' as string,
-  goal_type: null as string | null,
-  priority: null as string | null,
+  target_amount: null,
+  current_amount: 0,
+  target_date: '',
+  goal_type: null,
+  priority: null,
 })
 
 const goalTypes = [
@@ -124,13 +124,13 @@ const priorities = [
 ]
 
 const rules = {
-  required: (v: any) => {
+  required: (v) => {
     if (v === null || v === undefined) return 'This field is required'
     if (typeof v === 'number') return true
     if (typeof v === 'string') return v.trim().length > 0 || 'This field is required'
     return !!v || 'This field is required'
   },
-  nonNegative: (v: any) => {
+  nonNegative: (v) => {
     if (v === null || v === undefined) return true
     return Number(v) >= 0 || 'Value must be ≥ 0'
   },
@@ -149,7 +149,7 @@ async function loadGoal() {
     form.priority = g.priority
     // Convert RFC3339 to yyyy-mm-dd
     form.target_date = g.target_date ? new Date(g.target_date).toISOString().slice(0, 10) : ''
-  } catch (e: any) {
+  } catch (e) {
     app.showError(e?.message || 'Failed to load goal')
   } finally {
     loading.value = false
@@ -174,7 +174,7 @@ async function onSubmit() {
     })
     app.showSuccess('Goal updated')
     router.push({ name: 'Goals' })
-  } catch (e: any) {
+  } catch (e) {
     app.showError(e?.message || 'Failed to update goal')
   } finally {
     saving.value = false
@@ -188,7 +188,7 @@ async function onDelete() {
     await goalAPI.deleteGoal(id)
     app.showSuccess('Goal deleted')
     router.push({ name: 'Goals' })
-  } catch (e: any) {
+  } catch (e) {
     app.showError(e?.message || 'Failed to delete goal')
   } finally {
     deleting.value = false
