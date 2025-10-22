@@ -46,10 +46,10 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive } from 'vue'
+import { useAppStore } from '@/stores/app'
+import { useAuthStore } from '@/stores/auth'
+import { computed, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '../../stores/auth'
-import { useAppStore } from '../../stores/app'
 
 const router = useRouter()
 const authStore = useAuthStore()

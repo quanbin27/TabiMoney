@@ -2,34 +2,21 @@
   <v-container class="py-8">
     <div class="d-flex justify-space-between align-center mb-6">
       <h1 class="text-h4">Categories</h1>
-      <v-btn color="primary" :to="{ name: 'AddCategory' }" prepend-icon="mdi-plus">
+      <v-btn color="primary" prepend-icon="mdi-plus">
         Add Category
       </v-btn>
     </div>
 
     <v-card>
-      <v-data-table
-        :headers="headers"
-        :items="categories"
-        :loading="loading"
-        :items-per-page="pagination.limit"
-        :total-items="totalCategories"
-        @update:options="loadCategories"
-        class="elevation-1"
-      >
+      <v-data-table :headers="headers" :items="categories" :loading="loading" :items-per-page="pagination.limit"
+        :total-items="totalCategories" @update:options="loadCategories" class="elevation-1">
         <template v-slot:top>
           <v-toolbar flat>
             <v-toolbar-title>Manage Categories</v-toolbar-title>
             <v-divider class="mx-4" inset vertical></v-divider>
             <v-spacer></v-spacer>
-            <v-text-field
-              v-model="search"
-              append-icon="mdi-magnify"
-              label="Search categories"
-              single-line
-              hide-details
-              @input="filterCategories"
-            ></v-text-field>
+            <v-text-field v-model="search" append-icon="mdi-magnify" label="Search categories" single-line hide-details
+              @input="filterCategories"></v-text-field>
           </v-toolbar>
         </template>
 
@@ -41,21 +28,10 @@
 
 
         <template v-slot:item.actions="{ item }">
-          <v-btn
-            v-if="!item.is_system"
-            icon="mdi-pencil"
-            size="small"
-            variant="text"
-            @click="editCategory(item)"
-          ></v-btn>
-          <v-btn
-            v-if="!item.is_system"
-            icon="mdi-delete"
-            size="small"
-            variant="text"
-            color="error"
-            @click="deleteCategory(item)"
-          ></v-btn>
+          <v-btn v-if="!item.is_system" icon="mdi-pencil" size="small" variant="text"
+            @click="editCategory(item)"></v-btn>
+          <v-btn v-if="!item.is_system" icon="mdi-delete" size="small" variant="text" color="error"
+            @click="deleteCategory(item)"></v-btn>
           <span v-if="item.is_system" class="text-caption text-grey">System</span>
         </template>
 
@@ -70,10 +46,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { categoryAPI } from '@/services/api'
+import { useAppStore } from '@/stores/app'
+import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { categoryAPI } from '../services/api'
-import { useAppStore } from '../stores/app'
 
 const router = useRouter()
 const app = useAppStore()
@@ -116,9 +92,9 @@ function filterCategories() {
     filteredCategories.value = categories.value
     return
   }
-  
+
   const query = search.value.toLowerCase()
-  filteredCategories.value = categories.value.filter(cat => 
+  filteredCategories.value = categories.value.filter(cat =>
     cat.name?.toLowerCase().includes(query) ||
     cat.name_en?.toLowerCase().includes(query) ||
     cat.description?.toLowerCase().includes(query)
@@ -134,13 +110,13 @@ async function deleteCategory(category) {
     app.showWarning('Cannot delete system categories')
     return
   }
-  
+
   if (confirm(`Are you sure you want to delete "${category.name}"?`)) {
     try {
       await categoryAPI.deleteCategory(category.id)
       app.showSuccess('Category deleted')
       await loadCategories()
-  } catch (e) {
+    } catch (e) {
       app.showError(e?.message || 'Failed to delete category')
     }
   }

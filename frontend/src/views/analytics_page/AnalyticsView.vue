@@ -23,15 +23,8 @@
             Monthly Income
           </v-card-title>
           <v-card-text class="d-flex align-center gap-2">
-            <v-text-field
-              v-model.number="monthlyIncome"
-              type="number"
-              label="Monthly income"
-              prefix="₫"
-              density="comfortable"
-              hide-details
-              class="mr-2"
-            />
+            <v-text-field v-model.number="monthlyIncome" type="number" label="Monthly income" prefix="₫"
+              density="comfortable" hide-details class="mr-2" />
             <v-btn color="primary" :loading="incomeSaving" @click="saveIncome">Save</v-btn>
             <div class="ml-4 text-caption" v-if="dashboardData">
               Spent this month: <strong>{{ percentOfIncome.toFixed(1) }}%</strong>
@@ -61,8 +54,10 @@
               </div>
               <v-divider class="my-2" />
               <div>
-                <div>Income change: <strong :class="mom.incomeChange >= 0 ? 'text-success' : 'text-error'">{{ mom.incomeChange.toFixed(1) }}%</strong></div>
-                <div>Expense change: <strong :class="mom.expenseChange >= 0 ? 'text-error' : 'text-success'">{{ mom.expenseChange.toFixed(1) }}%</strong></div>
+                <div>Income change: <strong :class="mom.incomeChange >= 0 ? 'text-success' : 'text-error'">{{
+                  mom.incomeChange.toFixed(1) }}%</strong></div>
+                <div>Expense change: <strong :class="mom.expenseChange >= 0 ? 'text-error' : 'text-success'">{{
+                  mom.expenseChange.toFixed(1) }}%</strong></div>
               </div>
             </div>
             <div v-else class="text-caption">Select a month to compare.</div>
@@ -74,35 +69,17 @@
     <!-- Date Range Filter -->
     <v-row>
       <v-col cols="12" md="3">
-        <v-select
-          v-model="selectedPeriod"
-          :items="periodOptions"
-          label="Time Period"
-          @update:model-value="loadAnalytics"
-        />
+        <v-select v-model="selectedPeriod" :items="periodOptions" label="Time Period"
+          @update:model-value="loadAnalytics" />
       </v-col>
       <v-col cols="12" md="3">
-        <v-text-field
-          v-model="startDate"
-          type="date"
-          label="Start Date"
-          @update:model-value="loadAnalytics"
-        />
+        <v-text-field v-model="startDate" type="date" label="Start Date" @update:model-value="loadAnalytics" />
       </v-col>
       <v-col cols="12" md="3">
-        <v-text-field
-          v-model="endDate"
-          type="date"
-          label="End Date"
-          @update:model-value="loadAnalytics"
-        />
+        <v-text-field v-model="endDate" type="date" label="End Date" @update:model-value="loadAnalytics" />
       </v-col>
       <v-col cols="12" md="3" class="d-flex align-center">
-        <v-btn
-          color="primary"
-          @click="loadAnalytics"
-          :loading="loading"
-        >
+        <v-btn color="primary" @click="loadAnalytics" :loading="loading">
           <v-icon class="mr-2">mdi-refresh</v-icon>
           Refresh
         </v-btn>
@@ -181,19 +158,21 @@
           <v-card-text class="d-flex align-center justify-space-between">
             <div>
               <div class="text-body-2">Results: <strong>{{ filteredTotal }}</strong></div>
-              <div class="text-caption">Showing latest {{ Math.min(10, filteredItems.length) }} of {{ filteredTotal }}</div>
+              <div class="text-caption">Showing latest {{ Math.min(10, filteredItems.length) }} of {{ filteredTotal }}
+              </div>
             </div>
             <div class="text-caption" v-if="filteredItems.length">
-              Sum: <strong>{{ formatCurrency(filteredItems.reduce((a, t) => a + Number(t.amount || 0), 0)) }}</strong>
+              Sum: <strong>{{formatCurrency(filteredItems.reduce((a, t) => a + Number(t.amount || 0), 0))}}</strong>
             </div>
           </v-card-text>
           <v-divider />
           <v-card-text>
             <v-list density="compact">
-              <v-list-item v-for="t in filteredItems.slice(0,10)" :key="t.id">
+              <v-list-item v-for="t in filteredItems.slice(0, 10)" :key="t.id">
                 <v-list-item-title>{{ t.description || '(no description)' }}</v-list-item-title>
                 <v-list-item-subtitle>
-                  {{ t.transaction_type }} · {{ t.category?.name || 'Uncategorized' }} · {{ formatCurrency(t.amount) }} · {{ new Date(t.transaction_date).toLocaleDateString() }}
+                  {{ t.transaction_type }} · {{ t.category?.name || 'Uncategorized' }} · {{ formatCurrency(t.amount) }}
+                  · {{ new Date(t.transaction_date).toLocaleDateString() }}
                 </v-list-item-subtitle>
               </v-list-item>
             </v-list>
@@ -213,10 +192,7 @@
           </v-card-title>
           <v-card-text>
             <div v-if="categorySpendingChartData" style="height: 300px;">
-              <DoughnutChart
-                :data="categorySpendingChartData"
-                :options="doughnutChartOptions"
-              />
+              <DoughnutChart :data="categorySpendingChartData" :options="doughnutChartOptions" />
             </div>
             <div v-else class="text-center pa-8">
               <v-icon size="48" color="grey">mdi-chart-donut</v-icon>
@@ -235,15 +211,11 @@
             Spending Trends
           </v-card-title>
           <v-card-text>
-            <div v-if="spendingPatterns && spendingPatterns.insights && spendingPatterns.insights.length > 0" style="height: 300px;">
+            <div v-if="spendingPatterns && spendingPatterns.insights && spendingPatterns.insights.length > 0"
+              style="height: 300px;">
               <div class="text-h6 mb-4">AI Insights</div>
-              <v-alert
-                v-for="(insight, index) in spendingPatterns.insights"
-                :key="index"
-                :type="insight.type"
-                variant="tonal"
-                class="mb-2"
-              >
+              <v-alert v-for="(insight, index) in spendingPatterns.insights" :key="index" :type="insight.type"
+                variant="tonal" class="mb-2">
                 {{ insight.description }}
               </v-alert>
             </div>
@@ -267,13 +239,11 @@
             AI Recommendations
           </v-card-title>
           <v-card-text>
-            <div v-if="spendingPatterns && spendingPatterns.recommendations && spendingPatterns.recommendations.length > 0">
+            <div
+              v-if="spendingPatterns && spendingPatterns.recommendations && spendingPatterns.recommendations.length > 0">
               <v-list>
-                <v-list-item
-                  v-for="(rec, index) in spendingPatterns.recommendations"
-                  :key="index"
-                  :prepend-icon="getRecommendationIcon(rec.priority)"
-                >
+                <v-list-item v-for="(rec, index) in spendingPatterns.recommendations" :key="index"
+                  :prepend-icon="getRecommendationIcon(rec.priority)">
                   <v-list-item-title>{{ rec.title }}</v-list-item-title>
                   <v-list-item-subtitle>{{ rec.description }}</v-list-item-subtitle>
                 </v-list-item>
@@ -296,16 +266,11 @@
           </v-card-title>
           <v-card-text>
             <div v-if="anomalies && anomalies.anomalies && anomalies.anomalies.length > 0">
-              <v-alert
-                v-for="(anomaly, index) in anomalies.anomalies"
-                :key="index"
-                type="warning"
-                variant="tonal"
-                class="mb-2"
-              >
+              <v-alert v-for="(anomaly, index) in anomalies.anomalies" :key="index" type="warning" variant="tonal"
+                class="mb-2">
                 <div class="text-subtitle-2">{{ anomaly.description }}</div>
                 <div class="text-caption">
-                  Amount: {{ formatCurrency(anomaly.amount) }} | 
+                  Amount: {{ formatCurrency(anomaly.amount) }} |
                   Date: {{ formatDate(anomaly.date) }}
                 </div>
               </v-alert>
@@ -387,10 +352,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import DoughnutChart from '@/components/DoughnutChart.vue'
 import { analyticsAPI, authAPI, transactionAPI } from '@/services/api'
 import { formatCurrency, formatDate } from '@/utils/formatters'
-import DoughnutChart from '@/components/charts/DoughnutChart.vue'
+import { computed, onMounted, ref } from 'vue'
 
 // Reactive data
 const loading = ref(false)
@@ -487,7 +452,7 @@ const loadAnalytics = async () => {
   loading.value = true
   try {
     const params = getDateRangeParams()
-    
+
     // Load all analytics data in parallel
     const [dashboard, spending, patterns, anomalyData, predictionData] = await Promise.all([
       analyticsAPI.getDashboard(params),
@@ -503,14 +468,14 @@ const loadAnalytics = async () => {
     const patternsData = patterns.data || {}
     const normalizedInsights = Array.isArray(patternsData.insights)
       ? patternsData.insights.map((it) => {
-          if (typeof it === 'string') {
-            return { type: 'info', description: it }
-          }
-          return {
-            type: it.type || 'info',
-            description: it.description || String(it)
-          }
-        })
+        if (typeof it === 'string') {
+          return { type: 'info', description: it }
+        }
+        return {
+          type: it.type || 'info',
+          description: it.description || String(it)
+        }
+      })
       : []
     const translateToVi = (text) => {
       if (!text) return text
@@ -524,15 +489,15 @@ const loadAnalytics = async () => {
     }
     const normalizedRecs = Array.isArray(patternsData.recommendations)
       ? patternsData.recommendations.map((it) => {
-          if (typeof it === 'string') {
-            return { title: 'Gợi ý', description: translateToVi(it), priority: 'medium' }
-          }
-          return {
-            title: it.title ? translateToVi(it.title) : 'Gợi ý',
-            description: translateToVi(it.description || String(it)),
-            priority: it.priority || 'medium'
-          }
-        })
+        if (typeof it === 'string') {
+          return { title: 'Gợi ý', description: translateToVi(it), priority: 'medium' }
+        }
+        return {
+          title: it.title ? translateToVi(it.title) : 'Gợi ý',
+          description: translateToVi(it.description || String(it)),
+          priority: it.priority || 'medium'
+        }
+      })
       : []
     spendingPatterns.value = {
       ...patternsData,
@@ -541,7 +506,7 @@ const loadAnalytics = async () => {
     }
     anomalies.value = anomalyData.data
     predictions.value = predictionData.data
-    
+
     // Debug logging
     console.log('Dashboard Data:', dashboardData.value)
     console.log('Category Spending:', categorySpending.value)
@@ -554,7 +519,7 @@ const loadAnalytics = async () => {
 
 const getDateRangeParams = () => {
   const params = {}
-  
+
   if (selectedPeriod.value === 'custom') {
     if (startDate.value) params.start_date = startDate.value
     if (endDate.value) params.end_date = endDate.value
@@ -562,7 +527,7 @@ const getDateRangeParams = () => {
     const now = new Date()
     const end = new Date(now)
     let start = new Date(now)
-    
+
     switch (selectedPeriod.value) {
       case 'last_month':
         start.setMonth(start.getMonth() - 1)
@@ -577,11 +542,11 @@ const getDateRangeParams = () => {
         start.setFullYear(start.getFullYear() - 1)
         break
     }
-    
+
     params.start_date = start.toISOString().split('T')[0]
     params.end_date = end.toISOString().split('T')[0]
   }
-  
+
   return params
 }
 
@@ -676,7 +641,7 @@ const initializeDateRange = () => {
   const now = new Date()
   const lastMonth = new Date(now)
   lastMonth.setMonth(lastMonth.getMonth() - 1)
-  
+
   startDate.value = lastMonth.toISOString().split('T')[0]
   endDate.value = now.toISOString().split('T')[0]
 }

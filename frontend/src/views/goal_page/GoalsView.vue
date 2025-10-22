@@ -14,12 +14,7 @@
                 </p>
               </div>
             </div>
-            <v-btn
-              color="white"
-              variant="outlined"
-              @click="openCreateDialog"
-              prepend-icon="mdi-plus"
-            >
+            <v-btn color="white" variant="outlined" @click="openCreateDialog" prepend-icon="mdi-plus">
               New Goal
             </v-btn>
           </v-card-title>
@@ -29,26 +24,11 @@
 
     <!-- Goals Grid -->
     <v-row v-if="goals.length > 0">
-      <v-col
-        v-for="goal in goals"
-        :key="goal.id"
-        cols="12"
-        md="6"
-        lg="4"
-      >
-        <v-card
-          class="goal-card"
-          :class="getGoalStatusClass(goal)"
-          elevation="2"
-          hover
-        >
+      <v-col v-for="goal in goals" :key="goal.id" cols="12" md="6" lg="4">
+        <v-card class="goal-card" :class="getGoalStatusClass(goal)" elevation="2" hover>
           <v-card-title class="d-flex align-center justify-space-between">
             <div class="d-flex align-center">
-              <v-icon
-                :color="getGoalStatusColor(goal)"
-                class="mr-2"
-                size="large"
-              >
+              <v-icon :color="getGoalStatusColor(goal)" class="mr-2" size="large">
                 {{ getGoalIcon(goal) }}
               </v-icon>
               <div>
@@ -58,11 +38,7 @@
             </div>
             <v-menu>
               <template v-slot:activator="{ props }">
-                <v-btn
-                  icon="mdi-dots-vertical"
-                  variant="text"
-                  v-bind="props"
-                ></v-btn>
+                <v-btn icon="mdi-dots-vertical" variant="text" v-bind="props"></v-btn>
               </template>
               <v-list>
                 <v-list-item @click="openEditDialog(goal)">
@@ -90,12 +66,8 @@
                   {{ getProgressPercentage(goal) }}%
                 </span>
               </div>
-              <v-progress-linear
-                :model-value="getProgressPercentage(goal)"
-                :color="getGoalStatusColor(goal)"
-                height="8"
-                rounded
-              ></v-progress-linear>
+              <v-progress-linear :model-value="getProgressPercentage(goal)" :color="getGoalStatusColor(goal)" height="8"
+                rounded></v-progress-linear>
             </div>
 
             <!-- Goal Details -->
@@ -115,11 +87,7 @@
             </v-row>
 
             <!-- Goal Status -->
-            <v-chip
-              :color="getGoalStatusColor(goal)"
-              size="small"
-              class="mt-3"
-            >
+            <v-chip :color="getGoalStatusColor(goal)" size="small" class="mt-3">
               {{ getGoalStatusText(goal) }}
             </v-chip>
 
@@ -131,19 +99,11 @@
           </v-card-text>
 
           <v-card-actions>
-            <v-btn
-              color="primary"
-              variant="text"
-              @click="openDetails(goal)"
-            >
+            <v-btn color="primary" variant="text" @click="openDetails(goal)">
               View Details
             </v-btn>
             <v-spacer></v-spacer>
-            <v-btn
-              color="success"
-              variant="text"
-              @click="addContribution(goal)"
-            >
+            <v-btn color="success" variant="text" @click="addContribution(goal)">
               Add Contribution
             </v-btn>
           </v-card-actions>
@@ -160,11 +120,7 @@
           <p class="text-body-2 text-grey mb-4">
             Start by creating your first financial goal
           </p>
-          <v-btn
-            color="primary"
-            @click="openCreateDialog"
-            prepend-icon="mdi-plus"
-          >
+          <v-btn color="primary" @click="openCreateDialog" prepend-icon="mdi-plus">
             Create Your First Goal
           </v-btn>
         </v-card>
@@ -179,77 +135,31 @@
         </v-card-title>
         <v-card-text>
           <v-form ref="formRef" validate-on="submit">
-            <v-text-field
-              v-model="form.title"
-              label="Goal Title"
-              :rules="[rules.required]"
-              required
-              clearable
-            ></v-text-field>
-            
-            <v-textarea
-              v-model="form.description"
-              label="Description"
-              rows="3"
-            ></v-textarea>
-            
-            <v-text-field
-              v-model="form.target_amount"
-              label="Target Amount"
-              type="number"
-              :rules="[rules.required, rules.positive]"
-              prefix="₫"
-              required
-              clearable
-            ></v-text-field>
-            
-            <v-text-field
-              v-model="form.current_amount"
-              label="Current Amount"
-              type="number"
-              :rules="[rules.positive]"
-              prefix="₫"
-              clearable
-            ></v-text-field>
-            
-            <v-text-field
-              v-model.lazy="form.target_date"
-              label="Target Date"
-              type="date"
-              :rules="[rules.required, rules.futureDate]"
-              required
-            ></v-text-field>
-            
-            <v-select
-              v-model="form.goal_type"
-              label="Goal Type"
-              :items="goalTypes"
-              item-title="title"
-              item-value="value"
-              :rules="[rules.required]"
-              required
-            ></v-select>
-            
-            <v-select
-              v-model="form.priority"
-              label="Priority"
-              :items="priorities"
-              item-title="title"
-              item-value="value"
-              :rules="[rules.required]"
-              required
-            ></v-select>
+            <v-text-field v-model="form.title" label="Goal Title" :rules="[rules.required]" required
+              clearable></v-text-field>
+
+            <v-textarea v-model="form.description" label="Description" rows="3"></v-textarea>
+
+            <v-text-field v-model="form.target_amount" label="Target Amount" type="number"
+              :rules="[rules.required, rules.positive]" prefix="₫" required clearable></v-text-field>
+
+            <v-text-field v-model="form.current_amount" label="Current Amount" type="number" :rules="[rules.positive]"
+              prefix="₫" clearable></v-text-field>
+
+            <v-text-field v-model.lazy="form.target_date" label="Target Date" type="date"
+              :rules="[rules.required, rules.futureDate]" required></v-text-field>
+
+            <v-select v-model="form.goal_type" label="Goal Type" :items="goalTypes" item-title="title"
+              item-value="value" :rules="[rules.required]" required></v-select>
+
+            <v-select v-model="form.priority" label="Priority" :items="priorities" item-title="title" item-value="value"
+              :rules="[rules.required]" required></v-select>
           </v-form>
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn @click="closeDialog">Cancel</v-btn>
-          <v-btn
-            type="submit"
-            color="primary"
-            @click="saveGoal"
-            :loading="saving"
-          >
+          <v-btn type="submit" color="primary" @click="saveGoal" :loading="saving">
             {{ isEditing ? 'Update' : 'Create' }}
           </v-btn>
         </v-card-actions>
@@ -262,31 +172,17 @@
         <v-card-title>Add Contribution</v-card-title>
         <v-card-text>
           <v-form ref="contributionFormRef" v-model="contributionFormValid" validate-on="submit">
-            <v-text-field
-              v-model="contributionForm.amount"
-              label="Amount"
-              type="number"
-              :rules="[rules.required, rules.positive]"
-              prefix="₫"
-              required
-            ></v-text-field>
-            
-            <v-textarea
-              v-model="contributionForm.note"
-              label="Note (Optional)"
-              rows="2"
-            ></v-textarea>
+            <v-text-field v-model="contributionForm.amount" label="Amount" type="number"
+              :rules="[rules.required, rules.positive]" prefix="₫" required></v-text-field>
+
+            <v-textarea v-model="contributionForm.note" label="Note (Optional)" rows="2"></v-textarea>
           </v-form>
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn @click="closeContributionDialog">Cancel</v-btn>
-          <v-btn
-            color="primary"
-            @click="saveContribution"
-            :disabled="!contributionFormValid"
-            :loading="savingContribution"
-          >
+          <v-btn color="primary" @click="saveContribution" :disabled="!contributionFormValid"
+            :loading="savingContribution">
             Add Contribution
           </v-btn>
         </v-card-actions>
@@ -339,11 +235,10 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { goalAPI } from '@/services/api'
-import { formatCurrency, formatDate } from '@/utils/formatters'
 import { useAppStore } from '@/stores/app'
+import { formatCurrency, formatDate } from '@/utils/formatters'
+import { onMounted, ref } from 'vue'
 
 // Reactive data
 const goals = ref([])
@@ -564,7 +459,7 @@ const getGoalStatus = (goal) => {
   const progress = getProgressPercentage(goal)
   const now = new Date()
   const targetDate = new Date(goal.target_date)
-  
+
   if (progress >= 100) return 'completed'
   if (targetDate < now) return 'overdue'
   if (progress >= 75) return 'on_track'

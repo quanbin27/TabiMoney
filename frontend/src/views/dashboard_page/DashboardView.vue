@@ -12,8 +12,8 @@
 </template>
 
 <script setup>
+import { analyticsAPI, transactionAPI } from '@/services/api'
 import { onMounted, ref } from 'vue'
-import { analyticsAPI, transactionAPI } from '../../services/api'
 import {
   ChartHeath,
   RecentTransactions, Sumary, Welcome

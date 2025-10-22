@@ -39,9 +39,9 @@
 </template>
 
 <script setup>
-import { transactionAPI } from '../../../services/api'
-import { useAppStore } from '../../../stores/app'
-import { formatCurrency, formatDate } from '../../../utils/formatters'
+import { transactionAPI } from '@/services/api'
+import { useAppStore } from '@/stores/app'
+import { formatCurrency, formatDate } from '@/utils/formatters'
 const appStore = useAppStore()
 
 const props = defineProps({

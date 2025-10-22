@@ -1,45 +1,47 @@
 <template>
-  <v-container class="py-8">
+  <v-container>
+    <FilterTransactionView />
+
     <v-row class="mb-4" align="center" justify="space-between">
       <v-col cols="12" md="6">
         <h1 class="text-h5">Transactions</h1>
       </v-col>
       <v-col cols="12" md="6" class="text-right">
-        <v-btn color="primary" :to="{ name: 'AddTransaction' }">Add Transaction</v-btn>
+        <v-btn color="primary" @click="isShowAddDialog = true">Add Transaction</v-btn>
       </v-col>
     </v-row>
 
-    <v-data-table :headers="headers" :items="items" :loading="loading" :items-per-page="10">
-      <template #item.amount="{ item }">
-        {{ formatCurrency(item.amount) }}
-      </template>
-      <template #item.transaction_date="{ item }">
-        {{ new Date(item.transaction_date).toLocaleDateString() }}
-      </template>
-    </v-data-table>
+    <TableTransactionView :items="items" :loading="loading" @openEdit="handleOpenEditDialog" :load="load" />
+    <AddTransactionView v-model="isShowAddDialog" @update:modelValue="onModelUpdated" />
+    <EditTransactionView v-model="isShowEditDialog" :transaction="selectedTransaction"
+      @update:modelValue="onModelUpdated" />
   </v-container>
-  
 </template>
 <script setup>
-import { onMounted, ref } from 'vue'
-import { transactionAPI } from '../services/api'
-import { useAppStore } from '../stores/app'
+import { transactionAPI } from '@/services/api';
+import { useAppStore } from '@/stores/app';
+import { onMounted, ref } from 'vue';
+import { AddTransactionView, EditTransactionView, FilterTransactionView, TableTransactionView } from './component/index';
 
-const app = useAppStore()
-const headers = [
-  { title: 'Date', key: 'transaction_date' },
-  { title: 'Type', key: 'transaction_type' },
-  { title: 'Category', key: 'category.name' },
-  { title: 'Description', key: 'description' },
-  { title: 'Amount', key: 'amount' },
-]
-
+const isShowAddDialog = ref(false);
+const isShowEditDialog = ref(false);
+const selectedTransaction = ref(null);
+const loading = ref(false);
 const items = ref([])
-const loading = ref(false)
 
-function formatCurrency(value) {
-  return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'VND' }).format(value)
-}
+const appStore = useAppStore()
+
+const handleOpenEditDialog = (transaction) => {
+  selectedTransaction.value = transaction;
+  isShowEditDialog.value = true;
+};
+
+const onModelUpdated = (value) => {
+  isShowEditDialog.value = value;
+  if (!value) {
+    load();
+  }
+};
 
 async function load() {
   loading.value = true
@@ -47,11 +49,13 @@ async function load() {
     const { data } = await transactionAPI.getTransactions({ page: 1, limit: 50 })
     items.value = Array.isArray(data.data) ? data.data : []
   } catch (e) {
-    app.showError(e?.message || 'Failed to load transactions')
+    appStore.showError(e?.message || 'Failed to load transactions')
   } finally {
     loading.value = false
   }
 }
 
-onMounted(load)
+onMounted(() => {
+  load();
+});
 </script>

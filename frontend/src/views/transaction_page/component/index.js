@@ -1,4 +1,5 @@
 import AddTransactionView from "./AddTransactionView.vue";
 import EditTransactionView from "./EditTransactionView.vue";
-
-export { AddTransactionView, EditTransactionView };
+import TableTransactionView from "./TableTransactionView.vue";
+import FilterTransactionView from "./FilterTransactionView.vue";
+export { AddTransactionView, EditTransactionView, TableTransactionView, FilterTransactionView };

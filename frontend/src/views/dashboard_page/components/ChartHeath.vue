@@ -64,8 +64,8 @@
 </template>
 
 <script setup>
+import DoughnutChart from "@/components/DoughnutChart.vue"
 import { computed } from "vue"
-import DoughnutChart from "../../../components/DoughnutChart.vue"
 
 const props = defineProps({
     analytics: {

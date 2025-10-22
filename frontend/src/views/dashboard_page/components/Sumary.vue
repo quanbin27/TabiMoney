@@ -59,8 +59,8 @@
 </template>
 
 <script setup>
+import { formatCurrency } from "@/utils/formatters"
 import { computed } from "vue"
-import { formatCurrency } from "../../../utils/formatters"
 
 const props = defineProps({
     analytics: {

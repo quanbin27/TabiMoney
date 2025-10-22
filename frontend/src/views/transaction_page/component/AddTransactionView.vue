@@ -65,9 +65,9 @@
   </v-container>
 </template>
 <script setup>
+import { aiAPI, categoryAPI, transactionAPI } from '@/services/api'
+import { useAppStore } from '@/stores/app'
 import { reactive, ref } from 'vue'
-import { aiAPI, categoryAPI, transactionAPI } from '../../../services/api'
-import { useAppStore } from '../../../stores/app'
 
 const props = defineProps({
   modelValue: {

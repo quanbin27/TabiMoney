@@ -1,12 +1,7 @@
 <template>
   <v-container class="py-8" style="max-width: 600px">
     <div class="d-flex align-center mb-6">
-      <v-btn
-        icon="mdi-arrow-left"
-        variant="text"
-        @click="$router.back()"
-        class="mr-4"
-      ></v-btn>
+      <v-btn icon="mdi-arrow-left" variant="text" @click="$router.back()" class="mr-4"></v-btn>
       <h1 class="text-h4">Edit Category</h1>
     </div>
 
@@ -15,45 +10,27 @@
         <v-form ref="formRef" @submit.prevent="handleSubmit">
           <v-row>
             <v-col cols="12">
-              <v-text-field
-                v-model="form.name"
-                label="Category Name"
-                :rules="[v => !!v || 'Name is required']"
-                required
-              />
+              <v-text-field v-model="form.name" label="Category Name" :rules="[v => !!v || 'Name is required']"
+                required />
             </v-col>
-            
+
             <v-col cols="12">
-              <v-text-field
-                v-model="form.name_en"
-                label="English Name (Optional)"
-              />
+              <v-text-field v-model="form.name_en" label="English Name (Optional)" />
             </v-col>
-            
+
             <v-col cols="12">
-              <v-textarea
-                v-model="form.description"
-                label="Description (Optional)"
-                rows="3"
-              />
+              <v-textarea v-model="form.description" label="Description (Optional)" rows="3" />
             </v-col>
           </v-row>
         </v-form>
       </v-card-text>
-      
+
       <v-card-actions class="pa-6 pt-0">
         <v-spacer />
-        <v-btn
-          variant="text"
-          @click="$router.back()"
-        >
+        <v-btn variant="text" @click="$router.back()">
           Cancel
         </v-btn>
-        <v-btn
-          color="primary"
-          :loading="loading"
-          @click="handleSubmit"
-        >
+        <v-btn color="primary" :loading="loading" @click="handleSubmit">
           Update Category
         </v-btn>
       </v-card-actions>
@@ -80,10 +57,10 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { categoryAPI } from '../services/api'
-import { useAppStore } from '../stores/app'
+import { categoryAPI } from '@/services/api'
+import { useAppStore } from '@/stores/app'
+import { onMounted, reactive, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 const router = useRouter()
 const route = useRoute()
@@ -110,7 +87,7 @@ async function loadCategory() {
   try {
     const response = await categoryAPI.getCategory(parseInt(categoryId))
     category.value = response.data
-    
+
     // Populate form
     form.name = category.value.name || ''
     form.name_en = category.value.name_en || ''
@@ -135,7 +112,7 @@ async function handleSubmit() {
       name_en: form.name_en || undefined,
       description: form.description || undefined,
     })
-    
+
     app.showSuccess('Category updated successfully!')
     router.push({ name: 'Categories' })
   } catch (e) {
