@@ -114,8 +114,8 @@ type TransactionUpdateRequest struct {
 	Amount          float64   `json:"amount" validate:"required,gt=0"`
 	Description     string    `json:"description" validate:"max=500"`
 	TransactionType string    `json:"transaction_type" validate:"required,oneof=income expense transfer"`
-	TransactionDate time.Time `json:"transaction_date" validate:"required"`
-	TransactionTime *time.Time `json:"transaction_time"`
+	TransactionDate string    `json:"transaction_date" validate:"required"`
+	TransactionTime string    `json:"transaction_time,omitempty"`
 	Location        string    `json:"location" validate:"max=200"`
 	Tags            []string  `json:"tags"`
 	Metadata        map[string]interface{} `json:"metadata"`

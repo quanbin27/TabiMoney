@@ -126,7 +126,7 @@ func Load() (*Config, error) {
 			AllowedTypes: strings.Split(getEnv("UPLOAD_ALLOWED_TYPES", "image/jpeg,image/png,image/gif"), ","),
 		},
 		RateLimit: RateLimitConfig{
-			Requests: getEnvAsInt("RATE_LIMIT_REQUESTS", 100),
+			Requests: getEnvAsInt("RATE_LIMIT_REQUESTS", 1000),
 			Window:   getEnvAsInt("RATE_LIMIT_WINDOW", 60),
 		},
 		Logging: LoggingConfig{

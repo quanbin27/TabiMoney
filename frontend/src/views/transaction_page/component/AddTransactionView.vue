@@ -1,35 +1,53 @@
 <template>
   <v-container class="py-8" style="max-width: 720px">
-    <h1 class="text-h5 mb-4">Add Transaction</h1>
-    <v-form ref="formRef" @submit.prevent="handleSubmit">
-      <v-row>
-        <v-col cols="12" md="6">
-          <v-select :items="typeItems" item-title="label" item-value="value" v-model="form.transaction_type" label="Type" :rules="[v=>!!v||'Type is required']" required />
-        </v-col>
-        <v-col cols="12" md="6">
-          <v-text-field v-model.number="form.amount" type="number" label="Amount" :rules="[v=>!!v||'Amount is required', v=>v>0||'Amount must be > 0']" required />
-        </v-col>
-        <v-col cols="12" md="6">
-          <v-select :items="categoryItems" :item-title="formatCategoryTitle" item-value="id" v-model="form.category_id" label="Category" :rules="[v=>!!v||'Category is required']" required />
-        </v-col>
-        <v-col cols="12" md="6">
-          <v-text-field v-model="form.transaction_date" type="date" label="Date" :rules="[v=>!!v||'Date is required']" required />
-        </v-col>
-        <v-col cols="12" md="6">
-          <v-text-field v-model="form.transaction_time" type="time" label="Time (Optional)" />
-        </v-col>
-        <v-col cols="12" md="6">
-          <v-text-field v-model="form.description" label="Description (Optional)" />
-        </v-col>
-        <v-col cols="12">
-          <v-text-field v-model="form.location" label="Location (Optional)" />
-        </v-col>
-        <v-col cols="12" class="d-flex justify-end">
-          <v-btn variant="outlined" color="secondary" class="mr-2" :loading="aiLoading" @click="suggestCategory">AI Suggest Category</v-btn>
-        </v-col>
-      </v-row>
-      <v-btn type="submit" color="primary" :loading="loading">Create</v-btn>
-    </v-form>
+    <v-dialog v-model="props.modelValue" persistent max-width="800">
+      <v-card>
+        <v-card-title class="text-h6">Add Transaction</v-card-title>
+        <v-card-text>
+          <v-form ref="formRef" @submit.prevent="handleSubmit">
+            <v-row>
+              <v-col cols="12" md="6">
+                <v-select :items="typeItems" item-title="label" item-value="value" v-model="form.transaction_type"
+                  label="Type" :rules="[v => !!v || 'Type is required']" required />
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-text-field v-model.number="form.amount" type="number" label="Amount"
+                  :rules="[v => !!v || 'Amount is required', v => v > 0 || 'Amount must be > 0']" required />
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-select :items="categoryItems" :item-title="formatCategoryTitle" item-value="id"
+                  v-model="form.category_id" label="Category" :rules="[v => !!v || 'Category is required']" required />
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-text-field v-model="form.transaction_date" type="date" label="Date"
+                  :rules="[v => !!v || 'Date is required']" required />
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-text-field v-model="form.transaction_time" type="time" label="Time (Optional)" />
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-text-field v-model="form.description" label="Description (Optional)" />
+              </v-col>
+              <v-col cols="12">
+                <v-text-field v-model="form.location" label="Location (Optional)" />
+              </v-col>
+              <v-col cols="12" class="d-flex justify-end">
+                <v-btn variant="outlined" color="secondary" class="mr-2" :loading="aiLoading"
+                  @click="suggestCategory">AI
+                  Suggest Category</v-btn>
+              </v-col>
+            </v-row>
+          </v-form>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn text @click="closeDialog">Close</v-btn>
+          <v-btn @click="handleSubmit" variant="tonal" color="primary" :loading="loading">Create</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- // dialog ai create category -->
     <v-dialog v-model="createDialog" max-width="500">
       <v-card>
         <v-card-title>Create category from AI suggestion</v-card-title>
@@ -39,20 +57,27 @@
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn variant="text" @click="createDialog=false">Cancel</v-btn>
-          <v-btn color="primary" @click="createCategoryFromSuggestion">Create</v-btn>
+          <v-btn variant="text" @click="createDialog = false">Cancel</v-btn>
+          <v-btn color="primary" @click="createCategoryFromSuggestion">Use this category</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
   </v-container>
 </template>
 <script setup>
-import { ref, reactive } from 'vue'
-import { useRouter } from 'vue-router'
-import { transactionAPI, categoryAPI, aiAPI } from '../services/api'
-import { useAppStore } from '../stores/app'
+import { reactive, ref } from 'vue'
+import { aiAPI, categoryAPI, transactionAPI } from '../../../services/api'
+import { useAppStore } from '../../../stores/app'
 
-const router = useRouter()
+const props = defineProps({
+  modelValue: {
+    type: Boolean,
+    default: false,
+  },
+})
+
+const emit = defineEmits(['update:modelValue'])
+
 const app = useAppStore()
 const loading = ref(false)
 const formRef = ref()
@@ -60,8 +85,8 @@ const categoryItems = ref([])
 const aiLoading = ref(false)
 const createDialog = ref(false)
 const newCategory = reactive({ name: '', description: '' })
-function formatCategoryTitle(c){
-  if(!c) return ''
+function formatCategoryTitle(c) {
+  if (!c) return ''
   if (c.name_en) return `${c.name} (${c.name_en})`
   return c.name
 }
@@ -77,10 +102,14 @@ const form = reactive({
   amount: 0,
   description: '',
   transaction_type: 'expense',
-  transaction_date: new Date().toISOString().slice(0,10),
+  transaction_date: new Date().toISOString().slice(0, 10),
   transaction_time: '',
   location: '',
 })
+
+const closeDialog = () => {
+  emit('update:modelValue', false)
+}
 
 async function handleSubmit() {
   if (!formRef.value) return
@@ -89,13 +118,13 @@ async function handleSubmit() {
   loading.value = true
   try {
     const payload = { ...form }
-    
+
     // Handle transaction_time - keep as HH:MM format or remove if empty
     if (!payload.transaction_time || !payload.transaction_time.trim()) {
       // Remove transaction_time if empty to avoid parsing errors
       delete payload.transaction_time
     }
-    
+
     // Ensure required fields are present
     if (!payload.category_id) {
       app.showError('Please select a category')
@@ -113,10 +142,10 @@ async function handleSubmit() {
       app.showError('Please select transaction date')
       return
     }
-    
+
     await transactionAPI.createTransaction(payload)
     app.showSuccess('Created')
-    router.push({ name: 'Transactions' })
+    closeDialog()
   } catch (e) {
     app.showError(e?.message || 'Create failed')
   } finally {
@@ -157,7 +186,7 @@ async function suggestCategory() {
     const suggestions = data?.suggestions || []
     if (suggestions.length) {
       const top = suggestions[0]
-      
+
       // AI already determined if category exists
       if (top.is_existing) {
         // Find the existing category by name
@@ -167,7 +196,7 @@ async function suggestCategory() {
           const topName = (top.category_name || '').toLowerCase().trim()
           return existingName === topName || existingNameEn === topName
         })
-        
+
         if (found) {
           form.category_id = found.id
           app.showSuccess(`AI suggested existing category: ${found.name}`)
