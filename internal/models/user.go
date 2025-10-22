@@ -32,6 +32,7 @@ type User struct {
 	Goals        []FinancialGoal   `json:"-" gorm:"foreignKey:UserID"`
 	Budgets      []Budget          `json:"-" gorm:"foreignKey:UserID"`
 	Notifications []Notification   `json:"-" gorm:"foreignKey:UserID"`
+	TelegramAccount *TelegramAccount `json:"telegram_account,omitempty" gorm:"foreignKey:WebUserID"`
 }
 
 type UserProfile struct {
@@ -153,4 +154,30 @@ type PasswordResetConfirmRequest struct {
 type ChangePasswordRequest struct {
 	CurrentPassword string `json:"current_password" validate:"required"`
 	NewPassword     string `json:"new_password" validate:"required,min=6"`
+}
+
+// Telegram Integration Models
+
+type TelegramAccount struct {
+	ID              uint64    `json:"id" gorm:"primaryKey"`
+	TelegramUserID  int64     `json:"telegram_user_id" gorm:"uniqueIndex;not null"`
+	WebUserID       uint64    `json:"web_user_id" gorm:"not null"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
+
+	// Relations
+	WebUser *User `json:"web_user,omitempty" gorm:"foreignKey:WebUserID"`
+}
+
+type TelegramLinkCode struct {
+	ID              uint64     `json:"id" gorm:"primaryKey"`
+	Code            string     `json:"code" gorm:"uniqueIndex;not null"`
+	TelegramUserID  *int64     `json:"telegram_user_id"`
+	WebUserID       uint64     `json:"web_user_id" gorm:"not null"`
+	ExpiresAt       time.Time  `json:"expires_at" gorm:"not null"`
+	UsedAt          *time.Time `json:"used_at"`
+	CreatedAt       time.Time  `json:"created_at"`
+
+	// Relations
+	WebUser *User `json:"web_user,omitempty" gorm:"foreignKey:WebUserID"`
 }
