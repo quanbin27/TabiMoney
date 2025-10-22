@@ -217,29 +217,46 @@ func (s *AuthService) ValidateToken(tokenString string) (uint64, error) {
 		return 0, errors.New("invalid token")
 	}
 
-	claims, ok := token.Claims.(jwt.MapClaims)
+    claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
 		return 0, errors.New("invalid token claims")
 	}
 
-	userID, ok := claims["user_id"].(float64)
+    userID, ok := claims["user_id"].(float64)
 	if !ok {
 		return 0, errors.New("invalid user ID in token")
 	}
 
-	// Check if session is active
-	var session models.UserSession
-	if err := s.db.Where("user_id = ? AND token_hash = ? AND is_active = ?", 
-		uint64(userID), tokenString, true).First(&session).Error; err != nil {
-		return 0, errors.New("session not found or inactive")
-	}
+    // Allow telegram_access tokens without DB session check
+    if t, ok := claims["type"].(string); ok && t == "telegram_access" {
+        // Respect exp if present
+        if expVal, hasExp := claims["exp"]; hasExp {
+            switch exp := expVal.(type) {
+            case float64:
+                if time.Now().Unix() > int64(exp) {
+                    return 0, errors.New("token expired")
+                }
+            case int64:
+                if time.Now().Unix() > exp {
+                    return 0, errors.New("token expired")
+                }
+            }
+        }
+        return uint64(userID), nil
+    }
 
-	// Check if token is expired
-	if time.Now().After(session.ExpiresAt) {
-		return 0, errors.New("token expired")
-	}
+    // Default: require active session for normal access tokens
+    var session models.UserSession
+    if err := s.db.Where("user_id = ? AND token_hash = ? AND is_active = ?",
+        uint64(userID), tokenString, true).First(&session).Error; err != nil {
+        return 0, errors.New("session not found or inactive")
+    }
 
-	return uint64(userID), nil
+    if time.Now().After(session.ExpiresAt) {
+        return 0, errors.New("token expired")
+    }
+
+    return uint64(userID), nil
 }
 
 // ChangePassword changes user password
@@ -308,7 +325,126 @@ func (s *AuthService) SetMonthlyIncome(userID uint64, amount float64) error {
         return fmt.Errorf("failed to get profile: %w", err)
     }
     profile.MonthlyIncome = amount
-    return s.db.Save(&profile).Error
+	return s.db.Save(&profile).Error
+}
+
+// Telegram Integration Methods
+
+// GenerateTelegramLinkCode generates a link code for Telegram integration
+func (s *AuthService) GenerateTelegramLinkCode(userID uint64) (string, error) {
+	// Generate random 8-character code
+	code := generateRandomCode(8)
+	
+	// Store in database with expiration
+	linkCode := &models.TelegramLinkCode{
+		Code:           code,
+		WebUserID:      userID,
+		ExpiresAt:      time.Now().Add(10 * time.Minute), // 10 minutes expiry
+	}
+	
+	if err := s.db.Create(linkCode).Error; err != nil {
+		return "", fmt.Errorf("failed to create link code: %w", err)
+	}
+	
+	return code, nil
+}
+
+// ValidateTelegramLinkCode validates a link code and returns web user ID
+func (s *AuthService) ValidateTelegramLinkCode(code string) (uint64, error) {
+	var linkCode models.TelegramLinkCode
+	
+	if err := s.db.Where("code = ? AND expires_at > ? AND used_at IS NULL", code, time.Now()).First(&linkCode).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return 0, errors.New("invalid or expired link code")
+		}
+		return 0, fmt.Errorf("failed to validate link code: %w", err)
+	}
+	
+	// Mark as used
+	linkCode.UsedAt = &time.Time{}
+	s.db.Save(&linkCode)
+	
+	return linkCode.WebUserID, nil
+}
+
+// LinkTelegramAccount links a Telegram user ID with web user ID
+func (s *AuthService) LinkTelegramAccount(telegramUserID int64, webUserID uint64) error {
+	// Check if already linked
+	var existing models.TelegramAccount
+	if err := s.db.Where("telegram_user_id = ?", telegramUserID).First(&existing).Error; err == nil {
+		// Update existing link
+		existing.WebUserID = webUserID
+		existing.UpdatedAt = time.Now()
+		return s.db.Save(&existing).Error
+	}
+	
+	// Create new link
+	account := &models.TelegramAccount{
+		TelegramUserID: telegramUserID,
+		WebUserID:      webUserID,
+		CreatedAt:      time.Now(),
+		UpdatedAt:      time.Now(),
+	}
+	
+	return s.db.Create(account).Error
+}
+
+// IsTelegramLinked checks if a web user has Telegram linked
+func (s *AuthService) IsTelegramLinked(webUserID uint64) (bool, error) {
+	var count int64
+	if err := s.db.Model(&models.TelegramAccount{}).Where("web_user_id = ?", webUserID).Count(&count).Error; err != nil {
+		return false, fmt.Errorf("failed to check Telegram link: %w", err)
+	}
+	return count > 0, nil
+}
+
+// DisconnectTelegram unlinks Telegram account for a web user
+func (s *AuthService) DisconnectTelegram(webUserID uint64) error {
+	return s.db.Where("web_user_id = ?", webUserID).Delete(&models.TelegramAccount{}).Error
+}
+
+// GetTelegramUserID gets Telegram user ID for a web user
+func (s *AuthService) GetTelegramUserID(webUserID uint64) (int64, error) {
+	var account models.TelegramAccount
+	if err := s.db.Where("web_user_id = ?", webUserID).First(&account).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return 0, errors.New("Telegram account not linked")
+		}
+		return 0, fmt.Errorf("failed to get Telegram user ID: %w", err)
+	}
+	return account.TelegramUserID, nil
+}
+
+// GenerateTelegramJWT generates a permanent JWT token for Telegram user
+func (s *AuthService) GenerateTelegramJWT(telegramUserID int64, webUserID uint64) (string, error) {
+	now := time.Now()
+	expiresAt := now.Add(365 * 24 * time.Hour) // 1 year expiration
+	
+	claims := jwt.MapClaims{
+		"user_id":          webUserID,
+		"telegram_user_id": telegramUserID,
+		"type":             "telegram_access",
+		"exp":              expiresAt.Unix(),
+		"iat":              now.Unix(),
+	}
+	
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, err := token.SignedString([]byte(s.config.JWT.Secret))
+	if err != nil {
+		return "", fmt.Errorf("failed to generate JWT token: %w", err)
+	}
+	
+	return tokenString, nil
+}
+
+// Helper function to generate random code
+func generateRandomCode(length int) string {
+	const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = charset[time.Now().UnixNano()%int64(len(charset))]
+	}
+	return string(b)
 }
 
 // Helper methods

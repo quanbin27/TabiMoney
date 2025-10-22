@@ -106,6 +106,12 @@ func main() {
     auth.PUT("/profile", authHandler.UpdateProfile, appmw.AuthMiddleware(authService))
     auth.GET("/income", authHandler.GetMonthlyIncome, appmw.AuthMiddleware(authService))
     auth.PUT("/income", authHandler.SetMonthlyIncome, appmw.AuthMiddleware(authService))
+    
+    // Telegram integration routes
+    auth.POST("/telegram/generate-link-code", authHandler.GenerateTelegramLinkCode, appmw.AuthMiddleware(authService))
+    auth.GET("/telegram/status", authHandler.GetTelegramStatus, appmw.AuthMiddleware(authService))
+    auth.POST("/telegram/disconnect", authHandler.DisconnectTelegram, appmw.AuthMiddleware(authService))
+    auth.POST("/telegram/link", authHandler.LinkTelegramAccount)
 
     // Transactions routes
     tx := api.Group("/transactions", appmw.AuthMiddleware(authService))
