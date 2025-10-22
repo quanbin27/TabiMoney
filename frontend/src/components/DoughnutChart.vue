@@ -5,11 +5,16 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, nextTick } from 'vue'
-import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js'
+import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import {
+  Chart as ChartJS,
+  ArcElement,
+  Tooltip,
+  Legend,
+  DoughnutController,
+} from 'chart.js'
 
-// Register Chart.js components
-ChartJS.register(ArcElement, Tooltip, Legend)
+ChartJS.register(DoughnutController, ArcElement, Tooltip, Legend)
 
 const props = defineProps({
   data: { type: Object, required: true },
@@ -38,7 +43,7 @@ const createChart = () => {
         },
         tooltip: {
           callbacks: {
-            label: function(context) {
+            label(context) {
               const label = context.label || ''
               const value = context.parsed
               const total = context.dataset.data.reduce((a, b) => a + b, 0)
@@ -72,26 +77,12 @@ const destroyChart = () => {
   }
 }
 
-// Watch for data changes
-watch(() => props.data, () => {
-  nextTick(() => {
-    updateChart()
-  })
-}, { deep: true })
+watch(() => props.data, () => nextTick(updateChart), { deep: true })
 
-onMounted(() => {
-  nextTick(() => {
-    createChart()
-  })
-})
-
-// Cleanup on unmount
-onMounted(() => {
-  return () => {
-    destroyChart()
-  }
-})
+onMounted(() => nextTick(createChart))
+onUnmounted(destroyChart)
 </script>
+
 
 <style scoped>
 .chart-container {

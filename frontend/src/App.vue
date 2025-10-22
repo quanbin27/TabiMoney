@@ -1,18 +1,12 @@
 <template>
   <v-app>
-    <v-app-bar
-      v-if="!isAuthPage"
-      app
-      color="primary"
-      dark
-      elevation="2"
-    >
+    <v-app-bar v-if="!isAuthPage" app color="primary" dark elevation="2">
       <v-app-bar-nav-icon @click="drawer = !drawer" />
-      
+
       <v-toolbar-title>TabiMoney</v-toolbar-title>
-      
+
       <v-spacer />
-      
+
       <!-- Notifications -->
       <v-menu v-if="authStore.isAuthenticated" offset-y>
         <template v-slot:activator="{ props }">
@@ -44,21 +38,15 @@
       <!-- User Menu -->
       <v-menu v-if="authStore.isAuthenticated" offset-y>
         <template v-slot:activator="{ props }">
-          <v-btn
-            icon
-            v-bind="props"
-          >
+          <v-btn icon v-bind="props">
             <v-avatar size="32">
-              <v-img
-                v-if="authStore.user?.avatar_url"
-                :src="authStore.user.avatar_url"
-                :alt="authStore.user.username"
-              />
+              <v-img v-if="authStore.user?.avatar_url" :src="authStore.user.avatar_url"
+                :alt="authStore.user.username" />
               <v-icon v-else>mdi-account</v-icon>
             </v-avatar>
           </v-btn>
         </template>
-        
+
         <v-list>
           <v-list-item>
             <v-list-item-title>{{ authStore.user?.username }}</v-list-item-title>
@@ -66,39 +54,27 @@
           </v-list-item>
           <v-divider />
           <v-list-item @click="goToProfile">
-            <v-list-item-icon>
+            <v-list-item-title>
               <v-icon>mdi-account</v-icon>
-            </v-list-item-icon>
-            <v-list-item-title>Profile</v-list-item-title>
+              Profile</v-list-item-title>
           </v-list-item>
           <v-list-item @click="logout">
-            <v-list-item-icon>
+            <v-list-item-title>
               <v-icon>mdi-logout</v-icon>
-            </v-list-item-icon>
-            <v-list-item-title>Logout</v-list-item-title>
+              Logout</v-list-item-title>
           </v-list-item>
         </v-list>
       </v-menu>
     </v-app-bar>
 
     <!-- Navigation Drawer -->
-    <v-navigation-drawer
-      v-if="!isAuthPage && authStore.isAuthenticated"
-      v-model="drawer"
-      app
-      temporary
-    >
+    <v-navigation-drawer v-if="!isAuthPage && authStore.isAuthenticated" v-model="drawer" app temporary>
       <v-list>
-        <v-list-item
-          v-for="item in navigationItems"
-          :key="item.title"
-          :to="item.to"
-          @click="drawer = false"
-        >
-          <v-list-item-icon>
+        <v-list-item v-for="item in navigationItems" :key="item.title" :to="item.to" @click="drawer = false">
+          <v-list-item-title>
             <v-icon>{{ item.icon }}</v-icon>
-          </v-list-item-icon>
-          <v-list-item-title>{{ item.title }}</v-list-item-title>
+            {{ item.title }}
+          </v-list-item-title>
         </v-list-item>
       </v-list>
     </v-navigation-drawer>
@@ -107,45 +83,15 @@
     <v-main>
       <router-view />
     </v-main>
-
-    <!-- Global Snackbar -->
-    <v-snackbar
-      v-model="snackbar.show"
-      :color="snackbar.color"
-      :timeout="snackbar.timeout"
-    >
-      {{ snackbar.message }}
-      <template v-slot:actions>
-        <v-btn
-          color="white"
-          variant="text"
-          @click="snackbar.show = false"
-        >
-          Close
-        </v-btn>
-      </template>
-    </v-snackbar>
-
-    <!-- Loading Overlay -->
-    <v-overlay
-      v-model="loading"
-      class="align-center justify-center"
-    >
-      <v-progress-circular
-        color="primary"
-        indeterminate
-        size="64"
-      />
-    </v-overlay>
   </v-app>
 </template>
 
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useAuthStore } from './stores/auth'
-import { useAppStore } from './stores/app'
 import { notificationsAPI } from './services/api'
+import { useAppStore } from './stores/app'
+import { useAuthStore } from './stores/auth'
 
 const route = useRoute()
 const router = useRouter()
@@ -175,7 +121,6 @@ const isAuthPage = computed(() => {
 })
 
 // Snackbar
-const snackbar = computed(() => appStore.snackbar)
 
 // Watch for route changes
 watch(route, () => {
@@ -212,7 +157,7 @@ const markRead = async (id) => {
     // update local state
     notifications.value = notifications.value.map(n => n.id === id ? { ...n, is_read: true } : n)
     unreadCount.value = Math.max(0, unreadCount.value - 1)
-  } catch (e) {}
+  } catch (e) { }
 }
 </script>
 

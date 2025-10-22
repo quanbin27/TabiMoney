@@ -13,47 +13,20 @@
 
           <v-card-text class="pa-8">
             <v-form @submit.prevent="handleRegister" ref="formRef">
-              <v-text-field
-                v-model="form.email"
-                label="Email"
-                type="email"
-                :rules="emailRules"
-                :error-messages="errors.email"
-                required
-                class="mb-3"
-              />
+              <v-text-field v-model="form.email" label="Email" type="email" :rules="emailRules"
+                :error-messages="errors.email" required class="mb-3" />
 
-              <v-text-field
-                v-model="form.username"
-                label="Username"
-                :rules="[(v) => !!v || 'Username is required']"
-                :error-messages="errors.username"
-                required
-                class="mb-3"
-              />
+              <v-text-field v-model="form.username" label="Username" :rules="[(v) => !!v || 'Username is required']"
+                :error-messages="errors.username" required class="mb-3" />
 
-              <v-text-field
-                v-model="form.password"
-                label="Password"
-                type="password"
-                :rules="passwordRules"
-                :error-messages="errors.password"
-                required
-                class="mb-3"
-              />
+              <v-text-field v-model="form.password" label="Password" type="password" :rules="passwordRules"
+                :error-messages="errors.password" required class="mb-3" />
 
               <v-text-field v-model="form.first_name" label="First name" class="mb-3" />
               <v-text-field v-model="form.last_name" label="Last name" class="mb-3" />
               <v-text-field v-model="form.phone" label="Phone" class="mb-6" />
 
-              <v-btn
-                type="submit"
-                color="primary"
-                size="large"
-                block
-                :loading="loading"
-                :disabled="!isFormValid"
-              >
+              <v-btn type="submit" color="primary" size="large" block :loading="loading" :disabled="!isFormValid">
                 Create account
               </v-btn>
             </v-form>
@@ -78,9 +51,9 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive } from 'vue'
-import { useAuthStore } from '../../stores/auth'
-import { useAppStore } from '../../stores/app'
+import { useAppStore } from '@/stores/app'
+import { useAuthStore } from '@/stores/auth'
+import { computed, reactive, ref } from 'vue'
 
 const authStore = useAuthStore()
 const appStore = useAppStore()

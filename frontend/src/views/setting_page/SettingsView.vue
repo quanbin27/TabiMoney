@@ -13,37 +13,24 @@
             <v-icon left>mdi-telegram</v-icon>
             Tích hợp Telegram Bot
           </v-card-title>
-          
+
           <v-card-text>
             <p class="text-body-1 mb-4">
               Liên kết tài khoản TabiMoney với Telegram Bot để sử dụng các tính năng AI và dashboard trên Telegram.
             </p>
 
-            <v-alert
-              v-if="telegramStatus === 'connected'"
-              type="success"
-              class="mb-4"
-            >
+            <v-alert v-if="telegramStatus === 'connected'" type="success" class="mb-4">
               <v-icon left>mdi-check-circle</v-icon>
               Tài khoản đã được liên kết với Telegram Bot
             </v-alert>
 
-            <v-alert
-              v-else-if="telegramStatus === 'disconnected'"
-              type="info"
-              class="mb-4"
-            >
+            <v-alert v-else-if="telegramStatus === 'disconnected'" type="info" class="mb-4">
               <v-icon left>mdi-information</v-icon>
               Tài khoản chưa được liên kết với Telegram Bot
             </v-alert>
 
             <div v-if="telegramStatus === 'disconnected'">
-              <v-btn
-                color="primary"
-                @click="generateLinkCode"
-                :loading="generatingCode"
-                class="mb-4"
-              >
+              <v-btn color="primary" @click="generateLinkCode" :loading="generatingCode" class="mb-4">
                 <v-icon left>mdi-link</v-icon>
                 Tạo mã liên kết
               </v-btn>
@@ -51,14 +38,8 @@
               <v-card v-if="linkCode" class="mt-4" color="primary" variant="outlined">
                 <v-card-text>
                   <h3 class="text-h6 mb-2">Mã liên kết của bạn:</h3>
-                  <v-text-field
-                    :value="linkCode"
-                    readonly
-                    variant="outlined"
-                    append-icon="mdi-content-copy"
-                    @click:append="copyToClipboard"
-                    class="mb-2"
-                  />
+                  <v-text-field :value="linkCode" readonly variant="outlined" append-icon="mdi-content-copy"
+                    @click:append="copyToClipboard" class="mb-2" />
                   <p class="text-caption">
                     ⏰ Mã này có hiệu lực trong {{ linkCodeExpiry }} phút
                   </p>
@@ -75,11 +56,7 @@
             </div>
 
             <div v-else-if="telegramStatus === 'connected'">
-              <v-btn
-                color="error"
-                @click="disconnectTelegram"
-                :loading="disconnecting"
-              >
+              <v-btn color="error" @click="disconnectTelegram" :loading="disconnecting">
                 <v-icon left>mdi-link-off</v-icon>
                 Hủy liên kết
               </v-btn>
@@ -94,7 +71,7 @@
             <v-icon left>mdi-robot</v-icon>
             Tính năng Telegram Bot
           </v-card-title>
-          
+
           <v-card-text>
             <v-list>
               <v-list-item>
@@ -127,18 +104,10 @@
     </v-row>
 
     <!-- Snackbar for notifications -->
-    <v-snackbar
-      v-model="snackbar.show"
-      :color="snackbar.color"
-      :timeout="snackbar.timeout"
-    >
+    <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="snackbar.timeout">
       {{ snackbar.message }}
       <template v-slot:actions>
-        <v-btn
-          color="white"
-          variant="text"
-          @click="snackbar.show = false"
-        >
+        <v-btn color="white" variant="text" @click="snackbar.show = false">
           Đóng
         </v-btn>
       </template>
@@ -171,15 +140,15 @@ const snackbar = ref({
 const generateLinkCode = async () => {
   try {
     generatingCode.value = true
-    
+
     const response = await api.post('/auth/telegram/generate-link-code')
-    
+
     if (response.data.success) {
       linkCode.value = response.data.link_code
       linkCodeExpiry.value = response.data.expiry_minutes
-      
+
       showSnackbar('Mã liên kết đã được tạo thành công!', 'success')
-      
+
       // Auto refresh status after code generation
       setTimeout(() => {
         checkTelegramStatus()
@@ -198,9 +167,9 @@ const generateLinkCode = async () => {
 const checkTelegramStatus = async () => {
   try {
     telegramStatus.value = 'loading'
-    
+
     const response = await api.get('/auth/telegram/status')
-    
+
     if (response.data.connected) {
       telegramStatus.value = 'connected'
     } else {
@@ -215,9 +184,9 @@ const checkTelegramStatus = async () => {
 const disconnectTelegram = async () => {
   try {
     disconnecting.value = true
-    
+
     const response = await api.post('/auth/telegram/disconnect')
-    
+
     if (response.data.success) {
       telegramStatus.value = 'disconnected'
       linkCode.value = ''

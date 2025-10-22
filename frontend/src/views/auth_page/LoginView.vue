@@ -10,51 +10,23 @@
               AI-Powered Personal Finance Management
             </p>
           </v-card-title>
-          
+
           <v-card-text class="pa-8">
             <v-form @submit.prevent="handleLogin" ref="formRef">
-              <v-text-field
-                v-model="form.email"
-                label="Email"
-                type="email"
-                variant="outlined"
-                :rules="emailRules"
-                :error-messages="errors.email"
-                required
-                class="mb-4"
-              />
-              
-              <v-text-field
-                v-model="form.password"
-                label="Password"
-                type="password"
-                variant="outlined"
-                :rules="passwordRules"
-                :error-messages="errors.password"
-                required
-                class="mb-4"
-              />
-              
-              <v-checkbox
-                v-model="form.remember"
-                label="Remember me"
-                color="primary"
-                class="mb-4"
-              />
-              
-              <v-btn
-                type="submit"
-                color="primary"
-                size="large"
-                block
-                :loading="loading"
-                :disabled="!isFormValid"
-              >
+              <v-text-field v-model="form.email" label="Email" type="email" variant="outlined" :rules="emailRules"
+                :error-messages="errors.email" required class="mb-4" />
+
+              <v-text-field v-model="form.password" label="Password" type="password" variant="outlined"
+                :rules="passwordRules" :error-messages="errors.password" required class="mb-4" />
+
+              <v-checkbox v-model="form.remember" label="Remember me" color="primary" class="mb-4" />
+
+              <v-btn type="submit" color="primary" size="large" block :loading="loading" :disabled="!isFormValid">
                 Login
               </v-btn>
             </v-form>
           </v-card-text>
-          
+
           <v-card-actions class="pa-8 pt-0">
             <v-row>
               <v-col cols="12" class="text-center">
@@ -74,10 +46,10 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive } from 'vue'
+import { useAppStore } from '@/stores/app'
+import { useAuthStore } from '@/stores/auth'
+import { computed, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '../../stores/auth'
-import { useAppStore } from '../../stores/app'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -129,7 +101,7 @@ const handleLogin = async () => {
       email: form.email,
       password: form.password,
     })
-    
+
     appStore.showSuccess('Login successful!')
   } catch (error) {
     if (error.message.includes('email')) {

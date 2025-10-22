@@ -28,26 +28,14 @@
               <h3 class="text-h6 mt-4 text-grey">Chào mừng đến với AI Assistant!</h3>
               <p class="text-body-2 text-grey">Hãy hỏi tôi về tài chính của bạn</p>
             </div>
-            
-            <div
-              v-for="(message, index) in messages"
-              :key="index"
-              class="message mb-4"
-              :class="message.isUser ? 'user-message' : 'ai-message'"
-            >
+
+            <div v-for="(message, index) in messages" :key="index" class="message mb-4"
+              :class="message.isUser ? 'user-message' : 'ai-message'">
               <div class="d-flex" :class="message.isUser ? 'justify-end' : 'justify-start'">
-                <v-card
-                  :color="message.isUser ? 'primary' : 'grey-lighten-4'"
-                  :dark="message.isUser"
-                  class="message-bubble pa-3"
-                  max-width="70%"
-                >
+                <v-card :color="message.isUser ? 'primary' : 'grey-lighten-4'" :dark="message.isUser"
+                  class="message-bubble pa-3" max-width="70%">
                   <div class="d-flex align-start">
-                    <v-avatar
-                      :color="message.isUser ? 'white' : 'primary'"
-                      size="32"
-                      class="me-3"
-                    >
+                    <v-avatar :color="message.isUser ? 'white' : 'primary'" size="32" class="me-3">
                       <v-icon :color="message.isUser ? 'primary' : 'white'">
                         {{ message.isUser ? 'mdi-account' : 'mdi-robot' }}
                       </v-icon>
@@ -88,26 +76,13 @@
             <v-form @submit.prevent="sendMessage">
               <v-row align="center">
                 <v-col cols="12">
-                  <v-textarea
-                    v-model="inputMessage"
-                    placeholder="Hỏi tôi về tài chính của bạn..."
-                    rows="2"
-                    auto-grow
-                    variant="outlined"
-                    :disabled="isTyping"
-                    @keydown.enter.exact.prevent="sendMessage"
-                    @keydown.enter.shift.exact="inputMessage += '\n'"
-                    hide-details
-                  ></v-textarea>
+                  <v-textarea v-model="inputMessage" placeholder="Hỏi tôi về tài chính của bạn..." rows="2" auto-grow
+                    variant="outlined" :disabled="isTyping" @keydown.enter.exact.prevent="sendMessage"
+                    @keydown.enter.shift.exact="inputMessage += '\n'" hide-details></v-textarea>
                 </v-col>
                 <v-col cols="auto">
-                  <v-btn
-                    type="submit"
-                    color="primary"
-                    :loading="isTyping"
-                    :disabled="!inputMessage.trim()"
-                    size="large"
-                  >
+                  <v-btn type="submit" color="primary" :loading="isTyping" :disabled="!inputMessage.trim()"
+                    size="large">
                     <v-icon>mdi-send</v-icon>
                   </v-btn>
                 </v-col>
@@ -126,12 +101,8 @@
           </v-card-title>
           <v-card-text>
             <v-list density="compact">
-              <v-list-item
-                v-for="(suggestion, index) in quickSuggestions"
-                :key="index"
-                @click="sendQuickMessage(suggestion)"
-                class="mb-2"
-              >
+              <v-list-item v-for="(suggestion, index) in quickSuggestions" :key="index"
+                @click="sendQuickMessage(suggestion)" class="mb-2">
                 <template v-slot:prepend>
                   <v-icon color="primary">mdi-chat</v-icon>
                 </template>
@@ -152,16 +123,9 @@
           <v-card-text>
             <div v-if="recentTransactions.length > 0">
               <v-list density="compact">
-                <v-list-item
-                  v-for="transaction in recentTransactions.slice(0, 3)"
-                  :key="transaction.id"
-                  class="px-0"
-                >
+                <v-list-item v-for="transaction in recentTransactions.slice(0, 3)" :key="transaction.id" class="px-0">
                   <template v-slot:prepend>
-                    <v-icon
-                      :color="transaction.transaction_type === 'income' ? 'success' : 'error'"
-                      size="small"
-                    >
+                    <v-icon :color="transaction.transaction_type === 'income' ? 'success' : 'error'" size="small">
                       {{ transaction.transaction_type === 'income' ? 'mdi-arrow-up' : 'mdi-arrow-down' }}
                     </v-icon>
                   </template>
@@ -186,10 +150,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
 import { aiAPI, transactionAPI } from '@/services/api'
-import { formatCurrency, formatDate } from '@/utils/formatters'
 import { useAuthStore } from '@/stores/auth'
+import { formatCurrency, formatDate } from '@/utils/formatters'
+import { nextTick, onMounted, ref } from 'vue'
 
 // Reactive data
 const messages = ref([])
@@ -219,7 +183,7 @@ const sendMessage = async () => {
 
   const userMessage = inputMessage.value.trim()
   inputMessage.value = ''
-  
+
   // Add user message
   messages.value.push({
     content: userMessage,
@@ -281,18 +245,18 @@ const formatMessage = (content) => {
 }
 
 const formatTime = (date) => {
-  return date.toLocaleTimeString('vi-VN', { 
-    hour: '2-digit', 
-    minute: '2-digit' 
+  return date.toLocaleTimeString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit'
   })
 }
 
 const loadRecentTransactions = async () => {
   try {
-    const response = await transactionAPI.getTransactions({ 
-      limit: 5, 
-      sort_by: 'transaction_date', 
-      sort_order: 'desc' 
+    const response = await transactionAPI.getTransactions({
+      limit: 5,
+      sort_by: 'transaction_date',
+      sort_order: 'desc'
     })
     recentTransactions.value = response.data.data || []
   } catch (error) {
@@ -303,7 +267,7 @@ const loadRecentTransactions = async () => {
 // Lifecycle
 onMounted(() => {
   loadRecentTransactions()
-  
+
   // Add welcome message
   messages.value.push({
     content: 'Xin chào! Tôi là AI Assistant của TabiMoney. Tôi có thể giúp bạn phân tích tài chính, đưa ra gợi ý và trả lời các câu hỏi về quản lý tiền bạc. Hãy hỏi tôi bất cứ điều gì!',
@@ -360,10 +324,14 @@ onMounted(() => {
 }
 
 @keyframes typing {
-  0%, 80%, 100% {
+
+  0%,
+  80%,
+  100% {
     transform: scale(0.8);
     opacity: 0.5;
   }
+
   40% {
     transform: scale(1);
     opacity: 1;

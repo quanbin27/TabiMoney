@@ -17,57 +17,27 @@
               <v-text-field v-model="form.title" label="Title" :rules="[rules.required]" required />
             </v-col>
             <v-col cols="12" md="6">
-              <v-select
-                v-model="form.goal_type"
-                label="Goal Type"
-                :items="goalTypes"
-                item-title="title"
-                item-value="value"
-                :rules="[rules.required]"
-                required
-              />
+              <v-select v-model="form.goal_type" label="Goal Type" :items="goalTypes" item-title="title"
+                item-value="value" :rules="[rules.required]" required />
             </v-col>
             <v-col cols="12">
               <v-textarea v-model="form.description" label="Description" rows="3" />
             </v-col>
             <v-col cols="12" md="6">
-              <v-text-field
-                v-model="form.target_amount"
-                label="Target Amount"
-                type="number"
-                :rules="[rules.required, rules.nonNegative]"
-                prefix="₫"
-                required
-              />
+              <v-text-field v-model="form.target_amount" label="Target Amount" type="number"
+                :rules="[rules.required, rules.nonNegative]" prefix="₫" required />
             </v-col>
             <v-col cols="12" md="6">
-              <v-text-field
-                v-model="form.current_amount"
-                label="Current Amount"
-                type="number"
-                :rules="[rules.nonNegative]"
-                prefix="₫"
-              />
+              <v-text-field v-model="form.current_amount" label="Current Amount" type="number"
+                :rules="[rules.nonNegative]" prefix="₫" />
             </v-col>
             <v-col cols="12" md="6">
-              <v-text-field
-                v-model.lazy="form.target_date"
-                label="Target Date"
-                type="date"
-                :rules="[rules.required]"
-                required
-              />
+              <v-text-field v-model.lazy="form.target_date" label="Target Date" type="date" :rules="[rules.required]"
+                required />
             </v-col>
             <v-col cols="12" md="6">
-              <v-select
-                v-model="form.priority"
-                label="Priority"
-                :items="priorities"
-                item-title="title"
-                item-value="value"
-                :rules="[rules.required]"
-                required
-              />
+              <v-select v-model="form.priority" label="Priority" :items="priorities" item-title="title"
+                item-value="value" :rules="[rules.required]" required />
             </v-col>
           </v-row>
         </v-form>
@@ -79,14 +49,14 @@
       </v-card-actions>
     </v-card>
   </v-container>
-  
+
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
 import { goalAPI } from '@/services/api'
 import { useAppStore } from '@/stores/app'
+import { onMounted, reactive, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 const route = useRoute()
 const router = useRouter()
@@ -198,5 +168,4 @@ async function onDelete() {
 onMounted(loadGoal)
 </script>
 
-<style scoped>
-</style>
+<style scoped></style>

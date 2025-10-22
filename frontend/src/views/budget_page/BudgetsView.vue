@@ -14,12 +14,7 @@
                 </p>
               </div>
             </div>
-            <v-btn
-              color="white"
-              variant="outlined"
-              @click="openCreateDialog"
-              prepend-icon="mdi-plus"
-            >
+            <v-btn color="white" variant="outlined" @click="openCreateDialog" prepend-icon="mdi-plus">
               New Budget
             </v-btn>
           </v-card-title>
@@ -72,12 +67,7 @@
             Monthly Budgets
           </v-card-title>
           <v-card-text>
-            <v-data-table
-              :headers="headers"
-              :items="budgets"
-              :loading="loading"
-              class="elevation-1"
-            >
+            <v-data-table :headers="headers" :items="budgets" :loading="loading" class="elevation-1">
               <template v-slot:item.category_name="{ item }">
                 <div class="d-flex align-center">
                   <v-icon class="mr-2" :color="getCategoryColor(item.category_id)">
@@ -96,50 +86,29 @@
               </template>
 
               <template v-slot:item.remaining_amount="{ item }">
-                <span 
-                  class="font-weight-bold"
-                  :class="getRemainingAmountClass(item.remaining_amount)"
-                >
+                <span class="font-weight-bold" :class="getRemainingAmountClass(item.remaining_amount)">
                   {{ formatCurrency(item.remaining_amount) }}
                 </span>
               </template>
 
               <template v-slot:item.progress="{ item }">
                 <div class="d-flex align-center">
-                  <v-progress-linear
-                    :model-value="getProgressPercentage(item)"
-                    :color="getProgressColor(item)"
-                    height="20"
-                    rounded
-                    class="mr-2"
-                  ></v-progress-linear>
+                  <v-progress-linear :model-value="getProgressPercentage(item)" :color="getProgressColor(item)"
+                    height="20" rounded class="mr-2"></v-progress-linear>
                   <span class="text-caption">{{ getProgressPercentage(item) }}%</span>
                 </div>
               </template>
 
               <template v-slot:item.status="{ item }">
-                <v-chip
-                  :color="getStatusColor(item)"
-                  size="small"
-                >
+                <v-chip :color="getStatusColor(item)" size="small">
                   {{ getStatusText(item) }}
                 </v-chip>
               </template>
 
               <template v-slot:item.actions="{ item }">
-                <v-btn
-                  icon="mdi-pencil"
-                  size="small"
-                  variant="text"
-                  @click="openEditDialog(item)"
-                ></v-btn>
-                <v-btn
-                  icon="mdi-delete"
-                  size="small"
-                  variant="text"
-                  color="error"
-                  @click="deleteBudget(item.id)"
-                ></v-btn>
+                <v-btn icon="mdi-pencil" size="small" variant="text" @click="openEditDialog(item)"></v-btn>
+                <v-btn icon="mdi-delete" size="small" variant="text" color="error"
+                  @click="deleteBudget(item.id)"></v-btn>
               </template>
             </v-data-table>
           </v-card-text>
@@ -156,11 +125,7 @@
           <p class="text-body-2 text-grey mb-4">
             Create your first budget to start tracking your spending
           </p>
-          <v-btn
-            color="primary"
-            @click="openCreateDialog"
-            prepend-icon="mdi-plus"
-          >
+          <v-btn color="primary" @click="openCreateDialog" prepend-icon="mdi-plus">
             Create Your First Budget
           </v-btn>
         </v-card>
@@ -175,80 +140,32 @@
         </v-card-title>
         <v-card-text>
           <v-form ref="formRef" validate-on="submit">
-            <v-select
-              v-model="form.category_id"
-              label="Category"
-              :items="categories"
-              item-title="name"
-              item-value="id"
-              :rules="[rules.required]"
-              required
-            ></v-select>
-            
-            <v-text-field
-              v-model="form.name"
-              label="Budget Name"
-              :rules="[rules.required]"
-              required
-              clearable
-            ></v-text-field>
-            
-            <v-text-field
-              v-model="form.amount"
-              label="Budget Amount"
-              type="number"
-              :rules="[rules.required, rules.positive]"
-              prefix="₫"
-              required
-              clearable
-            ></v-text-field>
-            
-            <v-select
-              v-model="form.period"
-              label="Period"
-              :items="budgetTypes"
-              item-title="title"
-              item-value="value"
-              :rules="[rules.required]"
-              required
-            ></v-select>
-            
-            <v-text-field
-              v-model="form.start_date"
-              label="Start Date"
-              type="date"
-              :rules="[rules.required]"
-              required
-            ></v-text-field>
-            
-            <v-text-field
-              v-model="form.end_date"
-              label="End Date"
-              type="date"
-              :rules="[rules.required]"
-              required
-            ></v-text-field>
-            
-            <v-text-field
-              v-model="form.alert_threshold"
-              label="Alert Threshold (%)"
-              type="number"
-              :rules="[rules.required, rules.positive]"
-              suffix="%"
-              min="0"
-              max="100"
-            ></v-text-field>
+            <v-select v-model="form.category_id" label="Category" :items="categories" item-title="name" item-value="id"
+              :rules="[rules.required]" required></v-select>
+
+            <v-text-field v-model="form.name" label="Budget Name" :rules="[rules.required]" required
+              clearable></v-text-field>
+
+            <v-text-field v-model="form.amount" label="Budget Amount" type="number"
+              :rules="[rules.required, rules.positive]" prefix="₫" required clearable></v-text-field>
+
+            <v-select v-model="form.period" label="Period" :items="budgetTypes" item-title="title" item-value="value"
+              :rules="[rules.required]" required></v-select>
+
+            <v-text-field v-model="form.start_date" label="Start Date" type="date" :rules="[rules.required]"
+              required></v-text-field>
+
+            <v-text-field v-model="form.end_date" label="End Date" type="date" :rules="[rules.required]"
+              required></v-text-field>
+
+            <v-text-field v-model="form.alert_threshold" label="Alert Threshold (%)" type="number"
+              :rules="[rules.required, rules.positive]" suffix="%" min="0" max="100"></v-text-field>
           </v-form>
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn @click="closeDialog">Cancel</v-btn>
-          <v-btn
-            type="submit"
-            color="primary"
-            @click="saveBudget"
-            :loading="saving"
-          >
+          <v-btn type="submit" color="primary" @click="saveBudget" :loading="saving">
             {{ isEditing ? 'Update' : 'Create' }}
           </v-btn>
         </v-card-actions>
@@ -284,11 +201,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed, nextTick } from 'vue'
 import { budgetAPI, categoryAPI } from '@/services/api'
-import { formatCurrency } from '@/utils/formatters'
 import { useAppStore } from '@/stores/app'
+import { formatCurrency } from '@/utils/formatters'
 import Chart from 'chart.js/auto'
+import { computed, nextTick, onMounted, ref } from 'vue'
 
 // Reactive data
 const budgets = ref([])
@@ -403,7 +320,7 @@ const openCreateDialog = () => {
   const now = new Date()
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
   const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-  
+
   form.value = {
     category_id: null,
     name: '',
@@ -533,7 +450,7 @@ const getCategoryName = (categoryId) => {
 
 const createCharts = async () => {
   await nextTick()
-  
+
   if (budgetChart.value && budgets.value.length > 0) {
     new Chart(budgetChart.value, {
       type: 'doughnut',

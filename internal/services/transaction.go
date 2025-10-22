@@ -194,6 +194,7 @@ func (s *TransactionService) GetTransaction(userID, transactionID uint64) (*mode
 func (s *TransactionService) UpdateTransaction(userID, transactionID uint64, req *models.TransactionUpdateRequest) (*models.TransactionResponse, error) {
 	// Find transaction
 	var transaction models.Transaction
+	
 	if err := s.db.Where("user_id = ? AND id = ?", userID, transactionID).First(&transaction).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("transaction not found")
@@ -208,13 +209,32 @@ func (s *TransactionService) UpdateTransaction(userID, transactionID uint64, req
 		return nil, fmt.Errorf("category not found or not accessible: %w", err)
 	}
 
+	// Parse transaction date
+	transactionDate, err := time.Parse("2006-01-02", req.TransactionDate)
+	if err != nil {
+		return nil, fmt.Errorf("invalid transaction_date format, expected YYYY-MM-DD: %w", err)
+	}
+
+	// Parse transaction time if provided
+	var transactionTime *time.Time
+	if req.TransactionTime != "" {
+		parsedTime, err := time.Parse("15:04", req.TransactionTime)
+		if err != nil {
+			return nil, fmt.Errorf("invalid transaction_time format, expected HH:MM: %w", err)
+		}
+		// Combine date and time
+		combinedTime := time.Date(transactionDate.Year(), transactionDate.Month(), transactionDate.Day(),
+			parsedTime.Hour(), parsedTime.Minute(), 0, 0, transactionDate.Location())
+		transactionTime = &combinedTime
+	}
+
 	// Update transaction
 	transaction.CategoryID = req.CategoryID
 	transaction.Amount = req.Amount
 	transaction.Description = req.Description
 	transaction.TransactionType = req.TransactionType
-	transaction.TransactionDate = req.TransactionDate
-	transaction.TransactionTime = req.TransactionTime
+	transaction.TransactionDate = transactionDate
+	transaction.TransactionTime = transactionTime
 	transaction.Location = req.Location
 	transaction.Tags = s.marshalTags(req.Tags)
 	transaction.Metadata = s.marshalMetadata(req.Metadata)
