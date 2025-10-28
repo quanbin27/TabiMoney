@@ -23,93 +23,9 @@
     </v-row>
 
     <!-- Goals Grid -->
-    <v-row v-if="goals.length > 0">
-      <v-col v-for="goal in goals" :key="goal.id" cols="12" md="6" lg="4">
-        <v-card class="goal-card" :class="getGoalStatusClass(goal)" elevation="2" hover>
-          <v-card-title class="d-flex align-center justify-space-between">
-            <div class="d-flex align-center">
-              <v-icon :color="getGoalStatusColor(goal)" class="mr-2" size="large">
-                {{ getGoalIcon(goal) }}
-              </v-icon>
-              <div>
-                <h3 class="text-h6">{{ goal.title }}</h3>
-                <p class="text-caption mb-0">{{ goal.description }}</p>
-              </div>
-            </div>
-            <v-menu>
-              <template v-slot:activator="{ props }">
-                <v-btn icon="mdi-dots-vertical" variant="text" v-bind="props"></v-btn>
-              </template>
-              <v-list>
-                <v-list-item @click="openEditDialog(goal)">
-                  <template v-slot:prepend>
-                    <v-icon>mdi-pencil</v-icon>
-                  </template>
-                  <v-list-item-title>Edit</v-list-item-title>
-                </v-list-item>
-                <v-list-item @click="deleteGoal(goal.id)">
-                  <template v-slot:prepend>
-                    <v-icon>mdi-delete</v-icon>
-                  </template>
-                  <v-list-item-title>Delete</v-list-item-title>
-                </v-list-item>
-              </v-list>
-            </v-menu>
-          </v-card-title>
-
-          <v-card-text>
-            <!-- Progress Bar -->
-            <div class="mb-4">
-              <div class="d-flex justify-space-between mb-2">
-                <span class="text-body-2">Progress</span>
-                <span class="text-body-2 font-weight-bold">
-                  {{ getProgressPercentage(goal) }}%
-                </span>
-              </div>
-              <v-progress-linear :model-value="getProgressPercentage(goal)" :color="getGoalStatusColor(goal)" height="8"
-                rounded></v-progress-linear>
-            </div>
-
-            <!-- Goal Details -->
-            <v-row class="text-center">
-              <v-col cols="6">
-                <div class="text-h6 text-primary">
-                  {{ formatCurrency(goal.current_amount) }}
-                </div>
-                <div class="text-caption text-grey">Current</div>
-              </v-col>
-              <v-col cols="6">
-                <div class="text-h6 text-grey">
-                  {{ formatCurrency(goal.target_amount) }}
-                </div>
-                <div class="text-caption text-grey">Target</div>
-              </v-col>
-            </v-row>
-
-            <!-- Goal Status -->
-            <v-chip :color="getGoalStatusColor(goal)" size="small" class="mt-3">
-              {{ getGoalStatusText(goal) }}
-            </v-chip>
-
-            <!-- Deadline -->
-            <div class="mt-3 text-caption text-grey">
-              <v-icon size="small" class="mr-1">mdi-calendar</v-icon>
-              Deadline: {{ formatDate(goal.target_date) }}
-            </div>
-          </v-card-text>
-
-          <v-card-actions>
-            <v-btn color="primary" variant="text" @click="openDetails(goal)">
-              View Details
-            </v-btn>
-            <v-spacer></v-spacer>
-            <v-btn color="success" variant="text" @click="addContribution(goal)">
-              Add Contribution
-            </v-btn>
-          </v-card-actions>
-        </v-card>
-      </v-col>
-    </v-row>
+    <GirdGoalView v-if="goals.length > 0" :goals='goals' @open-details="(goal) => handleOpenDetail(goal)"
+      @open-contribution="(goal) => handleContribution(goal)" @open-edit="(goal) => handleOpenEdit(goal)"
+      @on-delete="(goalID) => deleteGoal(goalID)" />
 
     <!-- Empty State -->
     <v-row v-else>
@@ -167,88 +83,25 @@
     </v-dialog>
 
     <!-- Add Contribution Dialog -->
-    <v-dialog v-model="contributionDialog" max-width="400">
-      <v-card>
-        <v-card-title>Add Contribution</v-card-title>
-        <v-card-text>
-          <v-form ref="contributionFormRef" v-model="contributionFormValid" validate-on="submit">
-            <v-text-field v-model="contributionForm.amount" label="Amount" type="number"
-              :rules="[rules.required, rules.positive]" prefix="₫" required></v-text-field>
-
-            <v-textarea v-model="contributionForm.note" label="Note (Optional)" rows="2"></v-textarea>
-          </v-form>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn @click="closeContributionDialog">Cancel</v-btn>
-          <v-btn color="primary" @click="saveContribution" :disabled="!contributionFormValid"
-            :loading="savingContribution">
-            Add Contribution
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <AddContributionView v-model="contributionDialog" :rules="rules" :selectedGoal="selectedGoal"
+      :loadGoals="loadGoals" />
   </v-container>
   <!-- Goal Details Dialog (read-only) placed outside conditional blocks to avoid v-else adjacency issues -->
-  <v-dialog v-model="detailsDialog" max-width="600">
-    <v-card>
-      <v-card-title>Goal Details</v-card-title>
-      <v-card-text>
-        <v-list density="compact">
-          <v-list-item>
-            <v-list-item-title class="font-weight-bold">Title</v-list-item-title>
-            <v-list-item-subtitle>{{ detailsGoal?.title }}</v-list-item-subtitle>
-          </v-list-item>
-          <v-list-item>
-            <v-list-item-title class="font-weight-bold">Description</v-list-item-title>
-            <v-list-item-subtitle>{{ detailsGoal?.description || '—' }}</v-list-item-subtitle>
-          </v-list-item>
-          <v-list-item>
-            <v-list-item-title class="font-weight-bold">Target Amount</v-list-item-title>
-            <v-list-item-subtitle>{{ formatCurrency(detailsGoal?.target_amount || 0) }}</v-list-item-subtitle>
-          </v-list-item>
-          <v-list-item>
-            <v-list-item-title class="font-weight-bold">Current Amount</v-list-item-title>
-            <v-list-item-subtitle>{{ formatCurrency(detailsGoal?.current_amount || 0) }}</v-list-item-subtitle>
-          </v-list-item>
-          <v-list-item>
-            <v-list-item-title class="font-weight-bold">Target Date</v-list-item-title>
-            <v-list-item-subtitle>{{ formatDate(detailsGoal?.target_date) }}</v-list-item-subtitle>
-          </v-list-item>
-          <v-list-item>
-            <v-list-item-title class="font-weight-bold">Type</v-list-item-title>
-            <v-list-item-subtitle>{{ detailsGoal?.goal_type }}</v-list-item-subtitle>
-          </v-list-item>
-          <v-list-item>
-            <v-list-item-title class="font-weight-bold">Priority</v-list-item-title>
-            <v-list-item-subtitle>{{ detailsGoal?.priority }}</v-list-item-subtitle>
-          </v-list-item>
-        </v-list>
-      </v-card-text>
-      <v-card-actions>
-        <v-spacer></v-spacer>
-        <v-btn variant="text" @click="detailsDialog = false">Close</v-btn>
-        <v-btn color="primary" variant="text" @click="goEdit(detailsGoal)">Edit</v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+  <DetailGoalView v-model="detailsDialog" :detailsGoal='detailsGoal' @open-edit="(goal) => handleOpenEdit(goal)" />
 </template>
 
 <script setup>
 import { goalAPI } from '@/services/api'
 import { useAppStore } from '@/stores/app'
-import { formatCurrency, formatDate } from '@/utils/formatters'
 import { onMounted, ref } from 'vue'
-
+import { AddContributionView, DetailGoalView, GirdGoalView } from './component/index'
 // Reactive data
 const goals = ref([])
 const dialog = ref(false)
 const contributionDialog = ref(false)
 const isEditing = ref(false)
 const saving = ref(false)
-const savingContribution = ref(false)
 const formValid = ref(false)
-const contributionFormValid = ref(false)
 const selectedGoal = ref(null)
 const detailsDialog = ref(false)
 const detailsGoal = ref(null)
@@ -263,12 +116,6 @@ const form = ref({
   target_date: '',
   goal_type: null,
   priority: null,
-})
-
-const contributionFormRef = ref()
-const contributionForm = ref({
-  amount: null,
-  note: ''
 })
 
 // Options
@@ -318,6 +165,11 @@ const loadGoals = async () => {
   }
 }
 
+const handleOpenDetail = (goal) => {
+  detailsDialog.value = true
+  detailsGoal.value = goal
+}
+
 const openCreateDialog = () => {
   isEditing.value = false
   form.value = {
@@ -332,7 +184,7 @@ const openCreateDialog = () => {
   dialog.value = true
 }
 
-const openEditDialog = (goal) => {
+const handleOpenEdit = (goal) => {
   isEditing.value = true
   form.value = {
     title: goal.title,
@@ -403,109 +255,9 @@ const deleteGoal = async (goalId) => {
   }
 }
 
-const addContribution = (goal) => {
+const handleContribution = (goal) => {
   selectedGoal.value = goal
-  contributionForm.value = {
-    amount: 0,
-    note: ''
-  }
   contributionDialog.value = true
-}
-
-const closeContributionDialog = () => {
-  contributionDialog.value = false
-  selectedGoal.value = null
-}
-
-const saveContribution = async () => {
-  if (contributionFormRef.value) {
-    const { valid } = await contributionFormRef.value.validate()
-    if (!valid) return
-  }
-  savingContribution.value = true
-  try {
-    await goalAPI.addContribution(selectedGoal.value.id, {
-      amount: Number(contributionForm.value.amount),
-      note: contributionForm.value.note?.trim() || undefined,
-    })
-    await loadGoals()
-    closeContributionDialog()
-    useAppStore().showSuccess('Contribution added successfully')
-  } catch (error) {
-    console.error('Failed to add contribution:', error)
-    useAppStore().showError('Failed to add contribution')
-  } finally {
-    savingContribution.value = false
-  }
-}
-
-const openDetails = (goal) => {
-  detailsGoal.value = goal
-  detailsDialog.value = true
-}
-
-const goEdit = (goal) => {
-  detailsDialog.value = false
-  router.push({ name: 'EditGoal', params: { id: goal.id } })
-}
-
-// Helper methods
-const getProgressPercentage = (goal) => {
-  if (goal.target_amount === 0) return 0
-  return Math.min((goal.current_amount / goal.target_amount) * 100, 100)
-}
-
-const getGoalStatus = (goal) => {
-  const progress = getProgressPercentage(goal)
-  const now = new Date()
-  const targetDate = new Date(goal.target_date)
-
-  if (progress >= 100) return 'completed'
-  if (targetDate < now) return 'overdue'
-  if (progress >= 75) return 'on_track'
-  if (progress >= 50) return 'in_progress'
-  return 'not_started'
-}
-
-const getGoalStatusText = (goal) => {
-  const status = getGoalStatus(goal)
-  const statusMap = {
-    completed: 'Completed',
-    overdue: 'Overdue',
-    on_track: 'On Track',
-    in_progress: 'In Progress',
-    not_started: 'Not Started'
-  }
-  return statusMap[status] || 'Unknown'
-}
-
-const getGoalStatusColor = (goal) => {
-  const status = getGoalStatus(goal)
-  const colorMap = {
-    completed: 'success',
-    overdue: 'error',
-    on_track: 'primary',
-    in_progress: 'warning',
-    not_started: 'grey'
-  }
-  return colorMap[status] || 'grey'
-}
-
-const getGoalStatusClass = (goal) => {
-  const status = getGoalStatus(goal)
-  return `goal-${status}`
-}
-
-const getGoalIcon = (goal) => {
-  const status = getGoalStatus(goal)
-  const iconMap = {
-    completed: 'mdi-check-circle',
-    overdue: 'mdi-alert-circle',
-    on_track: 'mdi-trending-up',
-    in_progress: 'mdi-progress-clock',
-    not_started: 'mdi-target'
-  }
-  return iconMap[status] || 'mdi-target'
 }
 
 // Lifecycle

@@ -1,6 +1,6 @@
 <template>
   <v-container>
-    <FilterTransactionView />
+    <!-- <FilterTransactionView /> -->
 
     <v-row class="mb-4" align="center" justify="space-between">
       <v-col cols="12" md="6">
