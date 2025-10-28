@@ -1,103 +1,83 @@
 <template>
-  <v-container class="py-8" style="max-width: 600px">
-    <div class="d-flex align-center mb-6">
-      <v-btn icon="mdi-arrow-left" variant="text" @click="$router.back()" class="mr-4"></v-btn>
-      <h1 class="text-h4">Edit Category</h1>
-    </div>
+  <v-container class="py-8" style="max-width: 720px">
+    <v-dialog v-model="props.modelValue" persistent max-width="800">
+      <v-card>
+        <v-card-title>Edit</v-card-title>
 
-    <v-card v-if="category">
-      <v-card-text class="pa-6">
-        <v-form ref="formRef" @submit.prevent="handleSubmit">
-          <v-row>
-            <v-col cols="12">
-              <v-text-field v-model="form.name" label="Category Name" :rules="[v => !!v || 'Name is required']"
-                required />
-            </v-col>
+        <v-card-text class="pa-6">
+          <v-form ref="formRef" @submit.prevent="handleSubmit">
+            <v-row>
+              <v-col cols="12">
+                <v-text-field v-model="form.name" label="Category Name" :rules="[v => !!v || 'Name is required']"
+                  required />
+              </v-col>
 
-            <v-col cols="12">
-              <v-text-field v-model="form.name_en" label="English Name (Optional)" />
-            </v-col>
+              <v-col cols="12">
+                <v-text-field v-model="form.name_en" label="English Name (Optional)" />
+              </v-col>
 
-            <v-col cols="12">
-              <v-textarea v-model="form.description" label="Description (Optional)" rows="3" />
-            </v-col>
-          </v-row>
-        </v-form>
-      </v-card-text>
+              <v-col cols="12">
+                <v-textarea v-model="form.description" label="Description (Optional)" rows="3" />
+              </v-col>
+            </v-row>
+          </v-form>
+        </v-card-text>
 
-      <v-card-actions class="pa-6 pt-0">
-        <v-spacer />
-        <v-btn variant="text" @click="$router.back()">
-          Cancel
-        </v-btn>
-        <v-btn color="primary" :loading="loading" @click="handleSubmit">
-          Update Category
-        </v-btn>
-      </v-card-actions>
-    </v-card>
-
-    <v-card v-else-if="loading">
-      <v-card-text class="pa-6 text-center">
-        <v-progress-circular indeterminate></v-progress-circular>
-        <p class="mt-4">Loading category...</p>
-      </v-card-text>
-    </v-card>
-
-    <v-card v-else>
-      <v-card-text class="pa-6 text-center">
-        <v-icon size="64" color="error">mdi-alert-circle</v-icon>
-        <h3 class="mt-4">Category not found</h3>
-        <p class="text-grey">The category you're looking for doesn't exist.</p>
-        <v-btn color="primary" @click="$router.push({ name: 'Categories' })">
-          Back to Categories
-        </v-btn>
-      </v-card-text>
-    </v-card>
+        <v-card-actions class="pa-6 pt-0">
+          <v-spacer />
+          <v-btn variant="text" @click="closeDialog">
+            Cancel
+          </v-btn>
+          <v-btn color="primary" :loading="loading" @click="handleSubmit">
+            Update Category
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 
 <script setup>
 import { categoryAPI } from '@/services/api'
 import { useAppStore } from '@/stores/app'
-import { onMounted, reactive, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { onMounted, reactive, ref, watch } from 'vue'
 
-const router = useRouter()
-const route = useRoute()
+const props = defineProps({
+  modelValue: {
+    type: Boolean,
+    default: false,
+  },
+  item: {
+    type: Object,
+    require: true
+  }
+})
+
+const emit = defineEmits(['update:modelValue'])
+
+const form = ref({
+  name: '',
+  name_en: '',
+  description: '',
+})
+
+watch(
+  () => props.item,
+  (newVal) => {
+    if (newVal) {
+      form.value = newVal
+    }
+  }
+)
+
 const app = useAppStore()
 
 const loading = ref(false)
 const formRef = ref()
 const category = ref(null)
 
-const form = reactive({
-  name: '',
-  name_en: '',
-  description: '',
-})
-
-async function loadCategory() {
-  const categoryId = String(route.params.id || '')
-  if (!categoryId) {
-    router.push({ name: 'Categories' })
-    return
-  }
-
-  loading.value = true
-  try {
-    const response = await categoryAPI.getCategory(parseInt(categoryId))
-    category.value = response.data
-
-    // Populate form
-    form.name = category.value.name || ''
-    form.name_en = category.value.name_en || ''
-    form.description = category.value.description || ''
-  } catch (e) {
-    app.showError(e?.message || 'Failed to load category')
-    router.push({ name: 'Categories' })
-  } finally {
-    loading.value = false
-  }
+const closeDialog = () => {
+  emit('update:modelValue', false)
 }
 
 async function handleSubmit() {
@@ -122,7 +102,4 @@ async function handleSubmit() {
   }
 }
 
-onMounted(() => {
-  loadCategory()
-})
 </script>
