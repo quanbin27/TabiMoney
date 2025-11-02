@@ -8,6 +8,160 @@
 
     <v-row>
       <v-col cols="12" md="8">
+        <!-- Notification Preferences -->
+        <v-card class="mb-4">
+          <v-card-title>
+            <v-icon left>mdi-bell-outline</v-icon>
+            Cài đặt thông báo
+          </v-card-title>
+
+          <v-card-text>
+            <v-expansion-panels variant="accordion">
+              <!-- Channel Preferences -->
+              <v-expansion-panel title="Kênh thông báo">
+                <v-expansion-panel-text>
+                  <v-switch
+                    v-model="notificationPrefs.email_enabled"
+                    label="Email"
+                    color="primary"
+                    hide-details
+                  ></v-switch>
+                  <v-switch
+                    v-model="notificationPrefs.telegram_enabled"
+                    label="Telegram"
+                    color="primary"
+                    hide-details
+                    :disabled="telegramStatus !== 'connected'"
+                  ></v-switch>
+                  <v-switch
+                    v-model="notificationPrefs.in_app_enabled"
+                    label="Trong ứng dụng"
+                    color="primary"
+                    hide-details
+                  ></v-switch>
+                  <v-alert v-if="telegramStatus !== 'connected'" type="info" variant="tonal" density="compact" class="mt-2">
+                    Kích hoạt Telegram ở phần dưới để nhận thông báo qua Telegram
+                  </v-alert>
+                </v-expansion-panel-text>
+              </v-expansion-panel>
+
+              <!-- Feature Preferences -->
+              <v-expansion-panel title="Loại thông báo">
+                <v-expansion-panel-text>
+                  <v-switch
+                    v-model="notificationPrefs.budget_alerts"
+                    label="Cảnh báo ngân sách"
+                    color="primary"
+                    hide-details
+                  ></v-switch>
+                  <v-switch
+                    v-model="notificationPrefs.goal_alerts"
+                    label="Cảnh báo mục tiêu"
+                    color="primary"
+                    hide-details
+                  ></v-switch>
+                  <v-switch
+                    v-model="notificationPrefs.ai_alerts"
+                    label="Cảnh báo AI"
+                    color="primary"
+                    hide-details
+                  ></v-switch>
+                  <v-switch
+                    v-model="notificationPrefs.transaction_alerts"
+                    label="Cảnh báo giao dịch"
+                    color="primary"
+                    hide-details
+                  ></v-switch>
+                  <v-switch
+                    v-model="notificationPrefs.analytics_alerts"
+                    label="Báo cáo phân tích"
+                    color="primary"
+                    hide-details
+                  ></v-switch>
+                </v-expansion-panel-text>
+              </v-expansion-panel>
+
+              <!-- Priority Preferences -->
+              <v-expansion-panel title="Mức độ ưu tiên">
+                <v-expansion-panel-text>
+                  <v-switch
+                    v-model="notificationPrefs.urgent_notifications"
+                    label="Khẩn cấp"
+                    color="red"
+                    hide-details
+                  ></v-switch>
+                  <v-switch
+                    v-model="notificationPrefs.high_notifications"
+                    label="Cao"
+                    color="orange"
+                    hide-details
+                  ></v-switch>
+                  <v-switch
+                    v-model="notificationPrefs.medium_notifications"
+                    label="Trung bình"
+                    color="yellow"
+                    hide-details
+                  ></v-switch>
+                  <v-switch
+                    v-model="notificationPrefs.low_notifications"
+                    label="Thấp"
+                    color="grey"
+                    hide-details
+                  ></v-switch>
+                </v-expansion-panel-text>
+              </v-expansion-panel>
+
+              <!-- Frequency Preferences -->
+              <v-expansion-panel title="Tần suất">
+                <v-expansion-panel-text>
+                  <v-switch
+                    v-model="notificationPrefs.daily_digest"
+                    label="Báo cáo hàng ngày"
+                    color="primary"
+                    hide-details
+                  ></v-switch>
+                  <v-switch
+                    v-model="notificationPrefs.weekly_digest"
+                    label="Báo cáo hàng tuần"
+                    color="primary"
+                    hide-details
+                  ></v-switch>
+                  <v-switch
+                    v-model="notificationPrefs.monthly_digest"
+                    label="Báo cáo hàng tháng"
+                    color="primary"
+                    hide-details
+                  ></v-switch>
+                  <v-switch
+                    v-model="notificationPrefs.real_time_alerts"
+                    label="Cảnh báo thời gian thực"
+                    color="primary"
+                    hide-details
+                  ></v-switch>
+                </v-expansion-panel-text>
+              </v-expansion-panel>
+            </v-expansion-panels>
+
+            <v-divider class="my-4"></v-divider>
+
+            <div class="d-flex justify-space-between align-center">
+              <v-btn color="success" @click="testNotification" :loading="testingNotification">
+                <v-icon left>mdi-bell-ring</v-icon>
+                Gửi thông báo test
+              </v-btn>
+              <div>
+                <v-btn color="secondary" @click="resetPreferences" :loading="resetting">
+                  Khôi phục mặc định
+                </v-btn>
+                <v-btn color="primary" @click="savePreferences" :loading="saving" class="ml-2">
+                  Lưu cài đặt
+                </v-btn>
+              </div>
+            </div>
+          </v-card-text>
+        </v-card>
+
+        <!-- Telegram Integration -->
         <v-card>
           <v-card-title>
             <v-icon left>mdi-telegram</v-icon>
@@ -119,6 +273,7 @@
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { api } from '@/services/api'
+import { notificationPreferencesAPI } from '@/services/api'
 
 const authStore = useAuthStore()
 
@@ -128,6 +283,33 @@ const linkCode = ref('')
 const generatingCode = ref(false)
 const disconnecting = ref(false)
 const linkCodeExpiry = ref(10)
+
+// Notification preferences
+const notificationPrefs = ref({
+  email_enabled: true,
+  telegram_enabled: true,
+  in_app_enabled: true,
+  push_enabled: false,
+  budget_alerts: true,
+  goal_alerts: true,
+  ai_alerts: true,
+  transaction_alerts: true,
+  analytics_alerts: true,
+  urgent_notifications: true,
+  high_notifications: true,
+  medium_notifications: true,
+  low_notifications: false,
+  daily_digest: false,
+  weekly_digest: true,
+  monthly_digest: true,
+  real_time_alerts: true,
+  quiet_hours_start: '22:00',
+  quiet_hours_end: '08:00',
+  timezone: 'Asia/Ho_Chi_Minh'
+})
+const saving = ref(false)
+const resetting = ref(false)
+const testingNotification = ref(false)
 
 const snackbar = ref({
   show: false,
@@ -221,8 +403,66 @@ const showSnackbar = (message, color = 'success') => {
   }
 }
 
+// Notification preferences methods
+const loadNotificationPreferences = async () => {
+  try {
+    const response = await notificationPreferencesAPI.getPreferences()
+    if (response.data?.data) {
+      notificationPrefs.value = { ...notificationPrefs.value, ...response.data.data }
+    }
+  } catch (error) {
+    console.error('Error loading notification preferences:', error)
+  }
+}
+
+const savePreferences = async () => {
+  try {
+    saving.value = true
+    await notificationPreferencesAPI.updatePreferences(notificationPrefs.value)
+    showSnackbar('Cài đặt thông báo đã được lưu thành công!', 'success')
+  } catch (error) {
+    console.error('Error saving notification preferences:', error)
+    showSnackbar('Không thể lưu cài đặt thông báo. Vui lòng thử lại.', 'error')
+  } finally {
+    saving.value = false
+  }
+}
+
+const resetPreferences = async () => {
+  try {
+    resetting.value = true
+    await notificationPreferencesAPI.resetToDefaults()
+    await loadNotificationPreferences()
+    showSnackbar('Cài đặt đã được khôi phục về mặc định!', 'success')
+  } catch (error) {
+    console.error('Error resetting notification preferences:', error)
+    showSnackbar('Không thể khôi phục cài đặt. Vui lòng thử lại.', 'error')
+  } finally {
+    resetting.value = false
+  }
+}
+
+const testNotification = async () => {
+  try {
+    testingNotification.value = true
+    await notificationPreferencesAPI.testNotification('in_app')
+    showSnackbar('Thông báo test đã được gửi! Kiểm tra hộp thông báo ở góc trên.', 'success')
+    // Reload notifications after a short delay to see the new notification
+    setTimeout(() => {
+      // Trigger notification reload in App.vue by dispatching event or window reload notifications
+      window.dispatchEvent(new Event('notification:refresh'))
+    }, 500)
+  } catch (error) {
+    console.error('Error sending test notification:', error)
+    showSnackbar('Không thể gửi thông báo test. Vui lòng thử lại.', 'error')
+  } finally {
+    testingNotification.value = false
+  }
+}
+
 // Lifecycle
 onMounted(() => {
   checkTelegramStatus()
+  loadNotificationPreferences()
 })
 </script>

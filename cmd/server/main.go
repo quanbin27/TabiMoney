@@ -145,7 +145,17 @@ func main() {
     notificationHandler := handlers.NewNotificationHandler()
     notifications := api.Group("/notifications", appmw.AuthMiddleware(authService))
     notifications.GET("", notificationHandler.List)
-    notifications.POST(":id/read", notificationHandler.MarkRead)
+    notifications.POST("/:id/read", notificationHandler.MarkRead)
+
+    // Notification preferences routes
+    notificationPrefsHandler := handlers.NewNotificationPreferencesHandler()
+    notificationPrefs := api.Group("/notification-preferences", appmw.AuthMiddleware(authService))
+    notificationPrefs.GET("", notificationPrefsHandler.GetPreferences)
+    notificationPrefs.PUT("", notificationPrefsHandler.UpdatePreferences)
+    notificationPrefs.GET("/summary", notificationPrefsHandler.GetSummary)
+    notificationPrefs.POST("/reset", notificationPrefsHandler.ResetToDefaults)
+    notificationPrefs.GET("/channels", notificationPrefsHandler.GetEnabledChannels)
+    notificationPrefs.POST("/test", notificationPrefsHandler.TestNotification)
     budgets := api.Group("/budgets", appmw.AuthMiddleware(authService))
     budgets.GET("", budgetHandler.GetBudgets)
     budgets.GET("/:id", budgetHandler.GetBudget)
@@ -184,6 +194,12 @@ func main() {
 			logrus.Fatal("Server failed to start:", err)
 		}
 	}()
+
+	// Start scheduled notification service
+	ctx := context.Background()
+	scheduledService := services.NewScheduledNotificationService()
+	go scheduledService.StartScheduler(ctx)
+	logrus.Info("Scheduled notification service started")
 
 	// Wait for interrupt signal to gracefully shutdown the server
 	quit := make(chan os.Signal, 1)

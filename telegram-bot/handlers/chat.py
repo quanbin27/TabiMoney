@@ -50,54 +50,10 @@ async def handle_chat_message(update: Update, context: ContextTypes.DEFAULT_TYPE
         logger.info(f"AI response received: {ai_response}")
         
         if ai_response and isinstance(ai_response, dict):
+            # AI service đã xử lý hoàn toàn, chỉ cần hiển thị response text
             response_text = ai_response.get('response', 'Xin lỗi, tôi không thể xử lý yêu cầu của bạn.')
 
-            # If AI intent is add_transaction, reconstruct confirmation using largest amount & category name
-            try:
-                if ai_response.get('intent') == 'add_transaction':
-                    entities = ai_response.get('entities') or []
-                    # Pick the largest amount
-                    amounts = []
-                    category_id = None
-                    for ent in entities:
-                        if ent.get('type') == 'amount':
-                            try:
-                                amounts.append(float(ent.get('value')))
-                            except Exception:
-                                pass
-                        elif ent.get('type') == 'category_id':
-                            try:
-                                category_id = int(ent.get('value'))
-                            except Exception:
-                                pass
-
-                    selected_amount = max(amounts) if amounts else None
-
-                    # Fetch category name if possible
-                    category_name = None
-                    if category_id is not None:
-                        try:
-                            cats = await api_service.get_categories(jwt_token)
-                            if isinstance(cats, list):
-                                match = next((c for c in cats if int(c.get('id', -1)) == category_id), None)
-                                if match:
-                                    category_name = match.get('name') or match.get('Name')
-                        except Exception:
-                            pass
-
-                    if selected_amount is not None:
-                        # Rebuild a clean confirmation line similar to web UX
-                        clean_line = f"Đã thêm giao dịch {selected_amount:,.0f} VND"
-                        if category_name:
-                            clean_line += f" cho danh mục {category_name}."
-                        else:
-                            clean_line += "."
-                        response_text = clean_line
-            except Exception:
-                # Fallback to original AI response text on any error
-                pass
-
-            # Format response
+            # Format response for Telegram (chỉ format hiển thị, không modify content)
             formatted_response = await format_ai_response(response_text, ai_response)
 
             await update.message.reply_text(formatted_response, parse_mode='HTML')

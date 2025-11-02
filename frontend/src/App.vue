@@ -87,7 +87,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { notificationsAPI } from './services/api'
 import { useAppStore } from './stores/app'
@@ -127,6 +127,57 @@ watch(route, () => {
   drawer.value = false
 })
 
+// Listen for notification refresh event
+window.addEventListener('notification:refresh', () => {
+  loadNotifications()
+})
+
+// Auto-refresh notifications every 30 seconds when authenticated
+let notificationInterval = null
+onMounted(() => {
+  // Load notifications when component mounts
+  if (authStore.isAuthenticated) {
+    loadNotifications()
+    // Set up polling
+    notificationInterval = setInterval(() => {
+      if (authStore.isAuthenticated) {
+        loadNotifications()
+      }
+    }, 30000) // Every 30 seconds
+  }
+})
+
+onBeforeUnmount(() => {
+  // Clear interval when component unmounts
+  if (notificationInterval) {
+    clearInterval(notificationInterval)
+    notificationInterval = null
+  }
+})
+
+// Watch for auth changes
+watch(() => authStore.isAuthenticated, (isAuth) => {
+  if (isAuth) {
+    loadNotifications()
+    // Set up polling if not already set
+    if (!notificationInterval) {
+      notificationInterval = setInterval(() => {
+        if (authStore.isAuthenticated) {
+          loadNotifications()
+        }
+      }, 30000)
+    }
+  } else {
+    // Clear interval when logged out
+    if (notificationInterval) {
+      clearInterval(notificationInterval)
+      notificationInterval = null
+    }
+    notifications.value = []
+    unreadCount.value = 0
+  }
+})
+
 // Methods
 const goToProfile = () => {
   router.push('/profile')
@@ -158,6 +209,17 @@ const markRead = async (id) => {
     notifications.value = notifications.value.map(n => n.id === id ? { ...n, is_read: true } : n)
     unreadCount.value = Math.max(0, unreadCount.value - 1)
   } catch (e) { }
+}
+
+const chipColor = (type) => {
+  const colors = {
+    'info': 'blue',
+    'warning': 'orange',
+    'success': 'green',
+    'error': 'red',
+    'reminder': 'purple'
+  }
+  return colors[type] || 'grey'
 }
 </script>
 
