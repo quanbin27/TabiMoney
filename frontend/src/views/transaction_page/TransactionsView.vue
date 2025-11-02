@@ -1,6 +1,6 @@
 <template>
   <v-container>
-    <FilterTransactionView />
+    <!-- <FilterTransactionView /> -->
 
     <v-row class="mb-4" align="center" justify="space-between">
       <v-col cols="12" md="6">
@@ -12,22 +12,23 @@
     </v-row>
 
     <TableTransactionView :items="items" :loading="loading" @openEdit="handleOpenEditDialog" :load="load" />
-    <AddTransactionView v-model="isShowAddDialog" @update:modelValue="onModelUpdated" />
+    <AddTransactionView v-model="isShowAddDialog" @update:modelValue="onModelUpdated" :categoryItems="categoryItems" />
     <EditTransactionView v-model="isShowEditDialog" :transaction="selectedTransaction"
-      @update:modelValue="onModelUpdated" />
+      @update:modelValue="onModelUpdated" :categoryItems="categoryItems" />
   </v-container>
 </template>
 <script setup>
-import { transactionAPI } from '@/services/api';
+import { categoryAPI, transactionAPI } from '@/services/api';
 import { useAppStore } from '@/stores/app';
 import { onMounted, ref } from 'vue';
-import { AddTransactionView, EditTransactionView, FilterTransactionView, TableTransactionView } from './component/index';
+import { AddTransactionView, EditTransactionView, TableTransactionView } from './component/index';
 
 const isShowAddDialog = ref(false);
 const isShowEditDialog = ref(false);
 const selectedTransaction = ref(null);
 const loading = ref(false);
 const items = ref([])
+const categoryItems = ref([])
 
 const appStore = useAppStore()
 
@@ -54,8 +55,17 @@ async function load() {
     loading.value = false
   }
 }
+async function loadCategories() {
+  try {
+    const { data } = await categoryAPI.getCategories()
+    categoryItems.value = Array.isArray(data) ? data : []
+  } catch (e) {
+    appStore.showError(e?.message || 'Failed to load categories')
+  }
+}
 
 onMounted(() => {
   load();
+  loadCategories()
 });
 </script>

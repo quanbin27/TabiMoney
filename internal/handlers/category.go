@@ -49,6 +49,7 @@ func (h *CategoryHandler) Create(c echo.Context) error {
     var req struct {
         Name        string  `json:"name"`
         Description string  `json:"description"`
+        NameEn string  `json:"name_en"`
         ParentID    *uint64 `json:"parent_id"`
     }
     if err := c.Bind(&req); err != nil {
@@ -61,6 +62,7 @@ func (h *CategoryHandler) Create(c echo.Context) error {
         UserID:     &userID,
         Name:       req.Name,
         Description:req.Description,
+        NameEn:req.NameEn,
         ParentID:   req.ParentID,
         IsSystem:   false,
         IsActive:   true,
@@ -110,6 +112,7 @@ func (h *CategoryHandler) Update(c echo.Context) error {
     var req struct {
         Name        string  `json:"name"`
         Description string  `json:"description"`
+        NameEn string  `json:"name_en"`
         ParentID    *uint64 `json:"parent_id"`
     }
     if err := c.Bind(&req); err != nil {
@@ -127,6 +130,7 @@ func (h *CategoryHandler) Update(c echo.Context) error {
     cat.Name = req.Name
     cat.Description = req.Description
     cat.ParentID = req.ParentID
+    cat.NameEn = req.NameEn
 
     if err := services.DB().Save(&cat).Error; err != nil {
         return c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Update failed", Message: err.Error()})

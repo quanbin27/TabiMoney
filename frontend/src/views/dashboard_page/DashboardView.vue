@@ -5,14 +5,14 @@
     <ChartHeath :analytics="analytics" />
     <RecentTransactions :recentTransactions="recentTransactions" :loadRecentTransactions="loadRecentTransactions"
       @openEdit="handleOpenEditDialog" />
-    <AddTransactionView v-model="isShowAddDialog" @update:modelValue="onModelUpdated" />
+    <AddTransactionView v-model="isShowAddDialog" @update:modelValue="onModelUpdated" :categoryItems="categoryItems" />
     <EditTransactionView v-model="isShowEditDialog" :transaction="selectedTransaction"
-      @update:modelValue="onModelUpdated" />
+      @update:modelValue="onModelUpdated" :categoryItems="categoryItems" />
   </v-container>
 </template>
 
 <script setup>
-import { analyticsAPI, transactionAPI } from '@/services/api'
+import { analyticsAPI, categoryAPI, transactionAPI } from '@/services/api'
 import { onMounted, ref } from 'vue'
 import {
   ChartHeath,
@@ -28,6 +28,7 @@ const loading = ref(false)
 const isShowAddDialog = ref(false)
 const isShowEditDialog = ref(false)
 const selectedTransaction = ref(null)
+const categoryItems = ref([])
 
 // Methods
 const loadDashboardData = async () => {
@@ -66,9 +67,19 @@ const onModelUpdated = (value) => {
   loadRecentTransactions()
 }
 
+async function loadCategories() {
+  try {
+    const { data } = await categoryAPI.getCategories()
+    categoryItems.value = Array.isArray(data) ? data : []
+  } catch (e) {
+    appStore.showError(e?.message || 'Failed to load categories')
+  }
+}
+
 // Lifecycle
 onMounted(() => {
   loadDashboardData()
+  loadCategories()
 })
 </script>
 
