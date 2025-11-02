@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"log"
 	"time"
 
 	"tabimoney/internal/database"
@@ -136,5 +137,42 @@ func (s *GoalService) AddContribution(userID uint64, goalID uint64, amount float
 		goal.Progress = (goal.CurrentAmount / goal.TargetAmount) * 100
 	}
 
+	// Trigger notifications
+	s.checkGoalNotifications(userID, &goal)
+
 	return &goal, nil
+}
+
+// checkGoalNotifications checks and triggers goal notifications
+func (s *GoalService) checkGoalNotifications(userID uint64, goal *models.FinancialGoal) {
+	dispatcher := NewNotificationDispatcher()
+
+	// Check if goal is achieved
+	if goal.IsAchieved {
+		if err := dispatcher.TriggerGoalAchievedAlert(userID, goal); err != nil {
+			log.Printf("Failed to trigger goal achieved alert: %v", err)
+		}
+		return
+	}
+
+	// Check progress milestones
+	milestones := []float64{25, 50, 75, 90}
+	for _, milestone := range milestones {
+		if goal.Progress >= milestone && goal.Progress < milestone+5 {
+			if err := dispatcher.TriggerGoalProgressAlert(userID, goal, fmt.Sprintf("%.0f%%", milestone)); err != nil {
+				log.Printf("Failed to trigger goal progress alert: %v", err)
+			}
+			break
+		}
+	}
+
+	// Check deadline warning
+	if goal.TargetDate != nil {
+		daysLeft := int(goal.TargetDate.Sub(time.Now()).Hours() / 24)
+		if daysLeft <= 30 && daysLeft > 0 {
+			if err := dispatcher.TriggerGoalDeadlineAlert(userID, goal, daysLeft); err != nil {
+				log.Printf("Failed to trigger goal deadline alert: %v", err)
+			}
+		}
+	}
 }

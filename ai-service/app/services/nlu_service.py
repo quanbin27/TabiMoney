@@ -175,7 +175,7 @@ class NLUService:
 
             # Try to parse structured JSON from model output
             try:
-                parsed = self._parse_openai_response(self._extract_json_block(content), request.user_id)
+                parsed = self._parse_openai_response(self._extract_json_block(content), request.user_id, request.text)
                 parsed = await self._normalize_entities_add_category_id(parsed, request.user_id)
                 return parsed
             except Exception:
@@ -236,7 +236,7 @@ class NLUService:
                         content = json.dumps(data)
                     # Parse structured json
                     try:
-                        parsed = self._parse_openai_response(self._extract_json_block(content), request.user_id)
+                        parsed = self._parse_openai_response(self._extract_json_block(content), request.user_id, request.text)
                         parsed = await self._normalize_entities_add_category_id(parsed, request.user_id)
                         logger.info(f"Gemini parsing successful: intent={parsed.intent}")
                         return parsed
@@ -294,11 +294,21 @@ Database có sẵn:
 Schema:
 {{"intent":"add_transaction|query_balance|analyze_data|budget_management|goal_tracking|smart_recommendations|expense_forecasting|general","entities":[{{"type":"amount|category_id|date|description|budget_amount|goal_amount","value":"...","confidence":0.9,"start_pos":0,"end_pos":5}}],"confidence":0.9,"needs_confirmation":false,"response":"Phản hồi tự nhiên","action":"mô tả hành động sẽ thực hiện"}}
 
+QUAN TRỌNG - Parse amount:
+- Khi extract amount entity, PHẢI chuyển đổi về số VND đầy đủ:
+  * "16 triệu" hoặc "16 tr" → value: "16000000"
+  * "400k" hoặc "400 nghìn" → value: "400000"
+  * "2 tỷ" → value: "2000000000"
+  * "100000" → value: "100000" (giữ nguyên)
+- KHÔNG bao giờ trả về value là "16" nếu trong câu có "16 triệu"
+- value phải là số thuần túy (không có text, không có đơn vị)
+
 Quyết định:
 - Tự phân tích intent từ context
 - Tự chọn category phù hợp nhất
 - Tự quyết định có cần xác nhận không
 - Tự mô tả action sẽ làm
+- Tự parse amount về VND đầy đủ
 
 Input: "{text}"
 Output:"""
@@ -335,7 +345,7 @@ Output:"""
                 generated_at=datetime.now().isoformat() + "Z"
             )
     
-    def _parse_openai_response(self, content: str, user_id: int) -> NLUResponse:
+    def _parse_openai_response(self, content: str, user_id: int, original_text: str = "") -> NLUResponse:
         """Parse OpenAI response"""
         try:
             import json
@@ -345,15 +355,21 @@ Output:"""
             for entity_data in data.get('entities', []):
                 value = entity_data.get('value')
                 ent_type = entity_data.get('type')
-                # Normalize amount values like "10 triệu" -> 10000000
+                # AI model should already return normalized amount value (in VND)
+                # Just ensure it's a valid number string
                 if ent_type == 'amount' and isinstance(value, str):
-                    # Extract first number in the text and scale by suffix
-                    num_match = re.search(r"\d+(?:[\.,]\d+)?", value)
-                    if num_match:
-                        num_text = num_match.group(0).replace(',', '.')
-                        parsed_amount = self._parse_amount(num_text, value)
-                        if parsed_amount > 0:
-                            value = str(parsed_amount)
+                    # Try to parse as float to validate
+                    try:
+                        float(value)
+                        # If it's a valid number, keep it as is (AI already normalized it)
+                    except ValueError:
+                        # If not a pure number, try to parse it (fallback for older AI responses)
+                        num_match = re.search(r"\d+(?:[\.,]\d+)?", value)
+                        if num_match:
+                            num_text = num_match.group(0).replace(',', '.')
+                            parsed_amount = self._parse_amount(num_text, value)
+                            if parsed_amount > 0:
+                                value = str(parsed_amount)
                 entity = Entity(
                     type=ent_type,
                     value=value,

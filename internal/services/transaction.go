@@ -79,26 +79,16 @@ func (s *TransactionService) CreateTransaction(userID uint64, req *models.Transa
 
 	// Trigger budget threshold notifications synchronously (best-effort)
 	bs := NewBudgetService()
-	noti := NewNotificationService()
-	if budgets, err := bs.GetBudgets(userID); err == nil {
-		log.Printf("[BudgetCheck] fetched %d budgets for user=%d", len(budgets), userID)
-		for _, b := range budgets {
-			// Recompute metrics immediately to reflect this transaction
-			bs.calculateBudgetMetrics(&b)
-			// Debug log metrics
-			log.Printf("[BudgetCheck] user=%d budget=%s categoryID=%v period=%s..%s amount=%.0f spent=%.0f usage=%.1f%% threshold=%.0f%%",
-				userID, b.Name, b.CategoryID, b.StartDate.Format("2006-01-02"), b.EndDate.Format("2006-01-02"), b.Amount, b.SpentAmount, b.UsagePercentage, b.AlertThreshold)
-			if b.Amount > 0 && b.UsagePercentage >= b.AlertThreshold {
-				if _, err := noti.Create(userID,
-					"Cảnh báo ngân sách",
-					fmt.Sprintf("Ngân sách '%s' đã đạt %.1f%% (ngưỡng %.0f%%).", b.Name, b.UsagePercentage, b.AlertThreshold),
-					"warning", "high", "{}", ""); err != nil {
-					log.Printf("notification error: %v", err)
-				}
-			}
+	if err := bs.CheckBudgetNotifications(userID); err != nil {
+		log.Printf("Failed to check budget notifications: %v", err)
+	}
+
+	// Check for large transaction alert
+	dispatcher := NewNotificationDispatcher()
+	if transaction.Amount > 1000000 { // 1M VND threshold
+		if err := dispatcher.TriggerLargeTransactionAlert(userID, transaction, 1000000); err != nil {
+			log.Printf("Failed to trigger large transaction alert: %v", err)
 		}
-	} else {
-		log.Printf("[BudgetCheck] GetBudgets failed for user=%d: %v", userID, err)
 	}
 
 	// Clear dashboard cache
@@ -273,26 +263,8 @@ func (s *TransactionService) DeleteTransaction(userID, transactionID uint64) err
 
     // Trigger budget threshold notifications synchronously (best-effort)
     bs := NewBudgetService()
-    noti := NewNotificationService()
-    if budgets, err := bs.GetBudgets(userID); err == nil {
-        log.Printf("[BudgetCheck] fetched %d budgets for user=%d", len(budgets), userID)
-        for _, b := range budgets {
-            // Recompute metrics immediately to reflect this transaction
-            bs.calculateBudgetMetrics(&b)
-            // Debug log metrics
-            log.Printf("[BudgetCheck] user=%d budget=%s categoryID=%v period=%s..%s amount=%.0f spent=%.0f usage=%.1f%% threshold=%.0f%%",
-                userID, b.Name, b.CategoryID, b.StartDate.Format("2006-01-02"), b.EndDate.Format("2006-01-02"), b.Amount, b.SpentAmount, b.UsagePercentage, b.AlertThreshold)
-            if b.Amount > 0 && b.UsagePercentage >= b.AlertThreshold {
-                if _, err := noti.Create(userID,
-                    "Cảnh báo ngân sách",
-                    fmt.Sprintf("Ngân sách '%s' đã đạt %.1f%% (ngưỡng %.0f%%).", b.Name, b.UsagePercentage, b.AlertThreshold),
-                    "warning", "high", "{}", ""); err != nil {
-                    log.Printf("notification error: %v", err)
-                }
-            }
-        }
-    } else {
-        log.Printf("[BudgetCheck] GetBudgets failed for user=%d: %v", userID, err)
+    if err := bs.CheckBudgetNotifications(userID); err != nil {
+        log.Printf("Failed to check budget notifications: %v", err)
     }
 
     // Clear dashboard cache

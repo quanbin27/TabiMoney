@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"log"
 
 	"tabimoney/internal/database"
 	"tabimoney/internal/models"
@@ -139,4 +140,33 @@ func (s *BudgetService) GetBudgetAlerts(userID uint64) ([]models.Budget, error) 
 	}
 
 	return alerts, nil
+}
+
+// CheckBudgetNotifications checks and triggers budget notifications
+func (s *BudgetService) CheckBudgetNotifications(userID uint64) error {
+	dispatcher := NewNotificationDispatcher()
+	budgets, err := s.GetBudgets(userID)
+	if err != nil {
+		return err
+	}
+
+	for _, budget := range budgets {
+		// Check if budget needs notification
+		if budget.UsagePercentage >= budget.AlertThreshold {
+			// Check if budget is exceeded
+			if budget.UsagePercentage >= 100 {
+				// Budget exceeded
+				if err := dispatcher.TriggerBudgetExceededAlert(userID, &budget); err != nil {
+					log.Printf("Failed to trigger budget exceeded alert: %v", err)
+				}
+			} else {
+				// Budget threshold reached
+				if err := dispatcher.TriggerBudgetThresholdAlert(userID, &budget); err != nil {
+					log.Printf("Failed to trigger budget threshold alert: %v", err)
+				}
+			}
+		}
+	}
+
+	return nil
 }

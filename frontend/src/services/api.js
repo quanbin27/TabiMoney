@@ -89,6 +89,15 @@ export const notificationsAPI = {
   markRead: (id) => api.post(`/notifications/${id}/read`),
 }
 
+export const notificationPreferencesAPI = {
+  getPreferences: () => api.get('/notification-preferences'),
+  updatePreferences: (data) => api.put('/notification-preferences', data),
+  getSummary: () => api.get('/notification-preferences/summary'),
+  resetToDefaults: () => api.post('/notification-preferences/reset'),
+  getEnabledChannels: () => api.get('/notification-preferences/channels'),
+  testNotification: (channel = 'in_app') => api.post('/notification-preferences/test', null, { params: { channel } }),
+}
+
 export const categoryAPI = {
   getCategories: () => api.get('/categories'),
   getCategory: (id) => api.get(`/categories/${id}`),

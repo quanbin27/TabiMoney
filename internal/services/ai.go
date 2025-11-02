@@ -221,6 +221,16 @@ func (s *AIService) DetectAnomalies(req *models.AnomalyDetectionRequest) (*model
 	}
 	s.db.Create(analysis)
 
+	// Trigger notifications for anomalies
+	if len(anomalies) > 0 {
+		dispatcher := NewNotificationDispatcher()
+		for _, anomaly := range anomalies {
+			if err := dispatcher.TriggerAnomalyAlert(req.UserID, &anomaly); err != nil {
+				log.Printf("Failed to trigger anomaly alert: %v", err)
+			}
+		}
+	}
+
 	return response, nil
 }
 
