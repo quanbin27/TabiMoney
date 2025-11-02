@@ -15,7 +15,7 @@
                   :rules="[v => !!v || 'Amount is required', v => v > 0 || 'Amount must be > 0']" required />
               </v-col>
               <v-col cols="12" md="6">
-                <v-select :items="categoryItems" :item-title="formatCategoryTitle" item-value="id"
+                <v-select :items="props.categoryItems" :item-title="formatCategoryTitle" item-value="id"
                   v-model="form.category_id" label="Category" :rules="[v => !!v || 'Category is required']" required />
               </v-col>
               <v-col cols="12" md="6">
@@ -74,6 +74,11 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  categoryItems: {
+    type: Array,
+    require: true,
+    default: []
+  }
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -81,7 +86,6 @@ const emit = defineEmits(['update:modelValue'])
 const app = useAppStore()
 const loading = ref(false)
 const formRef = ref()
-const categoryItems = ref([])
 const aiLoading = ref(false)
 const createDialog = ref(false)
 const newCategory = reactive({ name: '', description: '' })
@@ -153,17 +157,6 @@ async function handleSubmit() {
   }
 }
 
-async function loadCategories() {
-  try {
-    const { data } = await categoryAPI.getCategories()
-    categoryItems.value = Array.isArray(data) ? data : []
-  } catch (e) {
-    app.showError(e?.message || 'Failed to load categories')
-  }
-}
-
-loadCategories()
-
 async function suggestCategory() {
   if (!form.description || !form.amount) {
     app.showWarning('Enter description and amount first')
@@ -177,7 +170,7 @@ async function suggestCategory() {
       amount: form.amount,
       location: form.location || undefined,
       tags: [],
-      existing_categories: categoryItems.value.map(cat => ({
+      existing_categories: props.categoryItems.map(cat => ({
         name: cat.name,
         name_en: cat.name_en,
         description: cat.description
@@ -190,7 +183,7 @@ async function suggestCategory() {
       // AI already determined if category exists
       if (top.is_existing) {
         // Find the existing category by name
-        const found = categoryItems.value.find((c) => {
+        const found = props.categoryItems.value.find((c) => {
           const existingName = (c.name || '').toLowerCase().trim()
           const existingNameEn = (c.name_en || '').toLowerCase().trim()
           const topName = (top.category_name || '').toLowerCase().trim()
@@ -226,7 +219,7 @@ async function createCategoryFromSuggestion() {
       name: newCategory.name,
       description: newCategory.description || undefined,
     })
-    categoryItems.value.push(data)
+    props.categoryItems.value.push(data)
     form.category_id = data.id
     createDialog.value = false
     app.showSuccess('Category created')

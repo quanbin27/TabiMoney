@@ -6,11 +6,11 @@
         Add Category
       </v-btn>
     </div>
-    <TableBudgetView :categories="categories" :totalCategories="totalCategories" :onDelete="deleteCategory"
-      @on-edit="(item) => handleOnEdit(item)" />
+    <TableBudgetView :categories="categories" :totalCategories="totalCategories" @on-edit="(item) => handleOnEdit(item)"
+      :load="loadCategories" />
   </v-container>
-  <AddCategoryView v-model="isShowAddDialog" />
-  <EditCategoryView v-model="isShowEditDialog" :item="selectedItem" />
+  <AddCategoryView v-model="isShowAddDialog" :load="loadCategories" />
+  <EditCategoryView v-model="isShowEditDialog" :item="selectedItem" :load="loadCategories" />
 </template>
 
 <script setup>
@@ -50,26 +50,6 @@ const AddNew = () => {
 const handleOnEdit = (item) => {
   isShowEditDialog.value = true
   selectedItem.value = item
-}
-
-function editCategory(category) {
-}
-
-async function deleteCategory(category) {
-  if (category.is_system) {
-    app.showWarning('Cannot delete system categories')
-    return
-  }
-
-  if (confirm(`Are you sure you want to delete "${category.name}"?`)) {
-    try {
-      await categoryAPI.deleteCategory(category.id)
-      app.showSuccess('Category deleted')
-      await loadCategories()
-    } catch (e) {
-      app.showError(e?.message || 'Failed to delete category')
-    }
-  }
 }
 
 onMounted(() => {

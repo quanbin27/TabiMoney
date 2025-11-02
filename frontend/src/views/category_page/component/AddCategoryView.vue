@@ -45,6 +45,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  load: {
+    type: Function,
+    require: true
+  }
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -61,6 +65,7 @@ const form = reactive({
 })
 
 const closeDialog = () => {
+  formRef.value?.reset()
   emit('update:modelValue', false)
 }
 
@@ -78,6 +83,7 @@ async function handleSubmit() {
     })
 
     app.showSuccess('Category created successfully!')
+    props.load()
     closeDialog()
   } catch (e) {
     app.showError(e?.message || 'Failed to create category')

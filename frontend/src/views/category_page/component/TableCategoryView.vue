@@ -22,7 +22,7 @@
                 <v-btn v-if="!item.is_system" icon="mdi-pencil" size="small" variant="text"
                     @click="onEdit(item)"></v-btn>
                 <v-btn v-if="!item.is_system" icon="mdi-delete" size="small" variant="text" color="error"
-                    @click="props.onDelete(item)"></v-btn>
+                    @click="deleteCategory(item)"></v-btn>
                 <span v-if="item.is_system" class="text-caption text-grey">System</span>
             </template>
 
@@ -36,6 +36,8 @@
 </template>
 <script setup>
 import { ref } from 'vue'
+import { useAppStore } from '../../../stores/app'
+import { categoryAPI } from '../../../services/api'
 
 const props = defineProps({
     categories: {
@@ -46,11 +48,13 @@ const props = defineProps({
         type: Number,
         require: true
     },
-    onDelete: {
+    load: {
         type: Function,
         require: true
     }
 })
+
+const app = useAppStore()
 
 const emit = defineEmits(['on-edit'])
 
@@ -85,5 +89,29 @@ function filterCategories() {
         cat.name_en?.toLowerCase().includes(query) ||
         cat.description?.toLowerCase().includes(query)
     )
+}
+
+async function deleteCategory(category) {
+    if (category.is_system) {
+        app.showWarning('Cannot delete system categories')
+        return
+    }
+    const confirmed = await app.confirm({
+        title: 'Xác nhận xóa',
+        text: 'Bạn có chắc muốn xóa mục này?',
+        icon: 'warning',
+        confirmButtonText: 'Xóa',
+        cancelButtonText: 'Hủy',
+    })
+
+    if (confirmed) {
+        try {
+            await categoryAPI.deleteCategory(category.id)
+            app.showSuccess('Category deleted')
+            await props.load()
+        } catch (e) {
+            app.showError(e?.message || 'Failed to delete category')
+        }
+    }
 }
 </script>

@@ -50,6 +50,10 @@ const props = defineProps({
   item: {
     type: Object,
     require: true
+  },
+  load: {
+    type: Function,
+    require: true
   }
 })
 
@@ -77,24 +81,26 @@ const formRef = ref()
 const category = ref(null)
 
 const closeDialog = () => {
+  formRef.value?.reset()
   emit('update:modelValue', false)
 }
 
 async function handleSubmit() {
-  if (!formRef.value || !category.value) return
+  console.log(form.value);
+  if (!formRef.value || !form.value) return
   const { valid } = await formRef.value.validate()
   if (!valid) return
 
   loading.value = true
   try {
-    await categoryAPI.updateCategory(category.value.id, {
-      name: form.name,
-      name_en: form.name_en || undefined,
-      description: form.description || undefined,
+    await categoryAPI.updateCategory(form.value.id, {
+      name: form.value.name,
+      name_en: form.value.name_en || undefined,
+      description: form.value.description || undefined,
     })
-
     app.showSuccess('Category updated successfully!')
-    router.push({ name: 'Categories' })
+    props.load()
+    closeDialog()
   } catch (e) {
     app.showError(e?.message || 'Failed to update category')
   } finally {

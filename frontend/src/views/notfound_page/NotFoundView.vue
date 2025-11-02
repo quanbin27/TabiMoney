@@ -17,7 +17,7 @@ onMounted(() => {
     countdown.value--
     if (countdown.value === 0) {
       clearInterval(timer)
-      router.push('/') // Quay về trang chủ
+      router.push('/')
     }
   }, 1000)
 })

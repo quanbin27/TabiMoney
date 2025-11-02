@@ -10,7 +10,13 @@
       <v-col cols="12" md="8">
         <v-card>
           <v-card-title>
-            <v-icon left>mdi-telegram</v-icon>
+            <v-icon size="36" color="blue">
+              <svg viewBox="0 0 24 24">
+                <path fill="currentColor"
+                  d="M9.04 16.54L9.25 12.97L17.77 5.52C18.12 5.22 17.73 5.09 17.26 5.33L6.75 10.57L3.26 9.47C2.5 9.24 2.49 8.71 3.42 8.35L20.42 1.7C21.09 1.45 21.67 1.9 21.45 2.84L18.6 16.27C18.44 17.01 17.98 17.21 17.36 16.87L13.83 14.29L12.13 15.92C11.98 16.07 11.86 16.19 11.6 16.19L9.04 16.54Z" />
+              </svg>
+            </v-icon>
+
             Tích hợp Telegram Bot
           </v-card-title>
 
@@ -20,12 +26,10 @@
             </p>
 
             <v-alert v-if="telegramStatus === 'connected'" type="success" class="mb-4">
-              <v-icon left>mdi-check-circle</v-icon>
               Tài khoản đã được liên kết với Telegram Bot
             </v-alert>
 
             <v-alert v-else-if="telegramStatus === 'disconnected'" type="info" class="mb-4">
-              <v-icon left>mdi-information</v-icon>
               Tài khoản chưa được liên kết với Telegram Bot
             </v-alert>
 
@@ -66,7 +70,7 @@
       </v-col>
 
       <v-col cols="12" md="4">
-        <v-card>
+        <v-card class="h-100">
           <v-card-title>
             <v-icon left>mdi-robot</v-icon>
             Tính năng Telegram Bot
@@ -149,7 +153,6 @@ const generateLinkCode = async () => {
 
       showSnackbar('Mã liên kết đã được tạo thành công!', 'success')
 
-      // Auto refresh status after code generation
       setTimeout(() => {
         checkTelegramStatus()
       }, 1000)
