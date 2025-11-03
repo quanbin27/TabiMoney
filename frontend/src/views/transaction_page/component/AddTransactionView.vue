@@ -165,7 +165,6 @@ async function suggestCategory() {
   aiLoading.value = true
   try {
     const { data } = await aiAPI.suggestCategory({
-      user_id: 0, // backend reads from token; value ignored
       description: form.description,
       amount: form.amount,
       location: form.location || undefined,

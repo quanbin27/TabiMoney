@@ -99,12 +99,28 @@ class PredictionService:
             # Train model
             self.model.fit(features, target)
             
-            # Make prediction for next period
+            # Make prediction for next period (ML)
             next_period_features = self._prepare_prediction_features(historical_data)
-            predicted_amount = self.model.predict([next_period_features])[0]
+            ml_pred = float(self.model.predict([next_period_features])[0])
+
+            # Time-series EMA per-user on daily expenses as a complementary signal
+            ts_pred = self._predict_with_ema(historical_data)
+
+            # Blend predictions when both available; otherwise fallback to whichever exists
+            if ts_pred is not None:
+                predicted_amount = 0.5 * ml_pred + 0.5 * ts_pred
+            else:
+                predicted_amount = ml_pred
             
-            # Calculate confidence score
-            confidence_score = min(0.95, len(historical_data) / 100.0)
+            # Calculate confidence score (increase slightly when both signals agree)
+            base_conf = min(0.95, len(historical_data) / 100.0)
+            if ts_pred is not None:
+                # agreement factor: closer predictions => higher confidence
+                denom = max(1.0, abs(ml_pred) + abs(ts_pred))
+                agree = 1.0 - min(1.0, abs(ml_pred - ts_pred) / denom)
+                confidence_score = min(0.99, base_conf * (0.9 + 0.1 * agree))
+            else:
+                confidence_score = base_conf
             
             # Generate category breakdown
             category_breakdown = self._generate_category_breakdown(historical_data)
@@ -136,38 +152,60 @@ class PredictionService:
                 recommendations=[f"Lỗi trong quá trình dự đoán: {str(e)}"],
                 generated_at=datetime.now().isoformat() + "Z"
             )
+
+    def _predict_with_ema(self, historical_data: List[Dict[str, Any]]) -> Optional[float]:
+        """Compute an EMA-based projection for next-period total expenses.
+        Uses simple daily aggregation and alpha based on window size.
+        Returns None if insufficient data.
+        """
+        try:
+            if not historical_data:
+                return None
+            df = pd.DataFrame(historical_data)
+            df['date'] = pd.to_datetime(df['date'])
+            df = df[df['type'] == 'expense']
+            if df.empty:
+                return None
+            # Daily total expenses
+            daily = df.groupby(df['date'].dt.date)['amount'].sum().astype(float)
+            if len(daily) < 5:
+                return None
+            # Exponential moving average
+            span = max(5, min(20, len(daily)//2))
+            ema = daily.ewm(span=span, adjust=False).mean()
+            # Project next period as last EMA value scaled by simple factor for month length
+            last_ema = float(ema.iloc[-1])
+            # Approximate next-month total from daily EMA
+            projected = last_ema * 30.0
+            return max(0.0, projected)
+        except Exception:
+            return None
     
     async def _get_historical_data(self, user_id: int, start_date: str, end_date: str) -> List[Dict[str, Any]]:
         """Get historical transaction data from database"""
         try:
-            # This would normally query the database
-            # For now, we'll return mock data based on the transactions we created
-            
-            # Mock historical data based on our created transactions
-            mock_data = [
-                {"amount": 50000, "category": "Ăn uống", "date": "2025-09-15", "type": "expense"},
-                {"amount": 75000, "category": "Ăn uống", "date": "2025-09-14", "type": "expense"},
-                {"amount": 25000, "category": "Ăn uống", "date": "2025-09-13", "type": "expense"},
-                {"amount": 80000, "category": "Giao thông", "date": "2025-09-10", "type": "expense"},
-                {"amount": 45000, "category": "Giao thông", "date": "2025-09-09", "type": "expense"},
-                {"amount": 500000, "category": "Mua sắm", "date": "2025-09-05", "type": "expense"},
-                {"amount": 15000000, "category": "Mua sắm", "date": "2025-09-04", "type": "expense"},
-                {"amount": 150000, "category": "Giải trí", "date": "2025-08-31", "type": "expense"},
-                {"amount": 200000, "category": "Giải trí", "date": "2025-08-30", "type": "expense"},
-                {"amount": 500000, "category": "Y tế", "date": "2025-08-26", "type": "expense"},
-                {"amount": 150000, "category": "Y tế", "date": "2025-08-25", "type": "expense"},
-                {"amount": 2000000, "category": "Giáo dục", "date": "2025-08-21", "type": "expense"},
-                {"amount": 500000, "category": "Giáo dục", "date": "2025-08-20", "type": "expense"},
-                {"amount": 5000000, "category": "Du lịch", "date": "2025-08-16", "type": "expense"},
-                {"amount": 2000000, "category": "Du lịch", "date": "2025-08-15", "type": "expense"},
-                {"amount": 400000, "category": "Tiện ích", "date": "2025-08-11", "type": "expense"},
-                {"amount": 200000, "category": "Tiện ích", "date": "2025-08-10", "type": "expense"},
-                {"amount": 15000000, "category": "Ăn uống", "date": "2025-08-01", "type": "income"},
-                {"amount": 5000000, "category": "Ăn uống", "date": "2025-07-15", "type": "income"},
-                {"amount": 8000000, "category": "Ăn uống", "date": "2025-07-01", "type": "income"},
-            ]
-            
-            return mock_data
+            query = (
+                "SELECT t.amount, t.transaction_type AS type, t.transaction_date AS date, "
+                "COALESCE(c.name, 'Unknown') AS category "
+                "FROM transactions t "
+                "LEFT JOIN categories c ON c.id = t.category_id "
+                "WHERE t.user_id = %s AND t.transaction_date BETWEEN %s AND %s "
+                "ORDER BY t.transaction_date ASC, t.id ASC"
+            )
+            params = (user_id, start_date[:10], end_date[:10])
+            async with get_db() as db:
+                rows = await db.execute(query, params)
+            data: List[Dict[str, Any]] = []
+            for r in rows:
+                # Normalize fields to expected schema
+                rec = {
+                    "amount": float(r.get("amount", 0) or 0),
+                    "category": r.get("category") or "Unknown",
+                    "date": str(r.get("date")),
+                    "type": r.get("type") or "expense",
+                }
+                data.append(rec)
+            return data
             
         except Exception as e:
             logger.error(f"Failed to get historical data: {e}")

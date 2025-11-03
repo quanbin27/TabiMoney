@@ -83,6 +83,8 @@ class Settings(BaseSettings):
             return [i.strip() for i in v.split(",")]
         return v
     
+    # Validators below intentionally relaxed for demo/prod-like dev runs
+    
     class Config:
         env_file = ".env"
         case_sensitive = True

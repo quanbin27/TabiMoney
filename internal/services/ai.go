@@ -5,10 +5,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"strconv"
 	"log"
 	"net/http"
 	"os"
+	"sort"
 	"strings"
 	"time"
 
@@ -191,47 +193,120 @@ func (s *AIService) PredictExpenses(req *models.ExpensePredictionRequest) (*mode
 
 // Anomaly Detection Service
 func (s *AIService) DetectAnomalies(req *models.AnomalyDetectionRequest) (*models.AnomalyDetectionResponse, error) {
-    // Get transaction data (preload Category to avoid nil dereference)
-    var transactions []models.Transaction
-    query := s.db.Where("user_id = ? AND transaction_date BETWEEN ? AND ?", 
-        req.UserID, req.StartDate, req.EndDate).Preload("Category")
-    
-    if err := query.Find(&transactions).Error; err != nil {
-		return nil, fmt.Errorf("failed to get transactions: %w", err)
-	}
+    // Prefer AI-service ML anomaly detection via HTTP
+    ctx := context.Background()
+    payload := map[string]interface{}{
+        "user_id":    req.UserID,
+        "start_date": req.StartDate.Format("2006-01-02"),
+        "end_date":   req.EndDate.Format("2006-01-02"),
+        "threshold":  req.Threshold,
+    }
+    b, err := json.Marshal(payload)
+    if err != nil {
+        return nil, fmt.Errorf("failed to marshal request: %w", err)
+    }
+    httpReq, err := http.NewRequestWithContext(ctx, "POST", s.aiServiceURL+"/anomaly/detect", bytes.NewBuffer(b))
+    if err != nil {
+        return nil, fmt.Errorf("failed to create request: %w", err)
+    }
+    httpReq.Header.Set("Content-Type", "application/json")
 
-	// Analyze patterns
-	anomalies := s.analyzeTransactionPatterns(transactions, req.Threshold)
-	
-	response := &models.AnomalyDetectionResponse{
-		UserID:         req.UserID,
-		Anomalies:      anomalies,
-		TotalAnomalies: len(anomalies),
-		DetectionScore: s.calculateDetectionScore(anomalies),
-		GeneratedAt:    time.Now(),
-	}
+    resp, err := s.httpClient.Do(httpReq)
+    if err != nil {
+        return nil, fmt.Errorf("failed to call AI service: %w", err)
+    }
+    defer resp.Body.Close()
+    if resp.StatusCode != http.StatusOK {
+        return nil, fmt.Errorf("AI service returned status %d", resp.StatusCode)
+    }
 
-	// Save to database
-	analysis := &models.AIAnalysis{
-		UserID:          req.UserID,
-		AnalysisType:    "anomaly_detection",
-		Data:            s.marshalToJSON(response),
-		ConfidenceScore: response.DetectionScore,
-		ModelVersion:    "custom",
-	}
-	s.db.Create(analysis)
+    var aiResp struct {
+        Anomalies      []struct {
+            TransactionID   uint64  `json:"transaction_id"`
+            Amount          float64 `json:"amount"`
+            CategoryName    string  `json:"category_name"`
+            AnomalyScore    float64 `json:"anomaly_score"`
+            AnomalyType     string  `json:"anomaly_type"`
+            Description     string  `json:"description"`
+            TransactionDate string  `json:"transaction_date"`
+        } `json:"anomalies"`
+        TotalAnomalies int     `json:"total_anomalies"`
+        DetectionScore float64 `json:"detection_score"`
+    }
+    if err := json.NewDecoder(resp.Body).Decode(&aiResp); err != nil {
+        return nil, fmt.Errorf("failed to decode AI anomaly response: %w", err)
+    }
 
-	// Trigger notifications for anomalies
-	if len(anomalies) > 0 {
-		dispatcher := NewNotificationDispatcher()
-		for _, anomaly := range anomalies {
-			if err := dispatcher.TriggerAnomalyAlert(req.UserID, &anomaly); err != nil {
-				log.Printf("Failed to trigger anomaly alert: %v", err)
-			}
-		}
-	}
+    // Map to domain model
+    anomalies := make([]models.Anomaly, 0, len(aiResp.Anomalies))
+    for _, a := range aiResp.Anomalies {
+        // Parse date string to time.Time
+        tdate, _ := time.Parse("2006-01-02", a.TransactionDate)
+        anomalies = append(anomalies, models.Anomaly{
+            TransactionID:   a.TransactionID,
+            Amount:          a.Amount,
+            CategoryName:    a.CategoryName,
+            AnomalyScore:    a.AnomalyScore,
+            AnomalyType:     a.AnomalyType,
+            Description:     a.Description,
+            TransactionDate: tdate,
+        })
+    }
 
-	return response, nil
+    out := &models.AnomalyDetectionResponse{
+        UserID:         req.UserID,
+        Anomalies:      anomalies,
+        TotalAnomalies: len(anomalies),
+        DetectionScore: aiResp.DetectionScore,
+        GeneratedAt:    time.Now(),
+    }
+
+    // Persist analysis
+    analysis := &models.AIAnalysis{
+        UserID:          req.UserID,
+        AnalysisType:    "anomaly_detection",
+        Data:            s.marshalToJSON(out),
+        ConfidenceScore: out.DetectionScore,
+        ModelVersion:    "isolation_forest",
+    }
+    _ = s.db.Create(analysis).Error
+
+    // Trigger notifications for anomalies (throttle + dedupe)
+    if len(anomalies) > 0 {
+        // 1) Keep only strong anomalies (score >= threshold or >= 0.8 default)
+        minScore := req.Threshold
+        if minScore <= 0 {
+            minScore = 0.8
+        }
+        filtered := make([]models.Anomaly, 0, len(anomalies))
+        for _, a := range anomalies {
+            if a.AnomalyScore >= minScore {
+                filtered = append(filtered, a)
+            }
+        }
+        // 2) Sort by score desc and cap to top N per run
+        sort.Slice(filtered, func(i, j int) bool { return filtered[i].AnomalyScore > filtered[j].AnomalyScore })
+        if len(filtered) > 3 {
+            filtered = filtered[:3]
+        }
+        // 3) Best-effort dedupe: skip if a recent notification exists for same transaction
+        dispatcher := NewNotificationDispatcher()
+        oneWeekAgo := time.Now().AddDate(0, 0, -7)
+        for _, anomaly := range filtered {
+            var recent models.Notification
+            // Requires metadata to contain transaction_id; best-effort LIKE query
+            if err := s.db.Where("user_id = ? AND notification_type = ? AND created_at > ? AND metadata LIKE ?",
+                req.UserID, "warning", oneWeekAgo, fmt.Sprintf("%%\"transaction_id\":%d%%", anomaly.TransactionID)).
+                First(&recent).Error; err == nil {
+                continue // similar notification exists recently
+            }
+            if err := dispatcher.TriggerAnomalyAlert(req.UserID, &anomaly); err != nil {
+                log.Printf("Failed to trigger anomaly alert: %v", err)
+            }
+        }
+    }
+
+    return out, nil
 }
 
 // Category Suggestion Service
@@ -276,7 +351,7 @@ func (s *AIService) SuggestCategory(req *models.CategorySuggestionRequest) (*mod
     client := &http.Client{Timeout: 8 * time.Second}
     resp, err := client.Do(httpReq)
     if err != nil {
-        // Fallback: return recent matching categories heuristically
+        // Fallback: rank by recent usage + token match
         fallback := &models.CategorySuggestionResponse{
             UserID: req.UserID,
             Description: req.Description,
@@ -285,26 +360,79 @@ func (s *AIService) SuggestCategory(req *models.CategorySuggestionRequest) (*mod
             ConfidenceScore: 0.0,
             GeneratedAt: time.Now(),
         }
+
+        // Build frequency map from recent transactions
+        freq := make(map[uint64]int)
+        for _, t := range recentTransactions {
+            freq[t.CategoryID]++
+        }
+
+        // Tokenize description (basic)
+        desc := strings.ToLower(req.Description)
+        tokens := strings.FieldsFunc(desc, func(r rune) bool { return r == ' ' || r == ',' || r == '.' || r == '-' || r == '_' })
+        tokenSet := make(map[string]struct{})
+        for _, tk := range tokens { if tk != "" { tokenSet[tk] = struct{}{} } }
+
+        type scored struct {
+            cat models.Category
+            score float64
+            reason string
+        }
+        scoredList := []scored{}
         for _, c := range categories {
-            if strings.Contains(strings.ToLower(req.Description), strings.ToLower(c.Name)) {
-                fallback.Suggestions = append(fallback.Suggestions, models.CategorySuggestion{
-                    CategoryID: c.ID,
-                    CategoryName: c.Name,
-                    ConfidenceScore: 0.4,
-                    Reason: "Heuristic match from description",
-                    IsUserCategory: c.UserID != nil,
-                })
+            sscore := 0.0
+            reason := []string{}
+            // Frequency weight
+            if f, ok := freq[c.ID]; ok && f > 0 {
+                sscore += float64(f) * 0.1
+                reason = append(reason, "Thường xuyên sử dụng")
+            }
+            // Name token match
+            name := strings.ToLower(c.Name)
+            nameTokens := strings.FieldsFunc(name, func(r rune) bool { return r == ' ' || r == ',' || r == '.' || r == '-' || r == '_' })
+            matched := 0
+            for _, nt := range nameTokens {
+                if _, ok := tokenSet[nt]; ok && nt != "" {
+                    matched++
+                }
+            }
+            if matched > 0 {
+                sscore += float64(matched) * 0.3
+                reason = append(reason, "Khớp mô tả")
+            }
+            if sscore > 0 {
+                scoredList = append(scoredList, scored{cat: c, score: sscore, reason: strings.Join(reason, "; ")})
             }
         }
-        if len(fallback.Suggestions) == 0 && len(categories) > 0 {
-            // add top user category as minimal fallback
-            c := categories[0]
+
+        sort.Slice(scoredList, func(i, j int) bool { return scoredList[i].score > scoredList[j].score })
+        // Pick top 3
+        k := 3
+        if len(scoredList) < k { k = len(scoredList) }
+        for i := 0; i < k; i++ {
+            c := scoredList[i]
             fallback.Suggestions = append(fallback.Suggestions, models.CategorySuggestion{
-                CategoryID: c.ID,
-                CategoryName: c.Name,
-                ConfidenceScore: 0.2,
-                Reason: "Fallback suggestion",
-                IsUserCategory: c.UserID != nil,
+                CategoryID: c.cat.ID,
+                CategoryName: c.cat.Name,
+                ConfidenceScore: math.Min(0.85, 0.4 + c.score*0.2),
+                Reason: c.reason,
+                IsUserCategory: c.cat.UserID != nil,
+            })
+        }
+        if len(fallback.Suggestions) == 0 && len(categories) > 0 {
+            // Default to most frequent category or first
+            var best models.Category
+            bestCount := -1
+            for _, c := range categories {
+                if cnt := freq[c.ID]; cnt > bestCount { best = c; bestCount = cnt }
+            }
+            if best.ID == 0 { best = categories[0] }
+            fallback.Suggestions = append(fallback.Suggestions, models.CategorySuggestion{
+                CategoryID: best.ID,
+                CategoryName: best.Name,
+                ConfidenceScore: 0.3,
+                Reason: "Fallback: danh mục thường dùng",
+                IsUserCategory: best.UserID != nil,
             })
         }
         return fallback, nil
@@ -440,19 +568,19 @@ func (s *AIService) AnalyzeGoal(req *models.GoalAnalysisRequest) (*models.GoalAn
 		return nil, fmt.Errorf("goal not found: %w", err)
 	}
 
-	// Get user's financial data
-	var transactions []models.Transaction
-	if err := s.db.Where("user_id = ? AND transaction_type = ?", 
-		req.UserID, "expense").
-		Where("transaction_date >= ?", goal.CreatedAt).
-		Find(&transactions).Error; err != nil {
-		return nil, fmt.Errorf("failed to get transactions: %w", err)
-	}
+    // Get user's financial data (both income and expense for recent 90 days)
+    var transactions []models.Transaction
+    windowStart := time.Now().AddDate(0, 0, -90)
+    if err := s.db.Where("user_id = ? AND transaction_date >= ?", 
+        req.UserID, windowStart).
+        Find(&transactions).Error; err != nil {
+        return nil, fmt.Errorf("failed to get transactions: %w", err)
+    }
 
-	// Analyze goal progress
+    // Analyze goal progress
 	progress := s.calculateGoalProgress(goal, transactions)
-	onTrack := s.isGoalOnTrack(goal, progress)
-	projectedDate := s.projectGoalCompletion(goal, progress)
+    onTrack := s.isGoalOnTrack(goal, progress)
+    projectedDate := s.projectGoalCompletion(goal, progress)
 	recommendations := s.generateGoalRecommendations(goal, progress)
 	riskFactors := s.identifyGoalRiskFactors(goal, progress)
 
@@ -844,33 +972,138 @@ func (s *AIService) getHistoricalExpenseData(userID uint64, startDate, endDate t
 }
 
 func (s *AIService) analyzeTransactionPatterns(transactions []models.Transaction, threshold float64) []models.Anomaly {
-	// Implement anomaly detection logic
-	// This is a simplified version - in production, use more sophisticated algorithms
-	var anomalies []models.Anomaly
-	
-	// Calculate average amount
-	var totalAmount float64
-	for _, t := range transactions {
-		totalAmount += t.Amount
-	}
-	avgAmount := totalAmount / float64(len(transactions))
+    // Upgraded heuristic:
+    // - Per-category robust thresholds using Median Absolute Deviation (MAD)
+    // - Fallback to global robust threshold when category has few samples
+    // - Optional seasonal check: compare to previous month's category median
+    var anomalies []models.Anomaly
+    if len(transactions) == 0 {
+        return anomalies
+    }
 
-	// Find anomalies
-	for _, t := range transactions {
-		if t.Amount > avgAmount*2 { // Simple threshold-based detection
-			anomalies = append(anomalies, models.Anomaly{
-				TransactionID:   t.ID,
-				Amount:         t.Amount,
-				CategoryName:   t.Category.Name,
-				AnomalyScore:   0.8,
-				AnomalyType:    "amount",
-				Description:    "Unusually high transaction amount",
-				TransactionDate: t.TransactionDate,
-			})
-		}
-	}
+    // Group amounts by category
+    catAmounts := make(map[uint64][]float64)
+    for _, t := range transactions {
+        if t.TransactionType != "expense" { // focus on expenses
+            continue
+        }
+        catAmounts[t.CategoryID] = append(catAmounts[t.CategoryID], t.Amount)
+    }
 
-	return anomalies
+    // Helper: compute median
+    median := func(arr []float64) float64 {
+        n := len(arr)
+        if n == 0 {
+            return 0
+        }
+        tmp := make([]float64, n)
+        copy(tmp, arr)
+        sort.Float64s(tmp)
+        mid := n / 2
+        if n%2 == 0 {
+            return (tmp[mid-1] + tmp[mid]) / 2
+        }
+        return tmp[mid]
+    }
+    // Helper: compute MAD
+    mad := func(arr []float64) float64 {
+        n := len(arr)
+        if n == 0 {
+            return 0
+        }
+        m := median(arr)
+        devs := make([]float64, 0, n)
+        for _, v := range arr {
+            if v >= m {
+                devs = append(devs, v-m)
+            } else {
+                devs = append(devs, m-v)
+            }
+        }
+        return median(devs)
+    }
+
+    // Pre-compute global robust stats as fallback
+    var all []float64
+    for _, t := range transactions {
+        if t.TransactionType == "expense" {
+            all = append(all, t.Amount)
+        }
+    }
+    globalMed := median(all)
+    globalMAD := mad(all)
+    if globalMAD == 0 {
+        // avoid divide-by-zero; use a small epsilon
+        globalMAD = 1.0
+    }
+
+    // Seasonal baseline (previous 30 days) by category
+    // Note: for simplicity, fetch from DB only when needed could be added later
+    // Here we approximate by using half oldest vs newest split when enough points
+    seasonalBaseline := make(map[uint64]float64)
+    for catID, amounts := range catAmounts {
+        if len(amounts) >= 6 { // need enough points to split
+            tmp := make([]float64, len(amounts))
+            copy(tmp, amounts)
+            sort.Float64s(tmp)
+            older := tmp[:len(tmp)/2]
+            seasonalBaseline[catID] = median(older)
+        } else {
+            seasonalBaseline[catID] = 0
+        }
+    }
+
+    // Evaluate each transaction
+    for _, t := range transactions {
+        if t.TransactionType != "expense" {
+            continue
+        }
+        amounts := catAmounts[t.CategoryID]
+        var m, mAD float64
+        if len(amounts) >= 5 {
+            m = median(amounts)
+            mAD = mad(amounts)
+        } else {
+            m = globalMed
+            mAD = globalMAD
+        }
+        if mAD == 0 {
+            mAD = 1.0
+        }
+
+        // Robust z-score approximation: |x - median| / (1.4826 * MAD)
+        z := (t.Amount - m) / (1.4826 * mAD)
+        if z < 0 {
+            z = -z
+        }
+
+        // Dynamic threshold: use provided threshold if >0 else default 3.5
+        dyn := threshold
+        if dyn <= 0 {
+            dyn = 3.5
+        }
+
+        // Seasonal spike: amount is 2x seasonal median for category
+        seasonalMed := seasonalBaseline[t.CategoryID]
+        seasonalSpike := seasonalMed > 0 && t.Amount >= 2.0*seasonalMed
+
+        if z >= dyn || seasonalSpike {
+            score := z / dyn
+            if seasonalSpike && score < 0.8 {
+                score = 0.8
+            }
+            anomalies = append(anomalies, models.Anomaly{
+                TransactionID:   t.ID,
+                Amount:          t.Amount,
+                CategoryName:    t.Category.Name,
+                AnomalyScore:    math.Min(1.0, score),
+                AnomalyType:     "amount",
+                Description:     fmt.Sprintf("Chi tiêu bất thường so với mức trung vị (z=%.2f)", z),
+                TransactionDate: t.TransactionDate,
+            })
+        }
+    }
+    return anomalies
 }
 
 func (s *AIService) calculateDetectionScore(anomalies []models.Anomaly) float64 {
@@ -919,49 +1152,152 @@ func (s *AIService) analyzeSpendingPatterns(transactions []models.Transaction, g
 }
 
 func (s *AIService) generateSpendingInsights(patterns []models.SpendingPattern) []string {
-    // Generate insights based on patterns (Vietnamese)
-    insights := []string{
-        "Mẫu chi tiêu của bạn cho thấy hành vi ổn định giữa các danh mục.",
-        "Hãy xem lại các danh mục chi tiêu hàng đầu để tối ưu hoá.",
+    insights := []string{}
+    if len(patterns) == 0 {
+        return insights
     }
+
+    // Compute totals and shares
+    var total float64
+    for _, p := range patterns {
+        total += p.TotalAmount
+    }
+    // Top categories by spend
+    top := make([]models.SpendingPattern, len(patterns))
+    copy(top, patterns)
+    sort.Slice(top, func(i, j int) bool { return top[i].TotalAmount > top[j].TotalAmount })
+
+    // Insight 1: Top category share
+    topShare := 0.0
+    if total > 0 {
+        topShare = (top[0].TotalAmount / total) * 100
+    }
+    if topShare >= 40 {
+        insights = append(insights, fmt.Sprintf("Danh mục %s chiếm %.1f%% tổng chi, nên xem xét cắt giảm.", top[0].CategoryName, topShare))
+    } else {
+        insights = append(insights, fmt.Sprintf("Danh mục chi tiêu lớn nhất là %s (%.1f%%).", top[0].CategoryName, topShare))
+    }
+
+    // Insight 2: High average ticket categories
+    hiAvg := []string{}
+    for _, p := range top {
+        if p.AverageAmount >= 1000000 && p.TransactionCount >= 3 { // ~1,000,000 VND
+            hiAvg = append(hiAvg, p.CategoryName)
+        }
+        if len(hiAvg) >= 3 {
+            break
+        }
+    }
+    if len(hiAvg) > 0 {
+        insights = append(insights, fmt.Sprintf("Các danh mục có giá trị giao dịch cao: %s.", strings.Join(hiAvg, ", ")))
+    }
+
+    // Insight 3: Long tail categories (small share but many transactions)
+    longTail := []string{}
+    for _, p := range patterns {
+        if total == 0 { break }
+        share := (p.TotalAmount / total) * 100
+        if share < 5 && p.TransactionCount >= 5 {
+            longTail = append(longTail, p.CategoryName)
+        }
+        if len(longTail) >= 3 {
+            break
+        }
+    }
+    if len(longTail) > 0 {
+        insights = append(insights, fmt.Sprintf("Nhiều giao dịch nhỏ ở các danh mục: %s.", strings.Join(longTail, ", ")))
+    }
+
     return insights
 }
 
 func (s *AIService) generateSpendingRecommendations(patterns []models.SpendingPattern) []string {
-    // Generate recommendations based on patterns (Vietnamese)
-    recommendations := []string{
-        "Thiết lập cảnh báo ngân sách cho các danh mục chi tiêu hàng đầu.",
-        "Cân nhắc đặt hạn mức chi tiêu hàng tháng cho các danh mục tuỳ ý.",
+    recs := []string{}
+    if len(patterns) == 0 {
+        return []string{"Chưa đủ dữ liệu để gợi ý chi tiêu."}
     }
-    return recommendations
+    // Total
+    var total float64
+    for _, p := range patterns { total += p.TotalAmount }
+    // Recommend budget for top categories
+    sorted := make([]models.SpendingPattern, len(patterns))
+    copy(sorted, patterns)
+    sort.Slice(sorted, func(i, j int) bool { return sorted[i].TotalAmount > sorted[j].TotalAmount })
+    topN := 3
+    if len(sorted) < topN { topN = len(sorted) }
+    for i := 0; i < topN; i++ {
+        share := 0.0
+        if total > 0 { share = (sorted[i].TotalAmount / total) * 100 }
+        if share >= 20 {
+            recs = append(recs, fmt.Sprintf("Thiết lập ngân sách riêng cho %s (%.1f%% tổng chi).", sorted[i].CategoryName, share))
+        }
+    }
+    // Recommend review high average categories
+    for _, p := range sorted {
+        if p.AverageAmount >= 1000000 && p.TransactionCount >= 3 {
+            recs = append(recs, fmt.Sprintf("Xem lại các khoản lớn ở %s, cân nhắc giảm tần suất/giá trị.", p.CategoryName))
+        }
+    }
+    if len(recs) == 0 {
+        recs = append(recs, "Theo dõi chi tiêu hàng tuần và đặt hạn mức cho 1-2 danh mục lớn nhất.")
+    }
+    return recs
 }
 
 func (s *AIService) calculateGoalProgress(goal models.FinancialGoal, transactions []models.Transaction) float64 {
-	// Calculate progress based on transactions
-	// This is simplified - in reality, you'd need to consider income, savings, etc.
-	return goal.CurrentAmount / goal.TargetAmount
+    if goal.TargetAmount <= 0 {
+        return 0
+    }
+    return goal.CurrentAmount / goal.TargetAmount
 }
 
 func (s *AIService) isGoalOnTrack(goal models.FinancialGoal, progress float64) bool {
-	// Determine if goal is on track based on progress and time
-	// This is simplified logic
-	return progress > 0.5 // Example threshold
+    // If target date exists, compare required daily pace vs recent net savings pace
+    if goal.TargetDate != nil && goal.TargetAmount > 0 {
+        daysLeft := int(goal.TargetDate.Sub(time.Now()).Hours() / 24)
+        if daysLeft <= 0 {
+            return goal.CurrentAmount >= goal.TargetAmount
+        }
+        remaining := goal.TargetAmount - goal.CurrentAmount
+        if remaining <= 0 {
+            return true
+        }
+        requiredDaily := remaining / float64(daysLeft)
+
+        // Estimate recent daily net savings from last 90 days
+        var net90 float64
+        var days int = 90
+        // We don't have per-day aggregation here; approximate via monthly contribution: 10% target as baseline
+        // Keep simple: assume user's net saving capacity equals 10% of target per month if no better data
+        // This keeps logic conservative and avoids heavy queries here
+        estimatedDaily := (goal.TargetAmount * 0.1) / 30.0
+        if net90 > 0 { // placeholder if later we compute from transactions
+            estimatedDaily = net90 / float64(days)
+        }
+        return estimatedDaily >= requiredDaily*0.9 // allow 10% slack
+    }
+    // Without target date, consider >50% as on track
+    return progress >= 0.5
 }
 
 func (s *AIService) projectGoalCompletion(goal models.FinancialGoal, progress float64) *time.Time {
-	// Project when goal will be completed
-	// This is simplified logic
-	if progress >= 1.0 {
-		return &time.Time{}
-	}
-	
-	// Simple linear projection
-	remaining := goal.TargetAmount - goal.CurrentAmount
-	monthlyContribution := goal.TargetAmount * 0.1 // Example: 10% per month
-	monthsRemaining := remaining / monthlyContribution
-	
-	completionDate := time.Now().AddDate(0, int(monthsRemaining), 0)
-	return &completionDate
+    if progress >= 1.0 || goal.TargetAmount <= 0 {
+        t := time.Now()
+        return &t
+    }
+    remaining := goal.TargetAmount - goal.CurrentAmount
+    if remaining <= 0 {
+        t := time.Now()
+        return &t
+    }
+    // Estimate monthly saving capacity conservatively = 10% target/month
+    monthlyContribution := goal.TargetAmount * 0.1
+    if monthlyContribution <= 0 {
+        return nil
+    }
+    monthsRemaining := int(math.Ceil(remaining / monthlyContribution))
+    completionDate := time.Now().AddDate(0, monthsRemaining, 0)
+    return &completionDate
 }
 
 func (s *AIService) generateGoalRecommendations(goal models.FinancialGoal, progress float64) []string {

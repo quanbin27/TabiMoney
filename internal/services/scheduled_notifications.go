@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"tabimoney/internal/database"
+	"tabimoney/internal/config"
 	"tabimoney/internal/models"
 
 	"gorm.io/gorm"
@@ -28,8 +29,8 @@ func NewScheduledNotificationService() *ScheduledNotificationService {
 func (s *ScheduledNotificationService) StartScheduler(ctx context.Context) {
 	log.Println("Starting scheduled notification service...")
 
-	// Run every hour
-	ticker := time.NewTicker(1 * time.Hour)
+    // Run every 7 days
+    ticker := time.NewTicker(7 * 24 * time.Hour)
 	defer ticker.Stop()
 
 	// Run immediately on startup
@@ -69,6 +70,11 @@ func (s *ScheduledNotificationService) runScheduledTasks() {
 	if err := s.checkFinancialHealthAlerts(); err != nil {
 		log.Printf("Failed to check financial health alerts: %v", err)
 	}
+
+    // Run anomaly detection for all users (hourly)
+    if err := s.RunAnomalyDetection(); err != nil {
+        log.Printf("Failed to run anomaly detection: %v", err)
+    }
 
 	log.Println("Scheduled notification tasks completed")
 }
@@ -245,16 +251,70 @@ func (s *ScheduledNotificationService) checkFinancialHealthAlerts() error {
 // Note: This requires AIService with proper config. 
 // For now, this is a placeholder - anomaly detection should be triggered via API endpoints
 func (s *ScheduledNotificationService) RunAnomalyDetection() error {
-	log.Println("Anomaly detection should be triggered via API endpoints with proper AI service configuration")
-	// TODO: Implement when AIService config is available in scheduled service
-	return nil
+    log.Println("Running scheduled anomaly detection for all users...")
+    // Load users
+    var users []models.User
+    if err := s.db.Find(&users).Error; err != nil {
+        return err
+    }
+
+    // Init AI service
+    cfg, err := config.Load()
+    if err != nil {
+        return err
+    }
+    aiSvc := NewAIService(cfg)
+
+    // Use last 30 days window
+    end := time.Now()
+    start := end.AddDate(0, 0, -30)
+
+    for _, u := range users {
+        req := &models.AnomalyDetectionRequest{
+            UserID:    u.ID,
+            StartDate: start,
+            EndDate:   end,
+            Threshold: 0.9,
+        }
+        if _, err := aiSvc.DetectAnomalies(req); err != nil {
+            log.Printf("Scheduled anomaly detection failed for user %d: %v", u.ID, err)
+        }
+    }
+    return nil
 }
 
 // RunSpendingPrediction runs spending prediction for all users
 // Note: This requires AIService with proper config.
 // For now, this is a placeholder - spending prediction should be triggered via API endpoints
 func (s *ScheduledNotificationService) RunSpendingPrediction() error {
-	log.Println("Spending prediction should be triggered via API endpoints with proper AI service configuration")
-	// TODO: Implement when AIService config is available in scheduled service
-	return nil
+    log.Println("Running scheduled spending prediction for all users...")
+    // Load users
+    var users []models.User
+    if err := s.db.Find(&users).Error; err != nil {
+        return err
+    }
+
+    // Init AI service
+    cfg, err := config.Load()
+    if err != nil {
+        return err
+    }
+    aiSvc := NewAIService(cfg)
+
+    // Predict for next month based on last 30 days
+    now := time.Now()
+    start := now.AddDate(0, 0, -30)
+    end := now
+
+    for _, u := range users {
+        req := &models.ExpensePredictionRequest{
+            UserID:    u.ID,
+            StartDate: start,
+            EndDate:   end,
+        }
+        if _, err := aiSvc.PredictExpenses(req); err != nil {
+            log.Printf("Scheduled spending prediction failed for user %d: %v", u.ID, err)
+        }
+    }
+    return nil
 }
