@@ -29,8 +29,8 @@ func NewScheduledNotificationService() *ScheduledNotificationService {
 func (s *ScheduledNotificationService) StartScheduler(ctx context.Context) {
 	log.Println("Starting scheduled notification service...")
 
-    // Run every 7 days
-    ticker := time.NewTicker(7 * 24 * time.Hour)
+    // Run daily for timely budget pacing alerts
+    ticker := time.NewTicker(24 * time.Hour)
 	defer ticker.Stop()
 
 	// Run immediately on startup
@@ -55,6 +55,11 @@ func (s *ScheduledNotificationService) runScheduledTasks() {
 	if err := s.checkBudgetAlerts(); err != nil {
 		log.Printf("Failed to check budget alerts: %v", err)
 	}
+
+    // Check budget pacing alerts
+    if err := s.checkBudgetPacingAlerts(); err != nil {
+        log.Printf("Failed to check budget pacing alerts: %v", err)
+    }
 
 	// Check goal alerts
 	if err := s.checkGoalAlerts(); err != nil {
@@ -113,6 +118,47 @@ func (s *ScheduledNotificationService) checkBudgetAlerts() error {
 	}
 
 	return nil
+}
+
+// checkBudgetPacingAlerts warns users when actual spending outpaces allowed pace by 20%+
+func (s *ScheduledNotificationService) checkBudgetPacingAlerts() error {
+    var budgets []models.Budget
+    now := time.Now()
+    if err := s.db.Where("is_active = ? AND start_date <= ? AND end_date >= ?", true, now, now).Find(&budgets).Error; err != nil {
+        return err
+    }
+    bs := NewBudgetService()
+    for _, b := range budgets {
+        bb := b // copy
+        bs.calculateBudgetMetrics(&bb)
+        totalDays := int(bb.EndDate.Sub(bb.StartDate).Hours() / 24)
+        if totalDays <= 0 {
+            continue
+        }
+        elapsedDays := int(now.Sub(bb.StartDate).Hours() / 24)
+        if elapsedDays < 1 {
+            elapsedDays = 1
+        }
+        allowedPace := 100.0 * float64(elapsedDays) / float64(totalDays)
+        actualPace := bb.UsagePercentage
+        isOver := actualPace > allowedPace*1.2
+        if !isOver {
+            continue
+        }
+
+        // dedupe: only one pacing alert per day per budget
+        var recent models.Notification
+        oneDayAgo := now.Add(-24 * time.Hour)
+        if err := s.db.Where("user_id = ? AND notification_type = ? AND created_at > ? AND metadata LIKE ?",
+            bb.UserID, "warning", oneDayAgo, fmt.Sprintf("%%\"budget_id\":%d%%", bb.ID)).First(&recent).Error; err == gorm.ErrRecordNotFound {
+            daysLeft := int(bb.EndDate.Sub(now).Hours() / 24)
+            if daysLeft < 0 {
+                daysLeft = 0
+            }
+            _ = s.dispatcher.TriggerBudgetPacingAlert(bb.UserID, &bb, allowedPace, actualPace, daysLeft)
+        }
+    }
+    return nil
 }
 
 // checkGoalAlerts checks for goal alerts that need to be sent

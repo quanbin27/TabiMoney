@@ -256,3 +256,59 @@ type BudgetResponse struct {
 	RemainingAmount float64              `json:"remaining_amount"` // Calculated field
 	UsagePercentage float64              `json:"usage_percentage"` // Calculated field
 }
+
+// BudgetInsights aggregates safe-to-spend and pacing info
+type BudgetInsights struct {
+    UserID                 uint64              `json:"user_id"`
+    Period                 string              `json:"period"`
+    AsOf                   time.Time           `json:"as_of"`
+    SafeToSpendDaily       float64             `json:"safe_to_spend_daily"`
+    SafeToSpendWeekly      float64             `json:"safe_to_spend_weekly"`
+    TotalRemaining         float64             `json:"total_remaining"`
+    DaysLeft               int                 `json:"days_left"`
+    Budgets                []BudgetPace        `json:"budgets"`
+    ProjectedEndUsagePct   float64             `json:"projected_end_usage_pct"`
+    RiskBudgetIDs          []uint64            `json:"risk_budget_ids"`
+}
+
+// BudgetPace describes per-budget pacing
+type BudgetPace struct {
+    BudgetID         uint64   `json:"budget_id"`
+    Name             string   `json:"name"`
+    CategoryID       *uint64  `json:"category_id"`
+    Amount           float64  `json:"amount"`
+    SpentAmount      float64  `json:"spent_amount"`
+    RemainingAmount  float64  `json:"remaining_amount"`
+    UsagePercentage  float64  `json:"usage_percentage"`
+    AllowedPacePct   float64  `json:"allowed_pace_pct"`
+    ActualPacePct    float64  `json:"actual_pace_pct"`
+    IsOverPace       bool     `json:"is_over_pace"`
+}
+
+// AutoBudgetSuggestion for a single category
+type AutoBudgetSuggestion struct {
+    CategoryID   *uint64 `json:"category_id"`
+    Name         string  `json:"name"`
+    SuggestedAmt float64 `json:"suggested_amount"`
+}
+
+// AutoBudgetSuggestResponse groups suggestions
+type AutoBudgetSuggestResponse struct {
+    UserID           uint64                  `json:"user_id"`
+    MonthlyIncome    float64                 `json:"monthly_income"`
+    Period           string                  `json:"period"`
+    StartDate        time.Time               `json:"start_date"`
+    EndDate          time.Time               `json:"end_date"`
+    Suggestions      []AutoBudgetSuggestion  `json:"suggestions"`
+    TotalSuggested   float64                 `json:"total_suggested"`
+    Notes            []string                `json:"notes"`
+}
+
+// AutoBudgetCreateRequest to create budgets from suggestions
+type AutoBudgetCreateRequest struct {
+    Period    string                  `json:"period"`
+    StartDate time.Time               `json:"start_date"`
+    EndDate   time.Time               `json:"end_date"`
+    Budgets   []AutoBudgetSuggestion  `json:"budgets"`
+    AlertThreshold float64            `json:"alert_threshold"`
+}

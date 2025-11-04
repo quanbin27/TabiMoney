@@ -121,6 +121,9 @@ export const budgetAPI = {
   createBudget: (data) => api.post('/budgets', data),
   updateBudget: (id, data) => api.put(`/budgets/${id}`, data),
   deleteBudget: (id) => api.delete(`/budgets/${id}`),
+  getInsights: () => api.get('/budgets/insights'),
+  getAutoSuggestions: () => api.get('/budgets/auto/suggestions'),
+  createFromSuggestions: (payload) => api.post('/budgets/auto/create', payload),
 }
 
 const aiServiceApi = axios.create({

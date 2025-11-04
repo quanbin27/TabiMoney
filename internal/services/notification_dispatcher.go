@@ -224,6 +224,26 @@ func (d *NotificationDispatcher) TriggerBudgetExceededAlert(userID uint64, budge
 	return d.DispatchNotification(trigger)
 }
 
+// TriggerBudgetPacingAlert warns when spending pace is too fast
+func (d *NotificationDispatcher) TriggerBudgetPacingAlert(userID uint64, budget *models.Budget, allowedPacePct, actualPacePct float64, daysLeft int) error {
+    trigger := NotificationTrigger{
+        UserID:          userID,
+        NotificationType: "warning",
+        Priority:        "medium",
+        Title:           "Tốc độ chi vượt pace ngân sách",
+        Message:         fmt.Sprintf("Ngân sách '%s' đang chi %.1f%% so với pace cho phép (%.1f%%). Còn %d ngày trong kỳ.", budget.Name, actualPacePct, allowedPacePct, daysLeft),
+        ActionURL:       fmt.Sprintf("/budgets/%d", budget.ID),
+        Metadata: map[string]interface{}{
+            "budget_id":        budget.ID,
+            "budget_name":      budget.Name,
+            "allowed_pace_pct": allowedPacePct,
+            "actual_pace_pct":  actualPacePct,
+            "days_left":        daysLeft,
+        },
+    }
+    return d.DispatchNotification(trigger)
+}
+
 // TriggerBudgetAchievementAlert triggers budget achievement alert
 func (d *NotificationDispatcher) TriggerBudgetAchievementAlert(userID uint64, budget *models.Budget) error {
 	trigger := NotificationTrigger{

@@ -163,6 +163,9 @@ func main() {
     budgets.PUT("/:id", budgetHandler.UpdateBudget)
     budgets.DELETE("/:id", budgetHandler.DeleteBudget)
     budgets.GET("/alerts", budgetHandler.GetBudgetAlerts)
+    budgets.GET("/insights", budgetHandler.GetBudgetInsights)
+    budgets.GET("/auto/suggestions", budgetHandler.GetAutoBudgetSuggestions)
+    budgets.POST("/auto/create", budgetHandler.CreateBudgetsFromSuggestions)
 
     // AI endpoints
     ai := api.Group("/ai", appmw.AuthMiddleware(authService))

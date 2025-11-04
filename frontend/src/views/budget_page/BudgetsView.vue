@@ -22,6 +22,23 @@
       </v-col>
     </v-row>
 
+    <!-- Auto Budget Suggestion Banner -->
+    <v-row class="mb-4">
+      <v-col cols="12">
+        <v-alert type="info" variant="tonal" border="start" prominent v-if="suggestBannerVisible">
+          <div class="d-flex align-center justify-space-between w-100">
+            <div>
+              <div class="text-subtitle-1 font-weight-medium">Đề xuất ngân sách tháng này đã sẵn sàng</div>
+              <div class="text-body-2 opacity-80">Tạo nhanh ngân sách theo gợi ý chỉ với 1 lần nhấn</div>
+            </div>
+            <div>
+              <v-btn color="primary" @click="openSuggestDialog" prepend-icon="mdi-magic-staff">Xem gợi ý</v-btn>
+            </div>
+          </div>
+        </v-alert>
+      </v-col>
+    </v-row>
+
     <!-- Budget Overview Cards -->
     <v-row class="mb-4" v-if="budgets.length > 0">
       <v-col cols="12" md="3">
@@ -53,6 +70,22 @@
           <v-card-text>
             <div class="text-h6">Budget Health</div>
             <div class="text-h4">{{ budgetHealthPercentage }}%</div>
+          </v-card-text>
+        </v-card>
+      </v-col>
+      <v-col cols="12" md="3">
+        <v-card color="info" variant="tonal">
+          <v-card-text>
+            <div class="text-h6">Safe to Spend (Ngày)</div>
+            <div class="text-h5">{{ formatCurrency(insights?.safe_to_spend_daily || 0) }}</div>
+          </v-card-text>
+        </v-card>
+      </v-col>
+      <v-col cols="12" md="3">
+        <v-card color="info" variant="tonal">
+          <v-card-text>
+            <div class="text-h6">Safe to Spend (Tuần)</div>
+            <div class="text-h5">{{ formatCurrency(insights?.safe_to_spend_weekly || 0) }}</div>
           </v-card-text>
         </v-card>
       </v-col>
@@ -172,6 +205,60 @@
       </v-card>
     </v-dialog>
 
+    <!-- Auto Budget Suggestions Dialog -->
+    <v-dialog v-model="suggestDialog" max-width="720">
+      <v-card>
+        <v-card-title>
+          Gợi ý ngân sách tháng này
+        </v-card-title>
+        <v-card-text>
+          <div class="mb-4 d-flex align-center justify-space-between">
+            <div class="text-subtitle-2">Tổng đề xuất: {{ formatCurrency(totalSuggested) }}</div>
+            <div class="text-caption">Kỳ: {{ suggestionPeriodLabel }}</div>
+          </div>
+          <v-table density="comfortable">
+            <thead>
+              <tr>
+                <th>Tên</th>
+                <th style="width: 180px">Danh mục</th>
+                <th style="width: 180px">Số tiền</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(item, idx) in suggestItems" :key="idx">
+                <td>{{ item.name }}</td>
+                <td>
+                  <v-select
+                    v-model="item.category_id"
+                    :items="categories"
+                    item-title="name"
+                    item-value="id"
+                    clearable
+                    density="compact"
+                  />
+                </td>
+                <td>
+                  <v-text-field v-model.number="item.suggested_amount" type="number" min="0" density="compact" prefix="₫" />
+                </td>
+              </tr>
+            </tbody>
+          </v-table>
+          <div class="text-caption mt-2" v-if="suggestNotes.length">
+            <ul>
+              <li v-for="(n,i) in suggestNotes" :key="i">{{ n }}</li>
+            </ul>
+          </div>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn @click="suggestDialog=false">Đóng</v-btn>
+          <v-btn color="primary" :loading="creatingFromSuggest" @click="createFromSuggestions" prepend-icon="mdi-check">
+            Tạo tất cả
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <!-- Budget Analysis Chart -->
     <v-row v-if="budgets.length > 0" class="mt-4">
       <v-col cols="12" md="6">
@@ -209,6 +296,13 @@ import { computed, nextTick, onMounted, ref } from 'vue'
 
 // Reactive data
 const budgets = ref([])
+const insights = ref(null)
+const suggestDialog = ref(false)
+const suggestItems = ref([])
+const suggestNotes = ref([])
+const suggestionPeriodLabel = ref('')
+const creatingFromSuggest = ref(false)
+const suggestBannerVisible = ref(true)
 const categories = ref([])
 const dialog = ref(false)
 const isEditing = ref(false)
@@ -301,6 +395,67 @@ const loadBudgets = async () => {
     useAppStore().showError('Failed to load budgets')
   } finally {
     loading.value = false
+  }
+}
+
+const loadInsights = async () => {
+  try {
+    const response = await budgetAPI.getInsights()
+    insights.value = response.data?.data || null
+  } catch (e) {
+    console.error('Failed to load insights', e)
+  }
+}
+
+const openSuggestDialog = async () => {
+  try {
+    const res = await budgetAPI.getAutoSuggestions()
+    const data = res.data?.data
+    suggestItems.value = (data?.suggestions || []).map(s => ({
+      category_id: s.category_id ?? null,
+      name: s.name,
+      suggested_amount: Number(s.suggested_amount || 0),
+    }))
+    suggestNotes.value = data?.notes || []
+    suggestionPeriodLabel.value = `${new Date(data.start_date).toLocaleDateString()} - ${new Date(data.end_date).toLocaleDateString()}`
+    suggestDialog.value = true
+  } catch (e) {
+    console.error('Failed to get suggestions', e)
+    useAppStore().showError('Failed to load suggestions')
+  }
+}
+
+const totalSuggested = computed(() => suggestItems.value.reduce((s, i) => s + (Number(i.suggested_amount) || 0), 0))
+
+const createFromSuggestions = async () => {
+  creatingFromSuggest.value = true
+  try {
+    // default to current month period
+    const now = new Date()
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+    const payload = {
+      period: 'monthly',
+      start_date: startOfMonth.toISOString(),
+      end_date: new Date(endOfMonth.getFullYear(), endOfMonth.getMonth(), endOfMonth.getDate(), 23, 59, 59).toISOString(),
+      alert_threshold: 80,
+      budgets: suggestItems.value.map(i => ({
+        category_id: i.category_id ?? null,
+        name: i.name,
+        suggested_amount: Number(i.suggested_amount || 0),
+      })),
+    }
+    await budgetAPI.createFromSuggestions(payload)
+    suggestDialog.value = false
+    suggestBannerVisible.value = false
+    await loadBudgets()
+    await loadInsights()
+    useAppStore().showSuccess('Created budgets from suggestions')
+  } catch (e) {
+    console.error('Create from suggestions failed', e)
+    useAppStore().showError('Failed to create budgets')
+  } finally {
+    creatingFromSuggest.value = false
   }
 }
 
@@ -507,6 +662,7 @@ const createCharts = async () => {
 onMounted(async () => {
   await loadCategories()
   await loadBudgets()
+  await loadInsights()
   await createCharts()
 })
 </script>

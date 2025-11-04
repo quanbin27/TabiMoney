@@ -173,3 +173,59 @@ func (h *BudgetHandler) GetBudgetAlerts(c echo.Context) error {
 		"data": alerts,
 	})
 }
+
+// GetBudgetInsights returns safe-to-spend and pacing info
+func (h *BudgetHandler) GetBudgetInsights(c echo.Context) error {
+    userID := c.Get("user_id").(uint64)
+
+    insights, err := h.budgetService.GetBudgetInsights(userID)
+    if err != nil {
+        return c.JSON(http.StatusInternalServerError, ErrorResponse{
+            Error:   "Failed to get budget insights",
+            Message: err.Error(),
+        })
+    }
+    return c.JSON(http.StatusOK, map[string]interface{}{
+        "data": insights,
+    })
+}
+
+// GetAutoBudgetSuggestions suggests budgets for current period
+func (h *BudgetHandler) GetAutoBudgetSuggestions(c echo.Context) error {
+    userID := c.Get("user_id").(uint64)
+    resp, err := h.budgetService.SuggestBudgets(userID)
+    if err != nil {
+        return c.JSON(http.StatusInternalServerError, ErrorResponse{
+            Error:   "Failed to suggest budgets",
+            Message: err.Error(),
+        })
+    }
+    return c.JSON(http.StatusOK, map[string]interface{}{
+        "data": resp,
+    })
+}
+
+// CreateBudgetsFromSuggestions bulk creates budgets from suggestions
+func (h *BudgetHandler) CreateBudgetsFromSuggestions(c echo.Context) error {
+    userID := c.Get("user_id").(uint64)
+    var req models.AutoBudgetCreateRequest
+    if err := c.Bind(&req); err != nil {
+        return c.JSON(http.StatusBadRequest, ErrorResponse{
+            Error:   "Invalid request",
+            Message: err.Error(),
+        })
+    }
+    if req.AlertThreshold == 0 {
+        req.AlertThreshold = 80
+    }
+    created, err := h.budgetService.CreateBudgetsFromSuggestions(userID, &req)
+    if err != nil {
+        return c.JSON(http.StatusInternalServerError, ErrorResponse{
+            Error:   "Failed to create budgets",
+            Message: err.Error(),
+        })
+    }
+    return c.JSON(http.StatusCreated, map[string]interface{}{
+        "data": created,
+    })
+}
