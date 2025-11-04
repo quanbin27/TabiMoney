@@ -228,30 +228,25 @@
               <tr v-for="(item, idx) in suggestItems" :key="idx">
                 <td>{{ item.name }}</td>
                 <td>
-                  <v-select
-                    v-model="item.category_id"
-                    :items="categories"
-                    item-title="name"
-                    item-value="id"
-                    clearable
-                    density="compact"
-                  />
+                  <v-select v-model="item.category_id" :items="categories" item-title="name" item-value="id" clearable
+                    density="compact" />
                 </td>
                 <td>
-                  <v-text-field v-model.number="item.suggested_amount" type="number" min="0" density="compact" prefix="₫" />
+                  <v-text-field v-model.number="item.suggested_amount" type="number" min="0" density="compact"
+                    prefix="₫" />
                 </td>
               </tr>
             </tbody>
           </v-table>
           <div class="text-caption mt-2" v-if="suggestNotes.length">
             <ul>
-              <li v-for="(n,i) in suggestNotes" :key="i">{{ n }}</li>
+              <li v-for="(n, i) in suggestNotes" :key="i">{{ n }}</li>
             </ul>
           </div>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn @click="suggestDialog=false">Đóng</v-btn>
+          <v-btn @click="suggestDialog = false">Đóng</v-btn>
           <v-btn color="primary" :loading="creatingFromSuggest" @click="createFromSuggestions" prepend-icon="mdi-check">
             Tạo tất cả
           </v-btn>
@@ -560,7 +555,7 @@ const deleteBudget = async (budgetId) => {
 // Helper methods
 const getProgressPercentage = (budget) => {
   if (budget.amount === 0) return 0
-  return Math.min((budget.spent_amount / budget.amount) * 100, 100)
+  return Math.min((budget.spent_amount / budget.amount) * 100, 100).toFixed(2)
 }
 
 const getProgressColor = (budget) => {

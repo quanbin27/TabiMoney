@@ -20,26 +20,14 @@
               <!-- Channel Preferences -->
               <v-expansion-panel title="Kênh thông báo">
                 <v-expansion-panel-text>
-                  <v-switch
-                    v-model="notificationPrefs.email_enabled"
-                    label="Email"
-                    color="primary"
-                    hide-details
-                  ></v-switch>
-                  <v-switch
-                    v-model="notificationPrefs.telegram_enabled"
-                    label="Telegram"
-                    color="primary"
-                    hide-details
-                    :disabled="telegramStatus !== 'connected'"
-                  ></v-switch>
-                  <v-switch
-                    v-model="notificationPrefs.in_app_enabled"
-                    label="Trong ứng dụng"
-                    color="primary"
-                    hide-details
-                  ></v-switch>
-                  <v-alert v-if="telegramStatus !== 'connected'" type="info" variant="tonal" density="compact" class="mt-2">
+                  <v-switch v-model="notificationPrefs.email_enabled" label="Email" color="primary"
+                    hide-details></v-switch>
+                  <v-switch v-model="notificationPrefs.telegram_enabled" label="Telegram" color="primary" hide-details
+                    :disabled="telegramStatus !== 'connected'"></v-switch>
+                  <v-switch v-model="notificationPrefs.in_app_enabled" label="Trong ứng dụng" color="primary"
+                    hide-details></v-switch>
+                  <v-alert v-if="telegramStatus !== 'connected'" type="info" variant="tonal" density="compact"
+                    class="mt-2">
                     Kích hoạt Telegram ở phần dưới để nhận thông báo qua Telegram
                   </v-alert>
                 </v-expansion-panel-text>
@@ -48,96 +36,44 @@
               <!-- Feature Preferences -->
               <v-expansion-panel title="Loại thông báo">
                 <v-expansion-panel-text>
-                  <v-switch
-                    v-model="notificationPrefs.budget_alerts"
-                    label="Cảnh báo ngân sách"
-                    color="primary"
-                    hide-details
-                  ></v-switch>
-                  <v-switch
-                    v-model="notificationPrefs.goal_alerts"
-                    label="Cảnh báo mục tiêu"
-                    color="primary"
-                    hide-details
-                  ></v-switch>
-                  <v-switch
-                    v-model="notificationPrefs.ai_alerts"
-                    label="Cảnh báo AI"
-                    color="primary"
-                    hide-details
-                  ></v-switch>
-                  <v-switch
-                    v-model="notificationPrefs.transaction_alerts"
-                    label="Cảnh báo giao dịch"
-                    color="primary"
-                    hide-details
-                  ></v-switch>
-                  <v-switch
-                    v-model="notificationPrefs.analytics_alerts"
-                    label="Báo cáo phân tích"
-                    color="primary"
-                    hide-details
-                  ></v-switch>
+                  <v-switch v-model="notificationPrefs.budget_alerts" label="Cảnh báo ngân sách" color="primary"
+                    hide-details></v-switch>
+                  <v-switch v-model="notificationPrefs.goal_alerts" label="Cảnh báo mục tiêu" color="primary"
+                    hide-details></v-switch>
+                  <v-switch v-model="notificationPrefs.ai_alerts" label="Cảnh báo AI" color="primary"
+                    hide-details></v-switch>
+                  <v-switch v-model="notificationPrefs.transaction_alerts" label="Cảnh báo giao dịch" color="primary"
+                    hide-details></v-switch>
+                  <v-switch v-model="notificationPrefs.analytics_alerts" label="Báo cáo phân tích" color="primary"
+                    hide-details></v-switch>
                 </v-expansion-panel-text>
               </v-expansion-panel>
 
               <!-- Priority Preferences -->
               <v-expansion-panel title="Mức độ ưu tiên">
                 <v-expansion-panel-text>
-                  <v-switch
-                    v-model="notificationPrefs.urgent_notifications"
-                    label="Khẩn cấp"
-                    color="red"
-                    hide-details
-                  ></v-switch>
-                  <v-switch
-                    v-model="notificationPrefs.high_notifications"
-                    label="Cao"
-                    color="orange"
-                    hide-details
-                  ></v-switch>
-                  <v-switch
-                    v-model="notificationPrefs.medium_notifications"
-                    label="Trung bình"
-                    color="yellow"
-                    hide-details
-                  ></v-switch>
-                  <v-switch
-                    v-model="notificationPrefs.low_notifications"
-                    label="Thấp"
-                    color="grey"
-                    hide-details
-                  ></v-switch>
+                  <v-switch v-model="notificationPrefs.urgent_notifications" label="Khẩn cấp" color="red"
+                    hide-details></v-switch>
+                  <v-switch v-model="notificationPrefs.high_notifications" label="Cao" color="orange"
+                    hide-details></v-switch>
+                  <v-switch v-model="notificationPrefs.medium_notifications" label="Trung bình" color="yellow"
+                    hide-details></v-switch>
+                  <v-switch v-model="notificationPrefs.low_notifications" label="Thấp" color="grey"
+                    hide-details></v-switch>
                 </v-expansion-panel-text>
               </v-expansion-panel>
 
               <!-- Frequency Preferences -->
               <v-expansion-panel title="Tần suất">
                 <v-expansion-panel-text>
-                  <v-switch
-                    v-model="notificationPrefs.daily_digest"
-                    label="Báo cáo hàng ngày"
-                    color="primary"
-                    hide-details
-                  ></v-switch>
-                  <v-switch
-                    v-model="notificationPrefs.weekly_digest"
-                    label="Báo cáo hàng tuần"
-                    color="primary"
-                    hide-details
-                  ></v-switch>
-                  <v-switch
-                    v-model="notificationPrefs.monthly_digest"
-                    label="Báo cáo hàng tháng"
-                    color="primary"
-                    hide-details
-                  ></v-switch>
-                  <v-switch
-                    v-model="notificationPrefs.real_time_alerts"
-                    label="Cảnh báo thời gian thực"
-                    color="primary"
-                    hide-details
-                  ></v-switch>
+                  <v-switch v-model="notificationPrefs.daily_digest" label="Báo cáo hàng ngày" color="primary"
+                    hide-details></v-switch>
+                  <v-switch v-model="notificationPrefs.weekly_digest" label="Báo cáo hàng tuần" color="primary"
+                    hide-details></v-switch>
+                  <v-switch v-model="notificationPrefs.monthly_digest" label="Báo cáo hàng tháng" color="primary"
+                    hide-details></v-switch>
+                  <v-switch v-model="notificationPrefs.real_time_alerts" label="Cảnh báo thời gian thực" color="primary"
+                    hide-details></v-switch>
                 </v-expansion-panel-text>
               </v-expansion-panel>
             </v-expansion-panels>
@@ -274,9 +210,10 @@
 </template>
 
 <script setup>
+import { ref, onMounted } from 'vue'
 import { api } from '@/services/api'
 import { notificationPreferencesAPI } from '@/services/api'
-
+import { useAuthStore } from '../../stores/auth'
 const authStore = useAuthStore()
 
 // Reactive data
