@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
 from typing import List, Optional
-import httpx
-import json
-from app.core.config import settings
+
+from fastapi import APIRouter
+from pydantic import BaseModel
+
+from app.utils.llm import call_ollama
+from app.utils.json_utils import extract_json_block, ensure_string_list
 
 router = APIRouter()
 
@@ -42,39 +43,17 @@ async def analyze_spending(req: SpendingAnalysisRequest):
         "JSON mẫu:\n{\n  \"insights\": [\"Nhận định 1\", \"Nhận định 2\"],\n  \"recommendations\": [\"Khuyến nghị 1\", \"Khuyến nghị 2\"]\n}"
     )
 
-    async with httpx.AsyncClient(timeout=60.0) as client:
-        try:
-            resp = await client.post(
-                f"{settings.OLLAMA_BASE_URL}/api/generate",
-                json={
-                    "model": settings.LLM_MODEL,
-                    "prompt": prompt,
-                    "stream": False,
-                    "options": {"temperature": 0.3, "max_tokens": 400},
-                },
-            )
-            if resp.status_code != 200:
-                raise HTTPException(status_code=500, detail="LLM generation failed")
+    try:
+        result = await call_ollama(prompt, temperature=0.3, max_tokens=400, format_json=True)
+        payload = result.get("json") or extract_json_block(result.get("raw", ""))
+        insights = ensure_string_list(payload.get("insights"))
+        recommendations = ensure_string_list(payload.get("recommendations"))
 
-            body = resp.json()
-            content = body.get("response", "{}")
-            # Extract JSON block
-            try:
-                data = json.loads(content)
-            except Exception:
-                # Best-effort: find first {...}
-                import re
-                m = re.search(r"\{[\s\S]*\}", content)
-                data = json.loads(m.group(0)) if m else {"insights": [], "recommendations": []}
-
-            insights = [str(x) for x in data.get("insights", [])]
-            recs = [str(x) for x in data.get("recommendations", [])]
-            return SpendingAnalysisResponse(insights=insights, recommendations=recs)
-        except Exception as e:
-            # Fallback minimal
-            return SpendingAnalysisResponse(
-                insights=["Chi tiêu của bạn tập trung ở một vài danh mục chính."],
-                recommendations=["Cân nhắc đặt hạn mức và theo dõi các danh mục chi tiêu cao."],
-            )
+        return SpendingAnalysisResponse(insights=insights, recommendations=recommendations)
+    except Exception:
+        return SpendingAnalysisResponse(
+            insights=["Chi tiêu của bạn tập trung ở một vài danh mục chính."],
+            recommendations=["Cân nhắc đặt hạn mức và theo dõi các danh mục chi tiêu cao."],
+        )
 
 

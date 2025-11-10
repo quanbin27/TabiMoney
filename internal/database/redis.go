@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"tabimoney/internal/config"
@@ -11,7 +12,17 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-var RedisClient *redis.Client
+var (
+	RedisClient *redis.Client
+
+	rateLimitScript = redis.NewScript(`
+local current = redis.call("INCR", KEYS[1])
+if current == 1 then
+  redis.call("EXPIRE", KEYS[1], ARGV[1])
+end
+return current
+`)
+)
 
 func InitRedis(cfg *config.Config) error {
 	rdb := redis.NewClient(&redis.Options{
@@ -90,20 +101,28 @@ func DeleteSession(ctx context.Context, sessionID string) error {
 
 // Rate limiting
 func IncrementRateLimit(ctx context.Context, key string, window time.Duration) (int64, error) {
-	pipe := RedisClient.Pipeline()
-	
-	// Increment counter
-	incr := pipe.Incr(ctx, key)
-	
-	// Set expiration if this is the first increment
-	pipe.Expire(ctx, key, window)
-	
-	_, err := pipe.Exec(ctx)
+	if RedisClient == nil {
+		return 0, fmt.Errorf("Redis not initialized")
+	}
+
+	windowSeconds := int64(window / time.Second)
+	if windowSeconds <= 0 {
+		windowSeconds = 1
+	}
+
+	result, err := rateLimitScript.Run(ctx, RedisClient, []string{key}, windowSeconds).Result()
 	if err != nil {
 		return 0, err
 	}
-	
-	return incr.Val(), nil
+
+	switch v := result.(type) {
+	case int64:
+		return v, nil
+	case string:
+		return strconv.ParseInt(v, 10, 64)
+	default:
+		return 0, fmt.Errorf("unexpected rate limit script result: %T", v)
+	}
 }
 
 func GetRateLimit(ctx context.Context, key string) (int64, error) {
@@ -123,16 +142,7 @@ func GetDashboardCache(ctx context.Context, userID uint64, period string) (strin
 
 func DeleteDashboardCache(ctx context.Context, userID uint64) error {
 	pattern := fmt.Sprintf("dashboard:%d:*", userID)
-	keys, err := RedisClient.Keys(ctx, pattern).Result()
-	if err != nil {
-		return err
-	}
-	
-	if len(keys) > 0 {
-		return RedisClient.Del(ctx, keys...).Err()
-	}
-	
-	return nil
+	return deleteByPattern(ctx, pattern)
 }
 
 // AI analysis cache
@@ -148,16 +158,7 @@ func GetAIAnalysisCache(ctx context.Context, userID uint64, analysisType string)
 
 func DeleteAIAnalysisCache(ctx context.Context, userID uint64) error {
 	pattern := fmt.Sprintf("ai_analysis:%d:*", userID)
-	keys, err := RedisClient.Keys(ctx, pattern).Result()
-	if err != nil {
-		return err
-	}
-	
-	if len(keys) > 0 {
-		return RedisClient.Del(ctx, keys...).Err()
-	}
-	
-	return nil
+	return deleteByPattern(ctx, pattern)
 }
 
 // Notification queue
@@ -188,6 +189,47 @@ func RedisHealthCheck() error {
 	_, err := RedisClient.Ping(ctx).Result()
 	if err != nil {
 		return fmt.Errorf("Redis ping failed: %w", err)
+	}
+
+	return nil
+}
+
+func deleteByPattern(ctx context.Context, pattern string) error {
+	if RedisClient == nil {
+		return fmt.Errorf("Redis not initialized")
+	}
+
+	var (
+		cursor uint64
+		batch  = make([]string, 0, 100)
+	)
+
+	for {
+		keys, nextCursor, err := RedisClient.Scan(ctx, cursor, pattern, 100).Result()
+		if err != nil {
+			return err
+		}
+
+		if len(keys) > 0 {
+			batch = append(batch, keys...)
+			if len(batch) >= 100 {
+				if err := RedisClient.Del(ctx, batch...).Err(); err != nil {
+					return err
+				}
+				batch = batch[:0]
+			}
+		}
+
+		cursor = nextCursor
+		if cursor == 0 {
+			break
+		}
+	}
+
+	if len(batch) > 0 {
+		if err := RedisClient.Del(ctx, batch...).Err(); err != nil {
+			return err
+		}
 	}
 
 	return nil

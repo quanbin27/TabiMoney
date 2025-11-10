@@ -19,7 +19,6 @@ nltk==3.8.1
 
 # Database and Redis
 sqlalchemy==2.0.23
-redis==5.0.1
 pymysql==1.1.0
 alembic==1.13.1
 

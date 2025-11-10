@@ -8,16 +8,19 @@ import logging
 from typing import Dict, Any, List, Optional, Tuple
 import re
 from datetime import datetime, timedelta
-import httpx
 import json
 
 """NLU service using Gemini or local Ollama; OpenAI removed."""
 
-from app.core.config import settings
 import aiohttp
-from app.models.nlu import NLURequest, NLUResponse, Entity, ChatRequest, ChatResponse
+import httpx
+
+from app.core.config import settings
 from app.core.database import get_db
+from app.models.nlu import ChatRequest, ChatResponse, Entity, NLURequest, NLUResponse
 from app.services.transaction_service import TransactionService
+from app.utils.json_utils import extract_json_block
+from app.utils.llm import call_ollama
 
 logger = logging.getLogger(__name__)
 
@@ -148,39 +151,14 @@ class NLUService:
         try:
             prompt = await self._build_prompt_with_categories(request.text, request.user_id, request.context)
             
-            response = await self.ollama_client.post(
-                f"{settings.OLLAMA_BASE_URL}/api/generate",
-                json={
-                    "model": settings.LLM_MODEL,
-                    "prompt": prompt,
-                    "stream": False,
-                    "options": {
-                        "temperature": 0.3,
-                        "max_tokens": 300
-                    }
-                }
-            )
-            
-            if response.status_code != 200:
-                raise Exception(f"Ollama returned status {response.status_code}")
-            
-            # Ollama returns JSON with { response: "..." }
-            # Read as text first for resilience
-            text_body = await response.aread()
-            try:
-                result = json.loads(text_body.decode("utf-8", errors="ignore"))
-                content = result.get("response", "")
-            except Exception:
-                content = text_body.decode("utf-8", errors="ignore")
+            result = await call_ollama(prompt, temperature=0.3, max_tokens=300, format_json=True)
+            content_dict = result.get("json") or extract_json_block(result.get("raw", ""))
+            if not content_dict:
+                raise ValueError("Empty JSON payload from Ollama")
 
-            # Try to parse structured JSON from model output
-            try:
-                parsed = self._parse_openai_response(self._extract_json_block(content), request.user_id, request.text)
-                parsed = await self._normalize_entities_add_category_id(parsed, request.user_id)
-                return parsed
-            except Exception:
-                logger.warning("Falling back to rule-based NLU due to parse failure")
-                return await self._process_with_rules(request)
+            parsed = self._parse_openai_response(json.dumps(content_dict), request.user_id, request.text)
+            parsed = await self._normalize_entities_add_category_id(parsed, request.user_id)
+            return parsed
             
         except Exception as e:
             logger.error(f"Ollama NLU processing failed: {e}")
@@ -219,32 +197,29 @@ class NLUService:
                     # Extract text
                     content = ""
                     try:
-                        # Try different response formats
-                        if "candidates" in data and len(data["candidates"]) > 0:
+                        if "candidates" in data and data["candidates"]:
                             candidate = data["candidates"][0]
                             if "content" in candidate and "parts" in candidate["content"]:
-                                content = candidate["content"]["parts"][0]["text"]
+                                content = candidate["content"]["parts"][0].get("text", "")
                             elif "text" in candidate:
                                 content = candidate["text"]
                         elif "text" in data:
                             content = data["text"]
                         else:
                             content = json.dumps(data)
-                        logger.info(f"Gemini response content: {content}")
                     except Exception as e:
                         logger.error(f"Failed to extract Gemini content: {e}")
                         content = json.dumps(data)
-                    # Parse structured json
+
                     try:
-                        parsed = self._parse_openai_response(self._extract_json_block(content), request.user_id, request.text)
+                        content_dict = extract_json_block(content)
+                        parsed = self._parse_openai_response(json.dumps(content_dict), request.user_id, request.text)
                         parsed = await self._normalize_entities_add_category_id(parsed, request.user_id)
-                        logger.info(f"Gemini parsing successful: intent={parsed.intent}")
+                        logger.info("Gemini parsing successful: intent=%s", parsed.intent)
                         return parsed
                     except Exception as e:
-                        logger.warning(f"Falling back to Ollama due to parse failure (Gemini): {e}")
-                        if self.ollama_client:
-                            return await self._process_with_ollama(request)
-                        return await self._process_with_rules(request)
+                        logger.warning("Falling back to Ollama due to parse failure (Gemini): %s", e)
+                        return await self._process_with_ollama(request)
         except Exception as e:
             logger.error(f"Gemini NLU processing failed: {e}")
             # fallback to Ollama
@@ -456,20 +431,11 @@ Output:"""
         return nlu
 
     def _extract_json_block(self, content: str) -> str:
-        """Extract JSON block from LLM output (handles code fences and extra text)."""
-        if not content:
+        """Deprecated helper kept for backward compatibility."""
+        parsed = extract_json_block(content)
+        if not parsed:
             raise ValueError("empty content")
-        # Remove code fences
-        content = content.strip()
-        if content.startswith("```"):
-            content = content.strip('`')
-        # Find first {...} JSON object
-        import re
-        match = re.search(r"\{[\s\S]*\}", content)
-        if match:
-            return match.group(0)
-        # If not found, assume content itself is JSON
-        return content
+        return json.dumps(parsed)
     
     def _extract_entities_rule_based(self, text: str) -> List[Entity]:
         """Extract entities using rule-based approach"""

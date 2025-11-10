@@ -3,7 +3,6 @@ TabiMoney AI Service
 AI-Powered Personal Finance Management - AI Agent Service
 """
 
-import asyncio
 import logging
 from contextlib import asynccontextmanager
 from typing import Dict, Any
@@ -17,7 +16,6 @@ from fastapi.responses import Response
 
 from app.core.config import settings
 from app.core.database import init_db
-from app.core.redis import init_redis
 from app.api.v1.api import api_router
 from app.core.logging import setup_logging
 from app.core.dependencies import set_services
@@ -57,9 +55,6 @@ async def lifespan(app: FastAPI):
     await init_db()
     logger.info("Database initialized")
     
-    # Initialize Redis
-    await init_redis()
-    logger.info("Redis initialized")
     
     # Initialize ML services
     ml_service = MLService()

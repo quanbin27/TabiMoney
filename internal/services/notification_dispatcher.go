@@ -207,7 +207,7 @@ func (d *NotificationDispatcher) TriggerBudgetThresholdAlert(userID uint64, budg
 func (d *NotificationDispatcher) TriggerBudgetExceededAlert(userID uint64, budget *models.Budget) error {
 	trigger := NotificationTrigger{
 		UserID:          userID,
-		NotificationType: "error",
+		NotificationType: "warning",
 		Priority:        "urgent",
 		Title:           "Ngân sách đã vượt quá",
 		Message:         fmt.Sprintf("Ngân sách '%s' đã vượt quá %.1f%%!", budget.Name, budget.UsagePercentage),
