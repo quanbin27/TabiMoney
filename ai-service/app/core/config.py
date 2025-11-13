@@ -44,8 +44,6 @@ class Settings(BaseSettings):
     USE_OPENAI: bool = False
     OLLAMA_BASE_URL: str = "http://ollama:11434"
     LLM_MODEL: str = "qwen2.5:7b-instruct"
-    LLM_TIMEOUT: float = 60.0
-    LLM_MAX_TOKENS: int = 512
     
     # ML Models
     MODEL_CACHE_DIR: str = "./models"

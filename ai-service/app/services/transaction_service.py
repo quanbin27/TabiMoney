@@ -128,27 +128,3 @@ class TransactionService:
                 "message": "Có lỗi xảy ra khi lấy thông tin số dư."
             }
     
-    async def get_categories(self, user_id: int) -> Dict[str, Any]:
-        """Get available categories for user"""
-        try:
-            async with get_db() as db:
-                categories_query = """
-                SELECT id, name, name_en FROM categories 
-                WHERE user_id = %s OR is_system = true 
-                ORDER BY is_system DESC, name
-                """
-                
-                result = await db.execute(categories_query, (user_id,))
-                
-                return {
-                    "success": True,
-                    "categories": result
-                }
-                
-        except Exception as e:
-            logger.error(f"Failed to get categories: {e}")
-            return {
-                "success": False,
-                "error": str(e),
-                "categories": []
-            }

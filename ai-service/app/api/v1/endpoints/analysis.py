@@ -44,16 +44,27 @@ async def analyze_spending(req: SpendingAnalysisRequest):
     )
 
     try:
-        result = await call_ollama(prompt, temperature=0.3, max_tokens=400, format_json=True)
+        result = await call_ollama(
+            prompt,
+            temperature=0.3,
+            max_tokens=400,
+            format_json=True,
+        )
         payload = result.get("json") or extract_json_block(result.get("raw", ""))
         insights = ensure_string_list(payload.get("insights"))
         recommendations = ensure_string_list(payload.get("recommendations"))
-
-        return SpendingAnalysisResponse(insights=insights, recommendations=recommendations)
+        return SpendingAnalysisResponse(
+            insights=insights,
+            recommendations=recommendations,
+        )
     except Exception:
         return SpendingAnalysisResponse(
-            insights=["Chi tiêu của bạn tập trung ở một vài danh mục chính."],
-            recommendations=["Cân nhắc đặt hạn mức và theo dõi các danh mục chi tiêu cao."],
+            insights=[
+                "Chi tiêu của bạn tập trung ở một vài danh mục chính.",
+            ],
+            recommendations=[
+                "Cân nhắc đặt hạn mức và theo dõi các danh mục chi tiêu cao.",
+            ],
         )
 
 

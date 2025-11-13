@@ -3,7 +3,6 @@ Natural Language Understanding Service
 NLU functionality for TabiMoney AI Service
 """
 
-import asyncio
 import logging
 from typing import Dict, Any, List, Optional, Tuple
 import re
@@ -430,12 +429,7 @@ Output:"""
             logger.warning(f"normalize_entities_add_category_id failed: {e}")
         return nlu
 
-    def _extract_json_block(self, content: str) -> str:
-        """Deprecated helper kept for backward compatibility."""
-        parsed = extract_json_block(content)
-        if not parsed:
-            raise ValueError("empty content")
-        return json.dumps(parsed)
+    # deprecated helper removed
     
     def _extract_entities_rule_based(self, text: str) -> List[Entity]:
         """Extract entities using rule-based approach"""

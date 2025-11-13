@@ -5,10 +5,9 @@ AI-Powered Personal Finance Management - AI Agent Service
 
 import logging
 from contextlib import asynccontextmanager
-from typing import Dict, Any
 
 import uvicorn
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from prometheus_client import Counter, Histogram, generate_latest, CollectorRegistry
@@ -19,7 +18,6 @@ from app.core.database import init_db
 from app.api.v1.api import api_router
 from app.core.logging import setup_logging
 from app.core.dependencies import set_services
-from app.services.ml_service import MLService
 from app.services.nlu_service import NLUService
 from app.services.prediction_service import PredictionService
 from app.services.anomaly_service import AnomalyService
@@ -38,7 +36,6 @@ REQUEST_DURATION = globals().get("REQUEST_DURATION") or Histogram(
 )
 
 # Global services
-ml_service: MLService = None
 nlu_service: NLUService = None
 prediction_service: PredictionService = None
 anomaly_service: AnomalyService = None
@@ -47,7 +44,7 @@ anomaly_service: AnomalyService = None
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager"""
-    global ml_service, nlu_service, prediction_service, anomaly_service
+    global nlu_service, prediction_service, anomaly_service
     
     logger.info("Starting AI Service...")
     
@@ -55,26 +52,21 @@ async def lifespan(app: FastAPI):
     await init_db()
     logger.info("Database initialized")
     
-    
-    # Initialize ML services
-    ml_service = MLService()
-    await ml_service.initialize()
-    logger.info("ML Service initialized")
-    
+    # Initialize services
     nlu_service = NLUService()
     await nlu_service.initialize()
     logger.info("NLU Service initialized")
     
-    prediction_service = PredictionService(ml_service)
+    prediction_service = PredictionService()
     await prediction_service.initialize()
     logger.info("Prediction Service initialized")
     
-    anomaly_service = AnomalyService(ml_service)
+    anomaly_service = AnomalyService()
     await anomaly_service.initialize()
     logger.info("Anomaly Service initialized")
     
     # Set global service instances for dependency injection
-    set_services(nlu_service, prediction_service, anomaly_service, ml_service)
+    set_services(nlu_service, prediction_service, anomaly_service)
     logger.info("Services registered for dependency injection")
     
     logger.info("AI Service started successfully")
@@ -83,8 +75,6 @@ async def lifespan(app: FastAPI):
     
     # Cleanup
     logger.info("Shutting down AI Service...")
-    if ml_service:
-        await ml_service.cleanup()
     if nlu_service:
         await nlu_service.cleanup()
     if prediction_service:

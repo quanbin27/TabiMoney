@@ -1,4 +1,3 @@
-import asyncio
 from typing import List, Dict, Any
 from datetime import datetime
 
@@ -8,12 +7,10 @@ from sklearn.ensemble import IsolationForest
 from app.core.database import get_db
 
 class AnomalyService:
-    def __init__(self, ml_service):
-        self.ml_service = ml_service
+    def __init__(self):
         self._ready = False
 
     async def initialize(self):
-        await asyncio.sleep(0.01)
         self._ready = True
 
     async def cleanup(self):

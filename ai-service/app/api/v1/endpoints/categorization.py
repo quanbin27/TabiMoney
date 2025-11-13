@@ -29,7 +29,7 @@ async def suggest_category(payload: SuggestRequest):
                 for cat in existing_categories
                 if cat.get("name")
             )
-
+        
         prompt = (
             "Bạn là trợ lý phân loại chi tiêu cho ứng dụng tài chính cá nhân.\n"
             f"Mô tả: {payload.description}\nSố tiền: {payload.amount}\n"
