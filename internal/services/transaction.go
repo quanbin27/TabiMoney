@@ -164,22 +164,6 @@ func (s *TransactionService) GetTransactions(userID uint64, req *models.Transact
 	return responses, total, nil
 }
 
-// GetTransaction retrieves a single transaction
-func (s *TransactionService) GetTransaction(userID, transactionID uint64) (*models.TransactionResponse, error) {
-	var transaction models.Transaction
-	if err := s.db.Where("user_id = ? AND id = ?", userID, transactionID).
-		Preload("Category").
-		Preload("AISuggestedCategory").
-		First(&transaction).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("transaction not found")
-		}
-		return nil, fmt.Errorf("failed to get transaction: %w", err)
-	}
-
-	return s.transactionToResponse(&transaction), nil
-}
-
 // UpdateTransaction updates an existing transaction
 func (s *TransactionService) UpdateTransaction(userID, transactionID uint64, req *models.TransactionUpdateRequest) (*models.TransactionResponse, error) {
 	// Find transaction

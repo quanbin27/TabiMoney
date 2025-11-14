@@ -53,76 +53,6 @@ func NewAIService(cfg *config.Config) *AIService {
     return svc
 }
 
-// NLU (Natural Language Understanding) Service
-func (s *AIService) ProcessNLU(req *models.NLURequest) (*models.NLUResponse, error) {
-	// Check cache first
-	ctx := context.Background()
-	cacheKey := fmt.Sprintf("nlu:%d:%s", req.UserID, req.Text)
-	if cached, err := database.GetCache(ctx, cacheKey); err == nil {
-		var response models.NLUResponse
-		if err := json.Unmarshal([]byte(cached), &response); err == nil {
-			return &response, nil
-		}
-	}
-
-	// Call AI Service
-	requestBody, err := json.Marshal(map[string]interface{}{
-		"text":     req.Text,
-		"user_id":  req.UserID,
-		"context":  req.Context,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal request: %w", err)
-	}
-
-	httpReq, err := http.NewRequestWithContext(ctx, "POST", s.aiServiceURL+"/nlu/process", bytes.NewBuffer(requestBody))
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-	httpReq.Header.Set("Content-Type", "application/json")
-
-	resp, err := s.httpClient.Do(httpReq)
-	if err != nil {
-		return nil, fmt.Errorf("failed to call AI service: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("AI service returned status %d", resp.StatusCode)
-	}
-
-    var aiResponse struct {
-		UserID          int                    `json:"user_id"`
-		Intent          string                 `json:"intent"`
-		Entities        []models.Entity        `json:"entities"`
-		Confidence      float64                `json:"confidence"`
-		SuggestedAction string                 `json:"suggested_action"`
-		Response        string                 `json:"response"`
-		GeneratedAt     string                 `json:"generated_at"`
-	}
-
-	if err := json.NewDecoder(resp.Body).Decode(&aiResponse); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
-	}
-
-    response := &models.NLUResponse{
-		UserID:          uint64(aiResponse.UserID),
-		Intent:          aiResponse.Intent,
-		Entities:        aiResponse.Entities,
-		Confidence:      aiResponse.Confidence,
-		SuggestedAction: aiResponse.SuggestedAction,
-		Response:        aiResponse.Response,
-		GeneratedAt:     time.Now(),
-	}
-
-	// Cache response
-	if responseJSON, err := json.Marshal(response); err == nil {
-		database.SetCache(ctx, cacheKey, responseJSON, 1*time.Hour)
-	}
-
-    return response, nil
-}
-
 // Expense Prediction Service
 func (s *AIService) PredictExpenses(req *models.ExpensePredictionRequest) (*models.ExpensePredictionResponse, error) {
 	// Check cache first
@@ -842,41 +772,6 @@ func (s *AIService) handleAddTransaction(req *models.ChatRequest, resp *models.C
 }
 
 // Helper methods for prompt building and response parsing
-
-func (s *AIService) buildNLUPrompt(text, context string) string {
-	return fmt.Sprintf(`You are a financial assistant for TabiMoney. Analyze the following user input and extract:
-
-1. Intent (add_transaction, query_balance, ask_question, etc.)
-2. Entities (amounts, categories, dates, descriptions)
-3. Confidence score (0-1)
-4. Suggested action
-5. Response
-
-User input: %s
-Context: %s
-
-Return JSON format:
-{
-  "intent": "add_transaction",
-  "entities": [
-    {"type": "amount", "value": "50000", "confidence": 0.95},
-    {"type": "category", "value": "food", "confidence": 0.9}
-  ],
-  "confidence": 0.92,
-  "suggested_action": "create_transaction",
-  "response": "I'll help you add this transaction..."
-}`, text, context)
-}
-
-func (s *AIService) parseNLUResponse(content string, userID uint64) (*models.NLUResponse, error) {
-	var response models.NLUResponse
-	if err := json.Unmarshal([]byte(content), &response); err != nil {
-		return nil, err
-	}
-	response.UserID = userID
-	response.GeneratedAt = time.Now()
-	return &response, nil
-}
 
 func (s *AIService) buildExpensePredictionPrompt(historicalData []models.Transaction, req *models.ExpensePredictionRequest) string {
 	// Build comprehensive prompt with historical data

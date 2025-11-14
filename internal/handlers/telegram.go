@@ -8,7 +8,8 @@ import (
 
 // TelegramLinkCodeRequest represents the request payload for generating link code
 type TelegramLinkCodeRequest struct {
-	TelegramUserID int64 `json:"telegram_user_id" validate:"required"`
+	TelegramUserID int64  `json:"telegram_user_id" validate:"required"`
+	LinkCode       string `json:"link_code" validate:"required"`
 }
 
 // TelegramLinkCodeResponse represents the response payload for link code
@@ -142,9 +143,26 @@ func (h *AuthHandler) LinkTelegramAccount(c echo.Context) error {
 		})
 	}
 
-	// Link Telegram account (this will be called from Telegram bot)
-	// For now, just return success as the actual linking happens in the bot
+	// Validate link code and get web user ID
+	webUserID, err := h.authService.ValidateTelegramLinkCode(req.LinkCode)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, ErrorResponse{
+			Error:   "Invalid link code",
+			Message: err.Error(),
+		})
+	}
+
+	// Link Telegram account
+	err = h.authService.LinkTelegramAccount(req.TelegramUserID, webUserID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, ErrorResponse{
+			Error:   "Failed to link Telegram account",
+			Message: err.Error(),
+		})
+	}
+
 	return c.JSON(http.StatusOK, SuccessResponse{
-		Message: "Telegram account link endpoint ready",
+		Message: "Telegram account linked successfully",
 	})
 }
+

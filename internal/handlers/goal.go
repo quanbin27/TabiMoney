@@ -37,46 +37,6 @@ func (h *GoalHandler) GetGoals(c echo.Context) error {
 	})
 }
 
-// GetGoal retrieves a specific goal
-func (h *GoalHandler) GetGoal(c echo.Context) error {
-	userID := c.Get("user_id").(uint64)
-	goalID, err := strconv.ParseUint(c.Param("id"), 10, 64)
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, ErrorResponse{
-			Error:   "Invalid goal ID",
-			Message: "Goal ID must be a valid number",
-		})
-	}
-
-	goals, err := h.goalService.GetGoals(userID)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, ErrorResponse{
-			Error:   "Failed to get goals",
-			Message: err.Error(),
-		})
-	}
-
-	// Find the specific goal
-	var goal *models.FinancialGoal
-	for i := range goals {
-		if goals[i].ID == goalID {
-			goal = &goals[i]
-			break
-		}
-	}
-
-	if goal == nil {
-		return c.JSON(http.StatusNotFound, ErrorResponse{
-			Error:   "Goal not found",
-			Message: "The requested goal does not exist",
-		})
-	}
-
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"data": goal,
-	})
-}
-
 // CreateGoal creates a new financial goal
 func (h *GoalHandler) CreateGoal(c echo.Context) error {
 	userID := c.Get("user_id").(uint64)

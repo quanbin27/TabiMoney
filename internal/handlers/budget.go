@@ -37,46 +37,6 @@ func (h *BudgetHandler) GetBudgets(c echo.Context) error {
 	})
 }
 
-// GetBudget retrieves a specific budget
-func (h *BudgetHandler) GetBudget(c echo.Context) error {
-	userID := c.Get("user_id").(uint64)
-	budgetID, err := strconv.ParseUint(c.Param("id"), 10, 64)
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, ErrorResponse{
-			Error:   "Invalid budget ID",
-			Message: "Budget ID must be a valid number",
-		})
-	}
-
-	budgets, err := h.budgetService.GetBudgets(userID)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, ErrorResponse{
-			Error:   "Failed to get budgets",
-			Message: err.Error(),
-		})
-	}
-
-	// Find the specific budget
-	var budget *models.Budget
-	for i := range budgets {
-		if budgets[i].ID == budgetID {
-			budget = &budgets[i]
-			break
-		}
-	}
-
-	if budget == nil {
-		return c.JSON(http.StatusNotFound, ErrorResponse{
-			Error:   "Budget not found",
-			Message: "The requested budget does not exist",
-		})
-	}
-
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"data": budget,
-	})
-}
-
 // CreateBudget creates a new budget
 func (h *BudgetHandler) CreateBudget(c echo.Context) error {
 	userID := c.Get("user_id").(uint64)
@@ -154,23 +114,6 @@ func (h *BudgetHandler) DeleteBudget(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, map[string]interface{}{
 		"message": "Budget deleted successfully",
-	})
-}
-
-// GetBudgetAlerts returns budgets that are approaching or exceeding their limits
-func (h *BudgetHandler) GetBudgetAlerts(c echo.Context) error {
-	userID := c.Get("user_id").(uint64)
-
-	alerts, err := h.budgetService.GetBudgetAlerts(userID)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, ErrorResponse{
-			Error:   "Failed to get budget alerts",
-			Message: err.Error(),
-		})
-	}
-
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"data": alerts,
 	})
 }
 

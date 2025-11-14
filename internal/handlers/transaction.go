@@ -83,17 +83,6 @@ func (h *TransactionHandler) List(c echo.Context) error {
     })
 }
 
-func (h *TransactionHandler) Get(c echo.Context) error {
-    userID := c.Get("user_id").(uint64)
-    idParam := c.Param("id")
-    id, err := strconv.ParseUint(idParam, 10, 64)
-    if err != nil { return c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid ID", Message: "id must be uint"}) }
-
-    tx, err := h.svc.GetTransaction(userID, uint64(id))
-    if err != nil { return c.JSON(http.StatusNotFound, ErrorResponse{Error: "Not found", Message: err.Error()}) }
-    return c.JSON(http.StatusOK, tx)
-}
-
 func (h *TransactionHandler) Create(c echo.Context) error {
     userID := c.Get("user_id").(uint64)
     var req models.TransactionCreateRequest

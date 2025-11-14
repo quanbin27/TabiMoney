@@ -124,26 +124,6 @@ func (s *BudgetService) calculateBudgetMetrics(budget *models.Budget) {
 	}
 }
 
-// GetBudgetAlerts returns budgets that are approaching or exceeding their limits
-func (s *BudgetService) GetBudgetAlerts(userID uint64) ([]models.Budget, error) {
-	var budgets []models.Budget
-	if err := s.db.Where("user_id = ? AND is_active = ?", userID, true).Preload("Category").Find(&budgets).Error; err != nil {
-		return nil, fmt.Errorf("failed to get budgets: %w", err)
-	}
-
-	var alerts []models.Budget
-	for _, budget := range budgets {
-		s.calculateBudgetMetrics(&budget)
-		
-		// Check if budget is approaching or exceeding threshold
-		if budget.UsagePercentage >= budget.AlertThreshold {
-			alerts = append(alerts, budget)
-		}
-	}
-
-	return alerts, nil
-}
-
 // CheckBudgetNotifications checks and triggers budget notifications
 func (s *BudgetService) CheckBudgetNotifications(userID uint64) error {
 	dispatcher := NewNotificationDispatcher()

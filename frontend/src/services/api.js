@@ -70,7 +70,6 @@ export const authAPI = {
 
 export const transactionAPI = {
   getTransactions: (params) => api.get('/transactions', { params }),
-  getTransaction: (id) => api.get(`/transactions/${id}`),
   createTransaction: (data) => api.post('/transactions', data),
   updateTransaction: (id, data) => api.put(`/transactions/${id}`, data),
   deleteTransaction: (id) => api.delete(`/transactions/${id}`),
@@ -100,7 +99,6 @@ export const notificationPreferencesAPI = {
 
 export const categoryAPI = {
   getCategories: () => api.get('/categories'),
-  getCategory: (id) => api.get(`/categories/${id}`),
   createCategory: (data) => api.post('/categories', data),
   updateCategory: (id, data) => api.put(`/categories/${id}`, data),
   deleteCategory: (id) => api.delete(`/categories/${id}`),
@@ -108,7 +106,6 @@ export const categoryAPI = {
 
 export const goalAPI = {
   getGoals: () => api.get('/goals'),
-  getGoal: (id) => api.get(`/goals/${id}`),
   createGoal: (data) => api.post('/goals', data),
   updateGoal: (id, data) => api.put(`/goals/${id}`, data),
   deleteGoal: (id) => api.delete(`/goals/${id}`),
@@ -117,7 +114,6 @@ export const goalAPI = {
 
 export const budgetAPI = {
   getBudgets: () => api.get('/budgets'),
-  getBudget: (id) => api.get(`/budgets/${id}`),
   createBudget: (data) => api.post('/budgets', data),
   updateBudget: (id, data) => api.put(`/budgets/${id}`, data),
   deleteBudget: (id) => api.delete(`/budgets/${id}`),
@@ -134,12 +130,7 @@ const aiServiceApi = axios.create({
 
 export const aiAPI = {
   processChat: (data) => aiServiceApi.post('/api/v1/chat/process', data),
-  processNLU: (data) => aiServiceApi.post('/api/v1/nlu/process', data),
-  predictExpenses: (data) => api.post('/ai/predict-expenses', data),
-  detectAnomalies: (data) => api.post('/ai/detect-anomalies', data),
   suggestCategory: (data) => api.post('/ai/suggest-category', data),
-  analyzeSpending: (data) => api.post('/ai/analyze-spending', data),
-  analyzeGoal: (data) => api.post('/ai/analyze-goal', data),
 }
 
 

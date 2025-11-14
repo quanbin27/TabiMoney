@@ -9,6 +9,7 @@ from app.api.v1.endpoints import nlu, prediction, anomaly, categorization, chat,
 api_router = APIRouter()
 
 # Include all endpoint routers
+# Note: nlu.router only includes /health endpoint, /process was removed as unused
 api_router.include_router(nlu.router, prefix="/nlu", tags=["NLU"])
 api_router.include_router(prediction.router, prefix="/prediction", tags=["Prediction"])
 api_router.include_router(anomaly.router, prefix="/anomaly", tags=["Anomaly Detection"])

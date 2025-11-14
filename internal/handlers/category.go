@@ -78,28 +78,6 @@ func (h *CategoryHandler) Create(c echo.Context) error {
     return c.JSON(http.StatusCreated, resp)
 }
 
-// Get category by ID
-func (h *CategoryHandler) Get(c echo.Context) error {
-    userID := c.Get("user_id").(uint64)
-    idParam := c.Param("id")
-    id, err := strconv.ParseUint(idParam, 10, 64)
-    if err != nil {
-        return c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid ID", Message: "id must be uint"})
-    }
-
-    var cat models.Category
-    if err := services.DB().Where("id = ? AND (is_system = ? OR user_id = ?)", id, true, userID).First(&cat).Error; err != nil {
-        return c.JSON(http.StatusNotFound, ErrorResponse{Error: "Not found", Message: "Category not found"})
-    }
-
-    resp := models.CategoryResponse{
-        ID: cat.ID, UserID: cat.UserID, Name: cat.Name, NameEn: cat.NameEn, Description: cat.Description,
-        ParentID: cat.ParentID, IsSystem: cat.IsSystem, IsActive: cat.IsActive,
-        SortOrder: cat.SortOrder, CreatedAt: cat.CreatedAt, UpdatedAt: cat.UpdatedAt,
-    }
-    return c.JSON(http.StatusOK, resp)
-}
-
 // Update category
 func (h *CategoryHandler) Update(c echo.Context) error {
     userID := c.Get("user_id").(uint64)
