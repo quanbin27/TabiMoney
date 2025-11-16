@@ -1,0 +1,130 @@
+<mxfile host="app.diagrams.net" modified="2024-01-15T00:00:00.000Z" agent="5.0" version="21.0.0" etag="drawio" type="device">
+  <diagram name="Sequence_AIChat" id="sequence-aichat">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="1600" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Lifelines -->
+        <mxCell id="actor-user" value="User" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" vertex="1" parent="1">
+          <mxGeometry x="80" y="80" width="30" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="lifeline-frontend" value="Frontend" style="swimlane;html=1;startSize=40;horizontal=0;swimlaneLine=1;swimlineWidth=2;fillColor=#E1F5FF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="200" y="80" width="150" height="1400" as="geometry" />
+        </mxCell>
+        <mxCell id="lifeline-backend" value="Backend API" style="swimlane;html=1;startSize=40;horizontal=0;swimlaneLine=1;swimlineWidth=2;fillColor=#E1F5FF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="400" y="80" width="150" height="1400" as="geometry" />
+        </mxCell>
+        <mxCell id="lifeline-aihandler" value="AI Handler" style="swimlane;html=1;startSize=40;horizontal=0;swimlaneLine=1;swimlineWidth=2;fillColor=#E1F5FF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="600" y="80" width="150" height="1400" as="geometry" />
+        </mxCell>
+        <mxCell id="lifeline-aiservice" value="AI Service" style="swimlane;html=1;startSize=40;horizontal=0;swimlaneLine=1;swimlineWidth=2;fillColor=#E1F5FF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="800" y="80" width="150" height="1400" as="geometry" />
+        </mxCell>
+        <mxCell id="lifeline-chatservice" value="Chat Service" style="swimlane;html=1;startSize=40;horizontal=0;swimlaneLine=1;swimlineWidth=2;fillColor=#E1F5FF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="80" width="150" height="1400" as="geometry" />
+        </mxCell>
+        <mxCell id="lifeline-db" value="Database" style="swimlane;html=1;startSize=40;horizontal=0;swimlaneLine=1;swimlineWidth=2;fillColor=#E1F5FF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="80" width="150" height="1400" as="geometry" />
+        </mxCell>
+
+        <!-- Messages -->
+        <mxCell id="msg1" value="Gửi tin nhắn: &quot;Tháng này tôi tiêu bao nhiêu cho ăn uống?&quot;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;" edge="1" parent="1" source="actor-user" target="lifeline-frontend">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="msg2" value="POST /api/v1/ai/chat" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;" edge="1" parent="1" source="lifeline-frontend" target="lifeline-backend">
+          <mxGeometry y="200" x="50" relative="1" as="geometry">
+            <mxPoint x="350" y="250" as="sourcePoint" />
+            <mxPoint x="550" y="250" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg3" value="ProcessChat(request)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;" edge="1" parent="1" source="lifeline-backend" target="lifeline-aihandler">
+          <mxGeometry y="300" x="50" relative="1" as="geometry">
+            <mxPoint x="550" y="350" as="sourcePoint" />
+            <mxPoint x="750" y="350" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg4" value="ProcessChatMessage(userID, message)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;" edge="1" parent="1" source="lifeline-aihandler" target="lifeline-aiservice">
+          <mxGeometry y="400" x="50" relative="1" as="geometry">
+            <mxPoint x="750" y="450" as="sourcePoint" />
+            <mxPoint x="950" y="450" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg5" value="Phân tích intent" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;" edge="1" parent="1" source="lifeline-aiservice" target="lifeline-chatservice">
+          <mxGeometry y="500" x="50" relative="1" as="geometry">
+            <mxPoint x="950" y="550" as="sourcePoint" />
+            <mxPoint x="1150" y="550" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg6" value="Xác định loại câu hỏi" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=1;dashed=1;" edge="1" parent="1" source="lifeline-chatservice" target="lifeline-chatservice">
+          <mxGeometry y="600" x="50" relative="1" as="geometry">
+            <mxPoint x="1075" y="650" as="sourcePoint" />
+            <mxPoint x="1075" y="700" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Alt block -->
+        <mxCell id="alt-block" value="Câu hỏi về dữ liệu" style="swimlane;html=1;startSize=20;horizontal=0;swimlaneLine=1;swimlineWidth=2;fillColor=#FFFACD;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="700" width="150" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="msg7" value="Query transactions" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;" edge="1" parent="1" source="lifeline-chatservice" target="lifeline-db">
+          <mxGeometry y="750" x="50" relative="1" as="geometry">
+            <mxPoint x="1150" y="800" as="sourcePoint" />
+            <mxPoint x="1200" y="800" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg8" value="Transaction data" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;dashed=1;" edge="1" parent="1" source="lifeline-db" target="lifeline-chatservice">
+          <mxGeometry y="850" x="50" relative="1" as="geometry">
+            <mxPoint x="1200" y="900" as="sourcePoint" />
+            <mxPoint x="1150" y="900" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg9" value="Format data for LLM" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;dashed=1;" edge="1" parent="1" source="lifeline-chatservice" target="lifeline-aiservice">
+          <mxGeometry y="950" x="50" relative="1" as="geometry">
+            <mxPoint x="1150" y="1000" as="sourcePoint" />
+            <mxPoint x="950" y="1000" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="msg10" value="Gọi LLM với context" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=1;dashed=1;" edge="1" parent="1" source="lifeline-aiservice" target="lifeline-aiservice">
+          <mxGeometry y="1100" x="50" relative="1" as="geometry">
+            <mxPoint x="875" y="1150" as="sourcePoint" />
+            <mxPoint x="875" y="1200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg11" value="Xử lý response" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=1;dashed=1;" edge="1" parent="1" source="lifeline-aiservice" target="lifeline-aiservice">
+          <mxGeometry y="1200" x="50" relative="1" as="geometry">
+            <mxPoint x="875" y="1250" as="sourcePoint" />
+            <mxPoint x="875" y="1300" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg12" value="AI response" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;dashed=1;" edge="1" parent="1" source="lifeline-aiservice" target="lifeline-aihandler">
+          <mxGeometry y="1300" x="50" relative="1" as="geometry">
+            <mxPoint x="950" y="1350" as="sourcePoint" />
+            <mxPoint x="750" y="1350" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg13" value="Chat response" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;dashed=1;" edge="1" parent="1" source="lifeline-aihandler" target="lifeline-backend">
+          <mxGeometry y="1400" x="50" relative="1" as="geometry">
+            <mxPoint x="750" y="1450" as="sourcePoint" />
+            <mxPoint x="550" y="1450" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg14" value="Response message" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;dashed=1;" edge="1" parent="1" source="lifeline-backend" target="lifeline-frontend">
+          <mxGeometry y="1500" x="50" relative="1" as="geometry">
+            <mxPoint x="550" y="1550" as="sourcePoint" />
+            <mxPoint x="350" y="1550" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg15" value="Hiển thị câu trả lời" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;" edge="1" parent="1" source="lifeline-frontend" target="actor-user">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="275" y="1600" as="sourcePoint" />
+            <mxPoint x="95" y="140" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
+

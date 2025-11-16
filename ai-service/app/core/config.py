@@ -27,23 +27,12 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379/1"
     REDIS_POOL_SIZE: int = 10
     
-    # OpenAI
-    OPENAI_API_KEY: str = ""
-    OPENAI_MODEL: str = "gpt-4"
-    OPENAI_MAX_TOKENS: int = 1000
-    OPENAI_TEMPERATURE: float = 0.3
-
-    # Google Gemini
-    USE_GEMINI: bool = False
+    # Google Gemini (Required)
+    USE_GEMINI: bool = True
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-1.5-flash"
     GEMINI_MAX_TOKENS: int = 512
     GEMINI_TEMPERATURE: float = 0.3
-
-    # Local LLM (Ollama)
-    USE_OPENAI: bool = False
-    OLLAMA_BASE_URL: str = "http://ollama:11434"
-    LLM_MODEL: str = "qwen2.5:7b-instruct"
     
     # ML Models
     MODEL_CACHE_DIR: str = "./models"

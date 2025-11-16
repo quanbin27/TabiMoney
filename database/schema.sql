@@ -254,3 +254,80 @@ FROM transactions t
 JOIN categories c ON t.category_id = c.id
 WHERE t.transaction_type = 'expense'
 GROUP BY t.user_id, c.id, c.name, c.icon, c.color;
+
+-- Telegram Integration Tables
+-- Create telegram_accounts table
+CREATE TABLE IF NOT EXISTS telegram_accounts (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    telegram_user_id BIGINT NOT NULL UNIQUE,
+    web_user_id BIGINT UNSIGNED NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (web_user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_telegram_user_id (telegram_user_id),
+    INDEX idx_web_user_id (web_user_id)
+) ENGINE=InnoDB;
+
+-- Create telegram_link_codes table for temporary link codes
+CREATE TABLE IF NOT EXISTS telegram_link_codes (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    code VARCHAR(16) NOT NULL UNIQUE,
+    telegram_user_id BIGINT,
+    web_user_id BIGINT UNSIGNED NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    used_at TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (web_user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_code (code),
+    INDEX idx_telegram_user_id (telegram_user_id),
+    INDEX idx_expires_at (expires_at)
+) ENGINE=InnoDB;
+
+-- Add telegram integration settings to user profiles
+-- Using stored procedure to safely add columns only if they don't exist
+DELIMITER $$
+
+DROP PROCEDURE IF EXISTS AddTelegramColumnsIfNotExists$$
+
+CREATE PROCEDURE AddTelegramColumnsIfNotExists()
+BEGIN
+    -- Check and add telegram_enabled column
+    IF NOT EXISTS (
+        SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE() 
+        AND TABLE_NAME = 'user_profiles' 
+        AND COLUMN_NAME = 'telegram_enabled'
+    ) THEN
+        ALTER TABLE user_profiles ADD COLUMN telegram_enabled BOOLEAN DEFAULT FALSE;
+    END IF;
+
+    -- Check and add telegram_notifications column
+    IF NOT EXISTS (
+        SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE() 
+        AND TABLE_NAME = 'user_profiles' 
+        AND COLUMN_NAME = 'telegram_notifications'
+    ) THEN
+        ALTER TABLE user_profiles ADD COLUMN telegram_notifications BOOLEAN DEFAULT TRUE;
+    END IF;
+
+    -- Check and add telegram_language column
+    IF NOT EXISTS (
+        SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE() 
+        AND TABLE_NAME = 'user_profiles' 
+        AND COLUMN_NAME = 'telegram_language'
+    ) THEN
+        ALTER TABLE user_profiles ADD COLUMN telegram_language VARCHAR(5) DEFAULT 'vi';
+    END IF;
+END$$
+
+DELIMITER ;
+
+-- Execute the procedure to add columns safely
+CALL AddTelegramColumnsIfNotExists();
+
+-- Drop the procedure after use
+DROP PROCEDURE IF EXISTS AddTelegramColumnsIfNotExists;

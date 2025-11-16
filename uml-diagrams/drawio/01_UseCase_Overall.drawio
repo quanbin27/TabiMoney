@@ -1,0 +1,165 @@
+<mxfile host="app.diagrams.net" modified="2024-01-15T00:00:00.000Z" agent="5.0" version="21.0.0" etag="drawio" type="device">
+  <diagram name="UseCase_Overall" id="usecase-overall">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="2339" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- Actors -->
+        <mxCell id="actor-user" value="User" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#FFD700;" vertex="1" parent="1">
+          <mxGeometry x="80" y="200" width="30" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="actor-telegram" value="Telegram Bot" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#FFD700;" vertex="1" parent="1">
+          <mxGeometry x="80" y="400" width="30" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="actor-ai" value="AI Service" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#FFD700;" vertex="1" parent="1">
+          <mxGeometry x="80" y="600" width="30" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- System Package -->
+        <mxCell id="system-package" value="TabiMoney System" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=40;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#90EE90;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="200" y="100" width="1400" height="1800" as="geometry" />
+        </mxCell>
+
+        <!-- Use Cases - Authentication -->
+        <mxCell id="uc-register" value="Đăng ký tài khoản" style="ellipse;whiteSpace=wrap;html=1;fillColor=#87CEEB;strokeColor=#000000;" vertex="1" parent="system-package">
+          <mxGeometry x="50" y="50" width="150" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="uc-login" value="Đăng nhập" style="ellipse;whiteSpace=wrap;html=1;fillColor=#87CEEB;strokeColor=#000000;" vertex="1" parent="system-package">
+          <mxGeometry x="250" y="50" width="150" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="uc-profile" value="Quản lý hồ sơ" style="ellipse;whiteSpace=wrap;html=1;fillColor=#87CEEB;strokeColor=#000000;" vertex="1" parent="system-package">
+          <mxGeometry x="450" y="50" width="150" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Use Cases - Transactions -->
+        <mxCell id="uc-manual-tx" value="Nhập giao dịch thủ công" style="ellipse;whiteSpace=wrap;html=1;fillColor=#87CEEB;strokeColor=#000000;" vertex="1" parent="system-package">
+          <mxGeometry x="50" y="180" width="150" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="uc-nlu-tx" value="Nhập giao dịch bằng NLU" style="ellipse;whiteSpace=wrap;html=1;fillColor=#87CEEB;strokeColor=#000000;" vertex="1" parent="system-package">
+          <mxGeometry x="250" y="180" width="150" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="uc-view-tx" value="Xem danh sách giao dịch" style="ellipse;whiteSpace=wrap;html=1;fillColor=#87CEEB;strokeColor=#000000;" vertex="1" parent="system-package">
+          <mxGeometry x="450" y="180" width="150" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="uc-update-tx" value="Cập nhật giao dịch" style="ellipse;whiteSpace=wrap;html=1;fillColor=#87CEEB;strokeColor=#000000;" vertex="1" parent="system-package">
+          <mxGeometry x="650" y="180" width="150" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="uc-delete-tx" value="Xóa giao dịch" style="ellipse;whiteSpace=wrap;html=1;fillColor=#87CEEB;strokeColor=#000000;" vertex="1" parent="system-package">
+          <mxGeometry x="850" y="180" width="150" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Use Cases - Categories -->
+        <mxCell id="uc-manage-cat" value="Quản lý danh mục" style="ellipse;whiteSpace=wrap;html=1;fillColor=#87CEEB;strokeColor=#000000;" vertex="1" parent="system-package">
+          <mxGeometry x="50" y="310" width="150" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Use Cases - Goals -->
+        <mxCell id="uc-create-goal" value="Tạo mục tiêu tài chính" style="ellipse;whiteSpace=wrap;html=1;fillColor=#87CEEB;strokeColor=#000000;" vertex="1" parent="system-package">
+          <mxGeometry x="50" y="440" width="150" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="uc-track-goal" value="Theo dõi mục tiêu" style="ellipse;whiteSpace=wrap;html=1;fillColor=#87CEEB;strokeColor=#000000;" vertex="1" parent="system-package">
+          <mxGeometry x="250" y="440" width="150" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="uc-contribute-goal" value="Đóng góp vào mục tiêu" style="ellipse;whiteSpace=wrap;html=1;fillColor=#87CEEB;strokeColor=#000000;" vertex="1" parent="system-package">
+          <mxGeometry x="450" y="440" width="150" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Use Cases - Budgets -->
+        <mxCell id="uc-create-budget" value="Tạo ngân sách" style="ellipse;whiteSpace=wrap;html=1;fillColor=#87CEEB;strokeColor=#000000;" vertex="1" parent="system-package">
+          <mxGeometry x="50" y="570" width="150" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="uc-track-budget" value="Theo dõi ngân sách" style="ellipse;whiteSpace=wrap;html=1;fillColor=#87CEEB;strokeColor=#000000;" vertex="1" parent="system-package">
+          <mxGeometry x="250" y="570" width="150" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Use Cases - Analytics -->
+        <mxCell id="uc-dashboard" value="Xem Dashboard" style="ellipse;whiteSpace=wrap;html=1;fillColor=#87CEEB;strokeColor=#000000;" vertex="1" parent="system-package">
+          <mxGeometry x="50" y="700" width="150" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="uc-analytics" value="Xem phân tích chi tiêu" style="ellipse;whiteSpace=wrap;html=1;fillColor=#87CEEB;strokeColor=#000000;" vertex="1" parent="system-package">
+          <mxGeometry x="250" y="700" width="150" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Use Cases - AI -->
+        <mxCell id="uc-ai-chat" value="Chat với AI" style="ellipse;whiteSpace=wrap;html=1;fillColor=#87CEEB;strokeColor=#000000;" vertex="1" parent="system-package">
+          <mxGeometry x="50" y="830" width="150" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="uc-predict" value="Dự đoán chi tiêu" style="ellipse;whiteSpace=wrap;html=1;fillColor=#87CEEB;strokeColor=#000000;" vertex="1" parent="system-package">
+          <mxGeometry x="250" y="830" width="150" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="uc-anomaly" value="Phát hiện bất thường" style="ellipse;whiteSpace=wrap;html=1;fillColor=#87CEEB;strokeColor=#000000;" vertex="1" parent="system-package">
+          <mxGeometry x="450" y="830" width="150" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="uc-smart-cat" value="Phân loại thông minh" style="ellipse;whiteSpace=wrap;html=1;fillColor=#87CEEB;strokeColor=#000000;" vertex="1" parent="system-package">
+          <mxGeometry x="650" y="830" width="150" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Use Cases - Notifications -->
+        <mxCell id="uc-notifications" value="Xem thông báo" style="ellipse;whiteSpace=wrap;html=1;fillColor=#87CEEB;strokeColor=#000000;" vertex="1" parent="system-package">
+          <mxGeometry x="50" y="960" width="150" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="uc-notif-settings" value="Quản lý cài đặt thông báo" style="ellipse;whiteSpace=wrap;html=1;fillColor=#87CEEB;strokeColor=#000000;" vertex="1" parent="system-package">
+          <mxGeometry x="250" y="960" width="150" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Use Cases - Telegram -->
+        <mxCell id="uc-link-telegram" value="Liên kết Telegram" style="ellipse;whiteSpace=wrap;html=1;fillColor=#87CEEB;strokeColor=#000000;" vertex="1" parent="system-package">
+          <mxGeometry x="50" y="1090" width="150" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="uc-telegram-tx" value="Nhập giao dịch qua Telegram" style="ellipse;whiteSpace=wrap;html=1;fillColor=#87CEEB;strokeColor=#000000;" vertex="1" parent="system-package">
+          <mxGeometry x="250" y="1090" width="150" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Relationships User -->
+        <mxCell id="edge-user-register" value="" style="endArrow=simple;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="actor-user" target="uc-register">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-user-login" value="" style="endArrow=simple;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="actor-user" target="uc-login">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-user-manual-tx" value="" style="endArrow=simple;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="actor-user" target="uc-manual-tx">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-user-nlu-tx" value="" style="endArrow=simple;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="actor-user" target="uc-nlu-tx">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-user-dashboard" value="" style="endArrow=simple;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="actor-user" target="uc-dashboard">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-user-ai-chat" value="" style="endArrow=simple;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="actor-user" target="uc-ai-chat">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Relationships Telegram -->
+        <mxCell id="edge-telegram-link" value="" style="endArrow=simple;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="actor-telegram" target="uc-link-telegram">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-telegram-tx" value="" style="endArrow=simple;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="actor-telegram" target="uc-telegram-tx">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Relationships AI Service -->
+        <mxCell id="edge-ai-nlu" value="" style="endArrow=simple;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="actor-ai" target="uc-nlu-tx">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-ai-predict" value="" style="endArrow=simple;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="actor-ai" target="uc-predict">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-ai-anomaly" value="" style="endArrow=simple;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="actor-ai" target="uc-anomaly">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Extends/Includes relationships -->
+        <mxCell id="edge-nlu-extends" value="&lt;&lt;extends&gt;&gt;" style="endArrow=simple;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;dashed=1;" edge="1" parent="1" source="uc-nlu-tx" target="uc-manual-tx">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-dashboard-includes" value="&lt;&lt;includes&gt;&gt;" style="endArrow=simple;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;dashed=1;" edge="1" parent="1" source="uc-dashboard" target="uc-analytics">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
+

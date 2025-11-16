@@ -1,0 +1,229 @@
+<mxfile host="app.diagrams.net" modified="2024-01-15T00:00:00.000Z" agent="5.0" version="21.0.0" etag="drawio" type="device">
+  <diagram name="Sequence_DashboardAnalytics" id="sequence-dashboard">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="2000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Lifelines -->
+        <mxCell id="actor-user" value="User" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" vertex="1" parent="1">
+          <mxGeometry x="80" y="80" width="30" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="lifeline-frontend" value="Frontend" style="swimlane;html=1;startSize=40;horizontal=0;swimlaneLine=1;swimlineWidth=2;fillColor=#E1F5FF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="200" y="80" width="150" height="1800" as="geometry" />
+        </mxCell>
+        <mxCell id="lifeline-backend" value="Backend API" style="swimlane;html=1;startSize=40;horizontal=0;swimlaneLine=1;swimlineWidth=2;fillColor=#E1F5FF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="400" y="80" width="150" height="1800" as="geometry" />
+        </mxCell>
+        <mxCell id="lifeline-analytics" value="Analytics Handler" style="swimlane;html=1;startSize=40;horizontal=0;swimlaneLine=1;swimlineWidth=2;fillColor=#E1F5FF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="600" y="80" width="150" height="1800" as="geometry" />
+        </mxCell>
+        <mxCell id="lifeline-txservice" value="Transaction Service" style="swimlane;html=1;startSize=40;horizontal=0;swimlaneLine=1;swimlineWidth=2;fillColor=#E1F5FF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="800" y="80" width="150" height="1800" as="geometry" />
+        </mxCell>
+        <mxCell id="lifeline-db" value="Database" style="swimlane;html=1;startSize=40;horizontal=0;swimlaneLine=1;swimlineWidth=2;fillColor=#E1F5FF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="80" width="150" height="1800" as="geometry" />
+        </mxCell>
+        <mxCell id="lifeline-cache" value="Redis Cache" style="swimlane;html=1;startSize=40;horizontal=0;swimlaneLine=1;swimlineWidth=2;fillColor=#E1F5FF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="80" width="150" height="1800" as="geometry" />
+        </mxCell>
+
+        <!-- Dashboard Messages -->
+        <mxCell id="msg1" value="Truy cập Dashboard" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;" edge="1" parent="1" source="actor-user" target="lifeline-frontend">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="msg2" value="GET /api/v1/analytics/dashboard" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;" edge="1" parent="1" source="lifeline-frontend" target="lifeline-backend">
+          <mxGeometry y="200" x="50" relative="1" as="geometry">
+            <mxPoint x="350" y="250" as="sourcePoint" />
+            <mxPoint x="550" y="250" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg3" value="GetDashboardAnalytics(userID)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;" edge="1" parent="1" source="lifeline-backend" target="lifeline-analytics">
+          <mxGeometry y="300" x="50" relative="1" as="geometry">
+            <mxPoint x="550" y="350" as="sourcePoint" />
+            <mxPoint x="750" y="350" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg4" value="Kiểm tra cache" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;" edge="1" parent="1" source="lifeline-analytics" target="lifeline-cache">
+          <mxGeometry y="400" x="50" relative="1" as="geometry">
+            <mxPoint x="750" y="450" as="sourcePoint" />
+            <mxPoint x="1200" y="450" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Alt block: Cache hit -->
+        <mxCell id="alt-cache-hit" value="Cache hit" style="swimlane;html=1;startSize=20;horizontal=0;swimlaneLine=1;swimlineWidth=2;fillColor=#90EE90;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="600" y="500" width="150" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="msg5" value="Cached data" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;dashed=1;" edge="1" parent="1" source="lifeline-cache" target="lifeline-analytics">
+          <mxGeometry y="550" x="50" relative="1" as="geometry">
+            <mxPoint x="1200" y="600" as="sourcePoint" />
+            <mxPoint x="750" y="600" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg6" value="Analytics data" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;dashed=1;" edge="1" parent="1" source="lifeline-analytics" target="lifeline-backend">
+          <mxGeometry y="600" x="50" relative="1" as="geometry">
+            <mxPoint x="750" y="650" as="sourcePoint" />
+            <mxPoint x="550" y="650" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg7" value="Response" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;dashed=1;" edge="1" parent="1" source="lifeline-backend" target="lifeline-frontend">
+          <mxGeometry y="650" x="50" relative="1" as="geometry">
+            <mxPoint x="550" y="700" as="sourcePoint" />
+            <mxPoint x="350" y="700" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg8" value="Hiển thị dashboard" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;" edge="1" parent="1" source="lifeline-frontend" target="actor-user">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="275" y="750" as="sourcePoint" />
+            <mxPoint x="95" y="140" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Alt block: Cache miss -->
+        <mxCell id="alt-cache-miss" value="Cache miss" style="swimlane;html=1;startSize=20;horizontal=0;swimlaneLine=1;swimlineWidth=2;fillColor=#FFE4B5;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="600" y="800" width="150" height="400" as="geometry" />
+        </mxCell>
+        <mxCell id="msg9" value="GetMonthlySummary(userID)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;" edge="1" parent="1" source="lifeline-analytics" target="lifeline-txservice">
+          <mxGeometry y="850" x="50" relative="1" as="geometry">
+            <mxPoint x="750" y="900" as="sourcePoint" />
+            <mxPoint x="950" y="900" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg10" value="Query transactions" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;" edge="1" parent="1" source="lifeline-txservice" target="lifeline-db">
+          <mxGeometry y="900" x="50" relative="1" as="geometry">
+            <mxPoint x="950" y="950" as="sourcePoint" />
+            <mxPoint x="1150" y="950" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg11" value="Transaction list" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;dashed=1;" edge="1" parent="1" source="lifeline-db" target="lifeline-txservice">
+          <mxGeometry y="950" x="50" relative="1" as="geometry">
+            <mxPoint x="1150" y="1000" as="sourcePoint" />
+            <mxPoint x="950" y="1000" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg12" value="Tính toán analytics" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=1;dashed=1;" edge="1" parent="1" source="lifeline-txservice" target="lifeline-txservice">
+          <mxGeometry y="1000" x="50" relative="1" as="geometry">
+            <mxPoint x="875" y="1050" as="sourcePoint" />
+            <mxPoint x="875" y="1100" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg13" value="Monthly summary" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;dashed=1;" edge="1" parent="1" source="lifeline-txservice" target="lifeline-analytics">
+          <mxGeometry y="1050" x="50" relative="1" as="geometry">
+            <mxPoint x="950" y="1100" as="sourcePoint" />
+            <mxPoint x="750" y="1100" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg14" value="Tính toán financial health" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=1;dashed=1;" edge="1" parent="1" source="lifeline-analytics" target="lifeline-analytics">
+          <mxGeometry y="1100" x="50" relative="1" as="geometry">
+            <mxPoint x="825" y="1150" as="sourcePoint" />
+            <mxPoint x="825" y="1200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg15" value="Phân tích category breakdown" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=1;dashed=1;" edge="1" parent="1" source="lifeline-analytics" target="lifeline-analytics">
+          <mxGeometry y="1150" x="50" relative="1" as="geometry">
+            <mxPoint x="825" y="1200" as="sourcePoint" />
+            <mxPoint x="825" y="1250" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg16" value="Lưu vào cache" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;" edge="1" parent="1" source="lifeline-analytics" target="lifeline-cache">
+          <mxGeometry y="1200" x="50" relative="1" as="geometry">
+            <mxPoint x="750" y="1250" as="sourcePoint" />
+            <mxPoint x="1200" y="1250" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg17" value="Analytics data" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;dashed=1;" edge="1" parent="1" source="lifeline-analytics" target="lifeline-backend">
+          <mxGeometry y="1250" x="50" relative="1" as="geometry">
+            <mxPoint x="750" y="1300" as="sourcePoint" />
+            <mxPoint x="550" y="1300" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg18" value="Response" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;dashed=1;" edge="1" parent="1" source="lifeline-backend" target="lifeline-frontend">
+          <mxGeometry y="1300" x="50" relative="1" as="geometry">
+            <mxPoint x="550" y="1350" as="sourcePoint" />
+            <mxPoint x="350" y="1350" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg19" value="Hiển thị dashboard" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;" edge="1" parent="1" source="lifeline-frontend" target="actor-user">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="275" y="1400" as="sourcePoint" />
+            <mxPoint x="95" y="140" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Category Spending Section -->
+        <mxCell id="note-category" value="== Xem phân tích chi tiêu theo danh mục ==" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="200" y="1450" width="150" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="msg20" value="Xem phân tích chi tiêu theo danh mục" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;" edge="1" parent="1" source="actor-user" target="lifeline-frontend">
+          <mxGeometry y="1500" relative="1" as="geometry">
+            <mxPoint x="95" y="140" as="sourcePoint" />
+            <mxPoint x="275" y="1550" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg21" value="GET /api/v1/analytics/category-spending" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;" edge="1" parent="1" source="lifeline-frontend" target="lifeline-backend">
+          <mxGeometry y="1550" x="50" relative="1" as="geometry">
+            <mxPoint x="350" y="1600" as="sourcePoint" />
+            <mxPoint x="550" y="1600" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg22" value="GetCategorySpending(userID, dateRange)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;" edge="1" parent="1" source="lifeline-backend" target="lifeline-analytics">
+          <mxGeometry y="1600" x="50" relative="1" as="geometry">
+            <mxPoint x="550" y="1650" as="sourcePoint" />
+            <mxPoint x="750" y="1650" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg23" value="GetCategorySpending(userID, startDate, endDate)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;" edge="1" parent="1" source="lifeline-analytics" target="lifeline-txservice">
+          <mxGeometry y="1650" x="50" relative="1" as="geometry">
+            <mxPoint x="750" y="1700" as="sourcePoint" />
+            <mxPoint x="950" y="1700" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg24" value="Query với GROUP BY category" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;" edge="1" parent="1" source="lifeline-txservice" target="lifeline-db">
+          <mxGeometry y="1700" x="50" relative="1" as="geometry">
+            <mxPoint x="950" y="1750" as="sourcePoint" />
+            <mxPoint x="1150" y="1750" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg25" value="Category spending data" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;dashed=1;" edge="1" parent="1" source="lifeline-db" target="lifeline-txservice">
+          <mxGeometry y="1750" x="50" relative="1" as="geometry">
+            <mxPoint x="1150" y="1800" as="sourcePoint" />
+            <mxPoint x="950" y="1800" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg26" value="Tính toán percentages" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=1;dashed=1;" edge="1" parent="1" source="lifeline-txservice" target="lifeline-txservice">
+          <mxGeometry y="1800" x="50" relative="1" as="geometry">
+            <mxPoint x="875" y="1850" as="sourcePoint" />
+            <mxPoint x="875" y="1900" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg27" value="Category analytics" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;dashed=1;" edge="1" parent="1" source="lifeline-txservice" target="lifeline-analytics">
+          <mxGeometry y="1850" x="50" relative="1" as="geometry">
+            <mxPoint x="950" y="1900" as="sourcePoint" />
+            <mxPoint x="750" y="1900" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg28" value="Category spending" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;dashed=1;" edge="1" parent="1" source="lifeline-analytics" target="lifeline-backend">
+          <mxGeometry y="1900" x="50" relative="1" as="geometry">
+            <mxPoint x="750" y="1950" as="sourcePoint" />
+            <mxPoint x="550" y="1950" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg29" value="Response" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;dashed=1;" edge="1" parent="1" source="lifeline-backend" target="lifeline-frontend">
+          <mxGeometry y="1950" x="50" relative="1" as="geometry">
+            <mxPoint x="550" y="2000" as="sourcePoint" />
+            <mxPoint x="350" y="2000" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg30" value="Hiển thị biểu đồ" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;" edge="1" parent="1" source="lifeline-frontend" target="actor-user">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="275" y="2050" as="sourcePoint" />
+            <mxPoint x="95" y="140" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
+

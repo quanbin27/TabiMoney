@@ -1,0 +1,120 @@
+<mxfile host="app.diagrams.net" modified="2024-01-15T00:00:00.000Z" agent="5.0" version="21.0.0" etag="drawio" type="device">
+  <diagram name="State_FinancialGoal" id="state-goal">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="1600" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Initial State -->
+        <mxCell id="initial" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="100" y="200" width="30" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- States -->
+        <mxCell id="state-created" value="Created&#xa;Tạo mục tiêu" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1F5FF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="200" y="180" width="150" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="state-active" value="Active&#xa;Kích hoạt" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1F5FF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="200" y="300" width="150" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="state-inprogress" value="InProgress&#xa;Bắt đầu đóng góp" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1F5FF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="200" y="420" width="150" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="state-paused" value="Paused&#xa;Tạm dừng" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1F5FF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="200" y="540" width="150" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="state-achieved" value="Achieved&#xa;Hoàn thành" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#90EE90;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="200" y="660" width="150" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="state-cancelled" value="Cancelled&#xa;Hủy" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFB6C1;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="200" y="780" width="150" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="state-final" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="240" y="920" width="30" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Composite State InProgress -->
+        <mxCell id="composite-inprogress" value="InProgress" style="swimlane;html=1;startSize=30;horizontal=0;swimlaneLine=1;swimlineWidth=2;fillColor=#FFFACD;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="450" y="420" width="300" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="state-tracking" value="Tracking&#xa;Theo dõi tiến độ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1F5FF;strokeColor=#000000;" vertex="1" parent="composite-inprogress">
+          <mxGeometry x="50" y="50" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="state-alert" value="Alert&#xa;Gần deadline" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE4B5;strokeColor=#000000;" vertex="1" parent="composite-inprogress">
+          <mxGeometry x="50" y="130" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Transitions -->
+        <mxCell id="trans-init-created" value="Tạo mục tiêu" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;" edge="1" parent="1" source="initial" target="state-created">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="trans-created-active" value="Kích hoạt" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;" edge="1" parent="1" source="state-created" target="state-active">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="trans-active-inprogress" value="Bắt đầu đóng góp" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;" edge="1" parent="1" source="state-active" target="state-inprogress">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="trans-inprogress-self" value="Tiếp tục đóng góp" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;" edge="1" parent="1" source="state-inprogress" target="state-inprogress">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="350" y="455" />
+              <mxPoint x="400" y="455" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="trans-inprogress-achieved" value="current_amount &gt;= target_amount" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;" edge="1" parent="1" source="state-inprogress" target="state-achieved">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="trans-inprogress-paused" value="Tạm dừng" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;" edge="1" parent="1" source="state-inprogress" target="state-paused">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="trans-paused-inprogress" value="Tiếp tục" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;" edge="1" parent="1" source="state-paused" target="state-inprogress">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="trans-active-cancelled" value="Hủy" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;" edge="1" parent="1" source="state-active" target="state-cancelled">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="350" y="335" />
+              <mxPoint x="400" y="335" />
+              <mxPoint x="400" y="815" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="trans-inprogress-cancelled" value="Hủy" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;" edge="1" parent="1" source="state-inprogress" target="state-cancelled">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="350" y="455" />
+              <mxPoint x="400" y="455" />
+              <mxPoint x="400" y="815" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="trans-paused-cancelled" value="Hủy" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;" edge="1" parent="1" source="state-paused" target="state-cancelled">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="350" y="575" />
+              <mxPoint x="400" y="575" />
+              <mxPoint x="400" y="815" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="trans-achieved-final" value="Hoàn thành" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;" edge="1" parent="1" source="state-achieved" target="state-final">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="trans-cancelled-final" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;" edge="1" parent="1" source="state-cancelled" target="state-final">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Transitions in composite state -->
+        <mxCell id="trans-tracking-alert" value="Gần deadline" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;" edge="1" parent="1" source="state-tracking" target="state-alert">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="trans-alert-tracking" value="Cập nhật" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;" edge="1" parent="1" source="state-alert" target="state-tracking">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
+

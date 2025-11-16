@@ -1,0 +1,223 @@
+<mxfile host="app.diagrams.net" modified="2024-01-15T00:00:00.000Z" agent="5.0" version="21.0.0" etag="drawio" type="device">
+  <diagram name="Sequence_NLU_Transaction" id="sequence-nlu-tx">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- Title -->
+        <mxCell id="title" value="SEQUENCE DIAGRAM: Nhập Giao Dịch Bằng NLU (UC-004)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="50" y="20" width="1700" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Actors/Lifelines -->
+        <mxCell id="actor-user" value="User" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#FFD700;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="100" y="80" width="120" height="1000" as="geometry" />
+        </mxCell>
+        <mxCell id="lifeline-user" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle=elbowEdgeStyle;elbow=vertical;elbowVertical=50;orthogonalLoop=1;rounded=0;strokeWidth=2;&quot;};fillColor=none;strokeColor=#000000;" vertex="1" parent="actor-user">
+          <mxGeometry x="60" y="40" width="1" height="960" as="geometry" />
+        </mxCell>
+
+        <mxCell id="actor-frontend" value="Frontend&#xa;(Vue.js)" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#E1F5FE;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="300" y="80" width="120" height="1000" as="geometry" />
+        </mxCell>
+        <mxCell id="lifeline-frontend" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle=elbowEdgeStyle;elbow=vertical;elbowVertical=50;orthogonalLoop=1;rounded=0;strokeWidth=2;&quot;};fillColor=none;strokeColor=#000000;" vertex="1" parent="actor-frontend">
+          <mxGeometry x="60" y="40" width="1" height="960" as="geometry" />
+        </mxCell>
+
+        <mxCell id="actor-backend" value="Backend API&#xa;(Golang)" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#C8E6C9;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="500" y="80" width="120" height="1000" as="geometry" />
+        </mxCell>
+        <mxCell id="lifeline-backend" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle=elbowEdgeStyle;elbow=vertical;elbowVertical=50;orthogonalLoop=1;rounded=0;strokeWidth=2;&quot;};fillColor=none;strokeColor=#000000;" vertex="1" parent="actor-backend">
+          <mxGeometry x="60" y="40" width="1" height="960" as="geometry" />
+        </mxCell>
+
+        <mxCell id="actor-ai" value="AI Service&#xa;(Python)" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#FFCCBC;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="700" y="80" width="120" height="1000" as="geometry" />
+        </mxCell>
+        <mxCell id="lifeline-ai" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle=elbowEdgeStyle;elbow=vertical;elbowVertical=50;orthogonalLoop=1;rounded=0;strokeWidth=2;&quot;};fillColor=none;strokeColor=#000000;" vertex="1" parent="actor-ai">
+          <mxGeometry x="60" y="40" width="1" height="960" as="geometry" />
+        </mxCell>
+
+        <mxCell id="actor-gemini" value="Gemini API" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#FFF9C4;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="900" y="80" width="120" height="1000" as="geometry" />
+        </mxCell>
+        <mxCell id="lifeline-gemini" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle=elbowEdgeStyle;elbow=vertical;elbowVertical=50;orthogonalLoop=1;rounded=0;strokeWidth=2;&quot;};fillColor=none;strokeColor=#000000;" vertex="1" parent="actor-gemini">
+          <mxGeometry x="60" y="40" width="1" height="960" as="geometry" />
+        </mxCell>
+
+        <mxCell id="actor-db" value="Database&#xa;(MySQL)" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#D1C4E9;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="80" width="120" height="1000" as="geometry" />
+        </mxCell>
+        <mxCell id="lifeline-db" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle=elbowEdgeStyle;elbow=vertical;elbowVertical=50;orthogonalLoop=1;rounded=0;strokeWidth=2;&quot;};fillColor=none;strokeColor=#000000;" vertex="1" parent="actor-db">
+          <mxGeometry x="60" y="40" width="1" height="960" as="geometry" />
+        </mxCell>
+
+        <!-- Messages -->
+        <mxCell id="msg1" value="1. Nhập câu lệnh: &quot;ăn bún bò 50k&quot;" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;elbowVertical=50;rounded=0;strokeWidth=2;strokeColor=#1976D2;" edge="1" parent="1" source="lifeline-user" target="lifeline-frontend">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="msg2" value="2. POST /api/v1/ai/suggest-category&#xa;{message, user_id}" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;elbowVertical=50;rounded=0;strokeWidth=2;strokeColor=#1976D2;" edge="1" parent="1" source="lifeline-frontend" target="lifeline-backend">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="msg3" value="3. Process NLU Request" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;elbowVertical=50;rounded=0;strokeWidth=2;strokeColor=#1976D2;" edge="1" parent="1" source="lifeline-backend" target="lifeline-ai">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="msg4" value="4. Call Gemini API&#xa;Extract: amount, category, description" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;elbowVertical=50;rounded=0;strokeWidth=2;strokeColor=#1976D2;" edge="1" parent="1" source="lifeline-ai" target="lifeline-gemini">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="msg5" value="5. Return NLU Result" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;elbowVertical=50;rounded=0;strokeWidth=2;strokeColor=#1976D2;dashed=1;" edge="1" parent="1" source="lifeline-gemini" target="lifeline-ai">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="msg6" value="6. Find matching category" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;elbowVertical=50;rounded=0;strokeWidth=2;strokeColor=#1976D2;" edge="1" parent="1" source="lifeline-ai" target="lifeline-db">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="msg7" value="7. Return category" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;elbowVertical=50;rounded=0;strokeWidth=2;strokeColor=#1976D2;dashed=1;" edge="1" parent="1" source="lifeline-db" target="lifeline-ai">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="msg8" value="8. Return suggestion&#xa;{category_id, amount, description, confidence}" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;elbowVertical=50;rounded=0;strokeWidth=2;strokeColor=#1976D2;dashed=1;" edge="1" parent="1" source="lifeline-ai" target="lifeline-backend">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="msg9" value="9. Display preview for confirmation" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;elbowVertical=50;rounded=0;strokeWidth=2;strokeColor=#1976D2;dashed=1;" edge="1" parent="1" source="lifeline-backend" target="lifeline-frontend">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="msg10" value="10. User confirms" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;elbowVertical=50;rounded=0;strokeWidth=2;strokeColor=#1976D2;" edge="1" parent="1" source="lifeline-user" target="lifeline-frontend">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="msg11" value="11. POST /api/v1/transactions" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;elbowVertical=50;rounded=0;strokeWidth=2;strokeColor=#388E3C;" edge="1" parent="1" source="lifeline-frontend" target="lifeline-backend">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="msg12" value="12. Create transaction" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;elbowVertical=50;rounded=0;strokeWidth=2;strokeColor=#388E3C;" edge="1" parent="1" source="lifeline-backend" target="lifeline-db">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="msg13" value="13. Return created transaction" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;elbowVertical=50;rounded=0;strokeWidth=2;strokeColor=#388E3C;dashed=1;" edge="1" parent="1" source="lifeline-db" target="lifeline-backend">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="msg14" value="14. Update cache, check budget" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;elbowVertical=50;rounded=0;strokeWidth=2;strokeColor=#388E3C;" edge="1" parent="1" source="lifeline-backend" target="lifeline-db">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="msg15" value="15. Return transaction" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;elbowVertical=50;rounded=0;strokeWidth=2;strokeColor=#388E3C;dashed=1;" edge="1" parent="1" source="lifeline-backend" target="lifeline-frontend">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="msg16" value="16. Display success" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;elbowVertical=50;rounded=0;strokeWidth=2;strokeColor=#388E3C;dashed=1;" edge="1" parent="1" source="lifeline-frontend" target="lifeline-user">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Activation boxes -->
+        <mxCell id="activation-frontend-1" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;whiteSpace=wrap;html=1;fillColor=#E1F5FE;strokeColor=#000000;opacity=30;" vertex="1" parent="1">
+          <mxGeometry x="300" y="120" width="120" height="800" as="geometry" />
+        </mxCell>
+        <mxCell id="activation-backend-1" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#000000;opacity=30;" vertex="1" parent="1">
+          <mxGeometry x="500" y="140" width="120" height="780" as="geometry" />
+        </mxCell>
+        <mxCell id="activation-ai-1" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;whiteSpace=wrap;html=1;fillColor=#FFCCBC;strokeColor=#000000;opacity=30;" vertex="1" parent="1">
+          <mxGeometry x="700" y="160" width="120" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="activation-gemini-1" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;whiteSpace=wrap;html=1;fillColor=#FFF9C4;strokeColor=#000000;opacity=30;" vertex="1" parent="1">
+          <mxGeometry x="900" y="180" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="activation-db-1" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;whiteSpace=wrap;html=1;fillColor=#D1C4E9;strokeColor=#000000;opacity=30;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="220" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="activation-db-2" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;whiteSpace=wrap;html=1;fillColor=#D1C4E9;strokeColor=#000000;opacity=30;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="800" width="120" height="100" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+  
+  <diagram name="Sequence_Login" id="sequence-login">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- Title -->
+        <mxCell id="title" value="SEQUENCE DIAGRAM: Đăng Nhập (UC-002)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="50" y="20" width="1300" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Actors/Lifelines -->
+        <mxCell id="actor-user" value="User" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#FFD700;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="100" y="80" width="120" height="700" as="geometry" />
+        </mxCell>
+        <mxCell id="lifeline-user" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle=elbowEdgeStyle;elbow=vertical;elbowVertical=50;orthogonalLoop=1;rounded=0;strokeWidth=2;&quot;};fillColor=none;strokeColor=#000000;" vertex="1" parent="actor-user">
+          <mxGeometry x="60" y="40" width="1" height="660" as="geometry" />
+        </mxCell>
+
+        <mxCell id="actor-frontend" value="Frontend" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#E1F5FE;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="300" y="80" width="120" height="700" as="geometry" />
+        </mxCell>
+        <mxCell id="lifeline-frontend" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle=elbowEdgeStyle;elbow=vertical;elbowVertical=50;orthogonalLoop=1;rounded=0;strokeWidth=2;&quot;};fillColor=none;strokeColor=#000000;" vertex="1" parent="actor-frontend">
+          <mxGeometry x="60" y="40" width="1" height="660" as="geometry" />
+        </mxCell>
+
+        <mxCell id="actor-backend" value="Backend API" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#C8E6C9;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="500" y="80" width="120" height="700" as="geometry" />
+        </mxCell>
+        <mxCell id="lifeline-backend" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle=elbowEdgeStyle;elbow=vertical;elbowVertical=50;orthogonalLoop=1;rounded=0;strokeWidth=2;&quot;};fillColor=none;strokeColor=#000000;" vertex="1" parent="actor-backend">
+          <mxGeometry x="60" y="40" width="1" height="660" as="geometry" />
+        </mxCell>
+
+        <mxCell id="actor-db" value="Database" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#D1C4E9;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="700" y="80" width="120" height="700" as="geometry" />
+        </mxCell>
+        <mxCell id="lifeline-db" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle=elbowEdgeStyle;elbow=vertical;elbowVertical=50;orthogonalLoop=1;rounded=0;strokeWidth=2;&quot;};fillColor=none;strokeColor=#000000;" vertex="1" parent="actor-db">
+          <mxGeometry x="60" y="40" width="1" height="660" as="geometry" />
+        </mxCell>
+
+        <!-- Messages -->
+        <mxCell id="msg1" value="1. Nhập email và password" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;elbowVertical=50;rounded=0;strokeWidth=2;strokeColor=#1976D2;" edge="1" parent="1" source="lifeline-user" target="lifeline-frontend">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="msg2" value="2. POST /api/v1/auth/login&#xa;{email, password}" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;elbowVertical=50;rounded=0;strokeWidth=2;strokeColor=#1976D2;" edge="1" parent="1" source="lifeline-frontend" target="lifeline-backend">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="msg3" value="3. Validate input" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;elbowVertical=50;rounded=0;strokeWidth=2;strokeColor=#1976D2;" edge="1" parent="1" source="lifeline-backend" target="lifeline-backend">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="msg4" value="4. Find user by email" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;elbowVertical=50;rounded=0;strokeWidth=2;strokeColor=#1976D2;" edge="1" parent="1" source="lifeline-backend" target="lifeline-db">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="msg5" value="5. Return user data" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;elbowVertical=50;rounded=0;strokeWidth=2;strokeColor=#1976D2;dashed=1;" edge="1" parent="1" source="lifeline-db" target="lifeline-backend">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="msg6" value="6. Compare password hash" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;elbowVertical=50;rounded=0;strokeWidth=2;strokeColor=#1976D2;" edge="1" parent="1" source="lifeline-backend" target="lifeline-backend">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="msg7" value="7. Generate JWT tokens" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;elbowVertical=50;rounded=0;strokeWidth=2;strokeColor=#1976D2;" edge="1" parent="1" source="lifeline-backend" target="lifeline-backend">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="msg8" value="8. Save session to DB" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;elbowVertical=50;rounded=0;strokeWidth=2;strokeColor=#1976D2;" edge="1" parent="1" source="lifeline-backend" target="lifeline-db">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="msg9" value="9. Update last_login_at" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;elbowVertical=50;rounded=0;strokeWidth=2;strokeColor=#1976D2;" edge="1" parent="1" source="lifeline-backend" target="lifeline-db">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="msg10" value="10. Return {access_token, refresh_token, user}" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;elbowVertical=50;rounded=0;strokeWidth=2;strokeColor=#1976D2;dashed=1;" edge="1" parent="1" source="lifeline-backend" target="lifeline-frontend">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="msg11" value="11. Store tokens, redirect to dashboard" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;elbowVertical=50;rounded=0;strokeWidth=2;strokeColor=#1976D2;dashed=1;" edge="1" parent="1" source="lifeline-frontend" target="lifeline-user">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Activation boxes -->
+        <mxCell id="activation-frontend-1" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;whiteSpace=wrap;html=1;fillColor=#E1F5FE;strokeColor=#000000;opacity=30;" vertex="1" parent="1">
+          <mxGeometry x="300" y="120" width="120" height="600" as="geometry" />
+        </mxCell>
+        <mxCell id="activation-backend-1" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#000000;opacity=30;" vertex="1" parent="1">
+          <mxGeometry x="500" y="140" width="120" height="580" as="geometry" />
+        </mxCell>
+        <mxCell id="activation-db-1" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;whiteSpace=wrap;html=1;fillColor=#D1C4E9;strokeColor=#000000;opacity=30;" vertex="1" parent="1">
+          <mxGeometry x="700" y="180" width="120" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="activation-db-2" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;whiteSpace=wrap;html=1;fillColor=#D1C4E9;strokeColor=#000000;opacity=30;" vertex="1" parent="1">
+          <mxGeometry x="700" y="520" width="120" height="80" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
+

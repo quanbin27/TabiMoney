@@ -1,14 +1,13 @@
 """
-Shared helpers for calling local LLM backends (e.g. Ollama).
+Shared helpers for calling Google Gemini API.
 """
 
 from __future__ import annotations
 
-import asyncio
 import logging
 from typing import Any, Dict, Optional
 
-import httpx
+import aiohttp
 
 from app.core.config import settings
 from app.utils.json_utils import extract_json_block
@@ -16,7 +15,7 @@ from app.utils.json_utils import extract_json_block
 logger = logging.getLogger(__name__)
 
 
-async def call_ollama(
+async def call_gemini(
     prompt: str,
     *,
     temperature: float = 0.3,
@@ -25,7 +24,7 @@ async def call_ollama(
     timeout: Optional[float] = None,
 ) -> Dict[str, Any]:
     """
-    Call the configured Ollama endpoint and optionally parse the JSON response.
+    Call the Google Gemini API and optionally parse the JSON response.
 
     Args:
         prompt: Prompt sent to the model.
@@ -36,33 +35,54 @@ async def call_ollama(
 
     Returns:
         Dictionary with keys:
-            - `raw` (str): raw text response from Ollama.
+            - `raw` (str): raw text response from Gemini.
             - `json` (dict): parsed JSON payload when `format_json=True`.
     """
-    timeout = timeout or settings.LLM_TIMEOUT
-    max_tokens = max_tokens or settings.LLM_MAX_TOKENS
+    if not settings.USE_GEMINI or not settings.GEMINI_API_KEY:
+        raise ValueError("Gemini API is not configured. Please set USE_GEMINI=true and GEMINI_API_KEY.")
+    
+    timeout = timeout or 60.0
+    max_tokens = max_tokens or settings.GEMINI_MAX_TOKENS
 
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{settings.GEMINI_MODEL}:generateContent?key={settings.GEMINI_API_KEY}"
+    
     payload: Dict[str, Any] = {
-        "model": settings.LLM_MODEL,
-        "prompt": prompt,
-        "stream": False,
-        "options": {
+        "contents": [
+            {"parts": [{"text": prompt}]}
+        ],
+        "generationConfig": {
             "temperature": temperature,
-            "max_tokens": max_tokens,
-        },
+            "maxOutputTokens": max_tokens,
+        }
     }
+    
     if format_json:
-        payload["format"] = "json"
+        payload["generationConfig"]["response_mime_type"] = "application/json"
 
-    logger.debug("Calling Ollama model=%s", settings.LLM_MODEL)
-    async with httpx.AsyncClient(timeout=timeout) as client:
-        response = await client.post(f"{settings.OLLAMA_BASE_URL}/api/generate", json=payload)
-        response.raise_for_status()
-        body = response.json()
+    logger.debug("Calling Gemini model=%s", settings.GEMINI_MODEL)
+    
+    timeout_obj = aiohttp.ClientTimeout(total=timeout)
+    async with aiohttp.ClientSession(timeout=timeout_obj) as session:
+        async with session.post(url, json=payload) as resp:
+            resp.raise_for_status()
+            data = await resp.json()
 
-    raw = body.get("response", "")
-    parsed = extract_json_block(raw) if format_json else {}
-    return {"raw": raw, "json": parsed}
+    # Extract text from Gemini response
+    content = ""
+    try:
+        if "candidates" in data and data["candidates"]:
+            candidate = data["candidates"][0]
+            if "content" in candidate and "parts" in candidate["content"]:
+                content = candidate["content"]["parts"][0].get("text", "")
+            elif "text" in candidate:
+                content = candidate["text"]
+        elif "text" in data:
+            content = data["text"]
+        else:
+            content = str(data)
+    except Exception as e:
+        logger.error(f"Failed to extract Gemini content: {e}")
+        content = str(data)
 
-
-
+    parsed = extract_json_block(content) if format_json else {}
+    return {"raw": content, "json": parsed}

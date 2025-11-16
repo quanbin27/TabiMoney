@@ -51,7 +51,7 @@ TabiMoney là một hệ thống quản lý chi tiêu cá nhân thông minh, tí
 - **Database**: MySQL 8.0, Redis 7.0
 - **ORM**: GORM v2
 - **Authentication**: JWT, bcrypt
-- **AI Integration**: OpenAI API, Custom ML models
+- **AI Integration**: Google Gemini API, Custom ML models
 
 ### Frontend
 - **Framework**: Vue.js 3
@@ -61,7 +61,7 @@ TabiMoney là một hệ thống quản lý chi tiêu cá nhân thông minh, tí
 - **Charts**: Chart.js
 
 ### AI & ML
-- **NLU**: OpenAI GPT-4
+- **NLU**: Google Gemini
 - **Prediction**: Scikit-learn, TensorFlow
 - **Anomaly Detection**: Isolation Forest, LSTM
 - **Categorization**: NLP + Classification
@@ -201,8 +201,10 @@ REDIS_PORT=6379
 JWT_SECRET=your-super-secret-jwt-key
 JWT_EXPIRE_HOURS=24
 
-# OpenAI
-OPENAI_API_KEY=your-openai-api-key
+# Gemini (Required)
+USE_GEMINI=true
+GEMINI_API_KEY=your-gemini-api-key
+GEMINI_MODEL=gemini-1.5-flash
 
 # Server
 SERVER_PORT=8080
@@ -249,7 +251,7 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 ## 🙏 Acknowledgments
 
-- OpenAI cho GPT-4 API
+- Google Gemini cho AI API
 - Vue.js và Vuetify cho frontend framework
 - Echo framework cho Golang backend
 - Chart.js cho data visualization

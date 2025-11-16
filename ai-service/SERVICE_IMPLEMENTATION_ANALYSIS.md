@@ -148,16 +148,17 @@ for i, p in enumerate(preds):
 
 #### ✅ **3.1. LLM Call - THỰC**
 ```python
-# Line 46: Gọi Ollama LLM thực
-result = await call_ollama(prompt, temperature=0.2, max_tokens=400, format_json=True, timeout=120.0)
+# Line 45: Gọi Gemini LLM thực
+result = await call_gemini(prompt, temperature=0.2, max_tokens=400, format_json=True, timeout=120.0)
 ```
 **Xem `app/utils/llm.py`:**
 ```python
-# Line 58-60: HTTP call thực đến Ollama
-async with httpx.AsyncClient(timeout=timeout) as client:
-    response = await client.post(f"{settings.OLLAMA_BASE_URL}/api/generate", json=payload)
-    response.raise_for_status()
-    body = response.json()
+# HTTP call thực đến Gemini API
+url = f"https://generativelanguage.googleapis.com/v1beta/models/{settings.GEMINI_MODEL}:generateContent?key={settings.GEMINI_API_KEY}"
+async with aiohttp.ClientSession(timeout=timeout_obj) as session:
+    async with session.post(url, json=payload) as resp:
+        resp.raise_for_status()
+        data = await resp.json()
 ```
 **Kết luận:** ✅ Gọi LLM thực qua HTTP, không phải mock
 
@@ -191,7 +192,7 @@ for suggestion in suggestions:
 ⚠️ **MLService.predict_category() KHÔNG ĐƯỢC DÙNG** trong endpoint này. Endpoint chỉ dùng LLM.
 
 ### **KẾT LUẬN:**
-✅ **HOẠT ĐỘNG THỰC** - Gọi LLM thực, nhưng phụ thuộc vào Ollama service running
+✅ **HOẠT ĐỘNG THỰC** - Gọi LLM thực, phụ thuộc vào Gemini API
 
 ---
 
@@ -207,23 +208,16 @@ for suggestion in suggestions:
 
 #### ✅ **4.1. LLM Processing - THỰC**
 ```python
-# Line 148-164: Process với Ollama thực
-async def _process_with_ollama(self, request):
-    prompt = await self._build_prompt_with_categories(...)
-    result = await call_ollama(prompt, ...)  # Gọi LLM thực
-    content_dict = result.get("json") or extract_json_block(...)
-    parsed = self._parse_openai_response(...)
-```
-
-```python
-# Line 166-227: Process với Gemini thực
+# Process với Gemini thực
 async def _process_with_gemini(self, request):
     async with aiohttp.ClientSession(...) as session:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{settings.GEMINI_MODEL}:generateContent?key={settings.GEMINI_API_KEY}"
         async with session.post(url, json=payload) as resp:  # HTTP call thực
             data = await resp.json()
+        content_dict = extract_json_block(content)
+        parsed = self._parse_gemini_response(json.dumps(content_dict), ...)
 ```
-**Kết luận:** ✅ Gọi LLM thực (Ollama/Gemini), không phải mock
+**Kết luận:** ✅ Gọi LLM thực (Gemini), không phải mock
 
 #### ✅ **4.2. Rule-Based Fallback - THỰC**
 ```python
@@ -292,9 +286,8 @@ async def _handle_analyze_data(self, user_id, nlu_response):
 **Kết luận:** ✅ Phân tích thực từ database, không phải mock
 
 ### **Fallback Chain:**
-1. **Gemini** (nếu `USE_GEMINI=True` và có API key)
-2. **Ollama** (nếu Gemini fail hoặc không có)
-3. **Rule-based** (nếu cả 2 LLM fail)
+1. **Gemini** (nếu `USE_GEMINI=True` và có API key) - Required
+2. **Rule-based** (nếu Gemini fail hoặc không có API key)
 
 ### **KẾT LUẬN:**
 ✅ **HOẠT ĐỘNG THỰC 100%** - Có LLM thực + fallback rule-based thực, tất cả database operations đều thực
@@ -385,8 +378,8 @@ async def predict_category(self, transaction_data):
 
 #### ✅ **6.1. LLM Call - THỰC**
 ```python
-# Line 47: Gọi Ollama thực
-result = await call_ollama(prompt, temperature=0.3, max_tokens=400, format_json=True)
+# Line 47: Gọi Gemini thực
+result = await call_gemini(prompt, temperature=0.3, max_tokens=400, format_json=True)
 ```
 **Kết luận:** ✅ Gọi LLM thực
 
@@ -403,7 +396,7 @@ recommendations = ensure_string_list(payload.get("recommendations"))
 - ❌ **Exception:** Trả về default insights/recommendations
 
 ### **KẾT LUẬN:**
-✅ **HOẠT ĐỘNG THỰC** - Gọi LLM thực, phụ thuộc Ollama
+✅ **HOẠT ĐỘNG THỰC** - Gọi LLM thực, phụ thuộc Gemini API
 
 ---
 
@@ -413,10 +406,10 @@ recommendations = ensure_string_list(payload.get("recommendations"))
 |---------|-----------|----------|-------|----------|---------|
 | **PredictionService** | ✅ **THỰC** | ✅ Query thực | ✅ Train/Predict thực | ✅ EMA fallback | Hoạt động đầy đủ |
 | **AnomalyService** | ✅ **THỰC** | ✅ Query thực | ✅ IsolationForest thực | ❌ Empty khi thiếu data | Hoạt động đầy đủ |
-| **Categorization** | ✅ **THỰC** | ❌ Không dùng | ✅ LLM thực | ❌ Empty khi fail | Phụ thuộc Ollama |
+| **Categorization** | ✅ **THỰC** | ❌ Không dùng | ✅ LLM thực | ❌ Empty khi fail | Phụ thuộc Gemini |
 | **NLU/Chat Service** | ✅ **THỰC** | ✅ Query/Create thực | ✅ LLM thực + Rule-based | ✅ Rule-based fallback | Hoạt động đầy đủ |
 | **MLService** | ⚠️ **THỰC NHƯNG KHÔNG DÙNG** | ✅ Query thực | ✅ Train/Predict thực | ❌ Default models | Không được integrate |
-| **Analysis Service** | ✅ **THỰC** | ❌ Không dùng | ✅ LLM thực | ✅ Default response | Phụ thuộc Ollama |
+| **Analysis Service** | ✅ **THỰC** | ❌ Không dùng | ✅ LLM thực | ✅ Default response | Phụ thuộc Gemini |
 
 ---
 

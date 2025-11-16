@@ -9,17 +9,15 @@ import re
 from datetime import datetime, timedelta
 import json
 
-"""NLU service using Gemini or local Ollama; OpenAI removed."""
+"""NLU service using Google Gemini."""
 
 import aiohttp
-import httpx
 
 from app.core.config import settings
 from app.core.database import get_db
 from app.models.nlu import ChatRequest, ChatResponse, Entity, NLURequest, NLUResponse
 from app.services.transaction_service import TransactionService
 from app.utils.json_utils import extract_json_block
-from app.utils.llm import call_ollama
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +27,6 @@ class NLUService:
     
     def __init__(self):
         self.client: Optional[object] = None
-        self.ollama_client: Optional[httpx.AsyncClient] = None
         self.is_initialized = False
         self.transaction_service = TransactionService()
         
@@ -58,39 +55,28 @@ class NLUService:
         logger.info("Initializing NLU Service...")
         
         try:
-            if settings.USE_GEMINI and settings.GEMINI_API_KEY:
-                # Prefer Gemini if configured
-                self.ollama_client = None
-                self.client = None
-                await self._test_gemini_connection()
-                logger.info("NLU Service initialized with Gemini")
-            else:
-                # Force use Ollama when USE_OPENAI is False
-                self.ollama_client = httpx.AsyncClient(timeout=30.0)
-                await self._test_ollama_connection()
-                logger.info("NLU Service initialized with Ollama (forced)")
+            if not settings.USE_GEMINI or not settings.GEMINI_API_KEY:
+                raise ValueError("Gemini API key is required. Please set USE_GEMINI=true and GEMINI_API_KEY in environment variables.")
             
+            await self._test_gemini_connection()
+            logger.info("NLU Service initialized with Gemini")
             self.is_initialized = True
             
         except Exception as e:
             logger.error(f"Failed to initialize NLU Service: {e}")
             # Fallback to rule-based NLU
             self.is_initialized = True
-            logger.info("NLU Service initialized with rule-based fallback")
+            logger.warning("NLU Service initialized with rule-based fallback (Gemini not available)")
     
     async def cleanup(self):
         """Cleanup NLU service"""
         logger.info("Cleaning up NLU Service...")
         self.client = None
-        if self.ollama_client:
-            await self.ollama_client.aclose()
         self.is_initialized = False
     
     def is_ready(self) -> bool:
         """Check if NLU service is ready"""
         return self.is_initialized
-    
-    # OpenAI support removed
 
     async def _test_gemini_connection(self):
         """Test Gemini API connection"""
@@ -105,24 +91,6 @@ class NLUService:
             logger.error(f"Gemini API connection failed: {e}")
             raise
     
-    async def _test_ollama_connection(self):
-        """Test Ollama connection"""
-        try:
-            response = await self.ollama_client.post(
-                f"{settings.OLLAMA_BASE_URL}/api/generate",
-                json={
-                    "model": settings.LLM_MODEL,
-                    "prompt": "Hello",
-                    "stream": False
-                }
-            )
-            if response.status_code == 200:
-                logger.info("Ollama connection test successful")
-            else:
-                raise Exception(f"Ollama returned status {response.status_code}")
-        except Exception as e:
-            logger.error(f"Ollama connection test failed: {e}")
-            raise
     
     async def process_nlu(self, request: NLURequest) -> NLUResponse:
         """Process Natural Language Understanding request"""
@@ -130,38 +98,17 @@ class NLUService:
             raise RuntimeError("NLU Service not ready")
         
         try:
-            # Try AI service first if available
+            # Use Gemini if available
             if settings.USE_GEMINI and settings.GEMINI_API_KEY:
                 return await self._process_with_gemini(request)
-            elif self.ollama_client:
-                return await self._process_with_ollama(request)
             else:
+                # Fallback to rule-based processing
                 return await self._process_with_rules(request)
                 
         except Exception as e:
             logger.error(f"Failed to process NLU: {e}")
             # Fallback to rule-based processing
             return await self._process_with_rules(request)
-    
-    # OpenAI processing removed
-    
-    async def _process_with_ollama(self, request: NLURequest) -> NLUResponse:
-        """Process NLU using Ollama"""
-        try:
-            prompt = await self._build_prompt_with_categories(request.text, request.user_id, request.context)
-            
-            result = await call_ollama(prompt, temperature=0.3, max_tokens=300, format_json=True)
-            content_dict = result.get("json") or extract_json_block(result.get("raw", ""))
-            if not content_dict:
-                raise ValueError("Empty JSON payload from Ollama")
-
-            parsed = self._parse_openai_response(json.dumps(content_dict), request.user_id, request.text)
-            parsed = await self._normalize_entities_add_category_id(parsed, request.user_id)
-            return parsed
-            
-        except Exception as e:
-            logger.error(f"Ollama NLU processing failed: {e}")
-            raise
 
     async def _process_with_gemini(self, request: NLURequest) -> NLUResponse:
         """Process NLU using Google Gemini"""
@@ -187,9 +134,6 @@ class NLUService:
                     logger.info(f"Gemini response status: {resp.status}")
                     if resp.status != 200:
                         logger.error(f"Gemini returned status {resp.status}")
-                        # fallback to Ollama
-                        if self.ollama_client:
-                            return await self._process_with_ollama(request)
                         raise Exception(f"Gemini returned status {resp.status}")
                     data = await resp.json()
                     logger.info(f"Gemini raw response: {json.dumps(data, indent=2)[:500]}...")
@@ -212,18 +156,15 @@ class NLUService:
 
                     try:
                         content_dict = extract_json_block(content)
-                        parsed = self._parse_openai_response(json.dumps(content_dict), request.user_id, request.text)
+                        parsed = self._parse_gemini_response(json.dumps(content_dict), request.user_id, request.text)
                         parsed = await self._normalize_entities_add_category_id(parsed, request.user_id)
                         logger.info("Gemini parsing successful: intent=%s", parsed.intent)
                         return parsed
                     except Exception as e:
-                        logger.warning("Falling back to Ollama due to parse failure (Gemini): %s", e)
-                        return await self._process_with_ollama(request)
+                        logger.warning("Failed to parse Gemini response: %s", e)
+                        raise
         except Exception as e:
             logger.error(f"Gemini NLU processing failed: {e}")
-            # fallback to Ollama
-            if self.ollama_client:
-                return await self._process_with_ollama(request)
             raise
     
     async def _build_prompt_with_categories(self, text: str, user_id: int, context: str) -> str:
@@ -319,8 +260,8 @@ Output:"""
                 generated_at=datetime.now().isoformat() + "Z"
             )
     
-    def _parse_openai_response(self, content: str, user_id: int, original_text: str = "") -> NLUResponse:
-        """Parse OpenAI response"""
+    def _parse_gemini_response(self, content: str, user_id: int, original_text: str = "") -> NLUResponse:
+        """Parse Gemini response"""
         try:
             import json
             data = json.loads(content)
@@ -365,7 +306,7 @@ Output:"""
             )
             
         except Exception as e:
-            logger.error(f"Failed to parse OpenAI response: {e}")
+            logger.error(f"Failed to parse Gemini response: {e}")
             raise
 
     async def _normalize_entities_add_category_id(self, nlu: NLUResponse, user_id: int) -> NLUResponse:

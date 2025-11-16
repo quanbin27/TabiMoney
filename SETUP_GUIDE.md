@@ -12,6 +12,7 @@ TabiMoney là hệ thống quản lý tài chính cá nhân với các tính nă
 - **Frontend**: Vue.js 3 + Vuetify 3
 - **Backend**: Go + Echo framework
 - **AI Service**: Python + FastAPI
+- **Telegram Bot**: Python + python-telegram-bot
 - **Database**: MySQL 8.0
 - **Cache**: Redis
 - **Container**: Docker + Docker Compose
@@ -56,11 +57,14 @@ DB_PASSWORD=password
 JWT_SECRET=your-secret-key-here
 JWT_EXPIRE_HOURS=24
 
-# AI Service
+# AI Service (Required)
+USE_GEMINI=true
 GEMINI_API_KEY=your-gemini-api-key
-GEMINI_MODEL=gemini-2.5-flash
-OLLAMA_BASE_URL=http://ollama:11434
-OLLAMA_MODEL=llama3.2
+GEMINI_MODEL=gemini-1.5-flash
+
+# Telegram Bot (Required for Telegram integration)
+# Get your bot token from @BotFather on Telegram
+TELEGRAM_BOT_TOKEN=your-telegram-bot-token
 
 # Frontend
 VITE_API_BASE_URL=http://localhost:8080
@@ -88,7 +92,8 @@ docker exec tabimoney_backend ./generate_mock_data.sh
 ### 5. Truy cập ứng dụng
 - **Frontend**: http://localhost:3000
 - **Backend API**: http://localhost:8080
-- **AI Service**: http://localhost:8000
+- **AI Service**: http://localhost:8001
+- **Telegram Bot**: Tìm bot trên Telegram (tên bot tùy theo cấu hình)
 - **Database**: localhost:3306
 - **Redis**: localhost:6379
 
@@ -107,6 +112,7 @@ docker-compose logs -f
 docker-compose logs -f backend
 docker-compose logs -f frontend
 docker-compose logs -f ai-service
+docker-compose logs -f telegram-bot
 ```
 
 ### Restart services
@@ -117,6 +123,7 @@ docker-compose restart
 # Restart service cụ thể
 docker-compose restart backend
 docker-compose restart frontend
+docker-compose restart telegram-bot
 ```
 
 ### Dừng và xóa
@@ -164,6 +171,7 @@ docker-compose restart mysql
 ```bash
 # Kiểm tra API key
 echo $GEMINI_API_KEY
+echo $USE_GEMINI
 
 # Restart AI service
 docker-compose restart ai-service
@@ -175,6 +183,21 @@ docker-compose restart ai-service
 docker-compose down
 docker-compose build --no-cache frontend
 docker-compose up -d
+```
+
+5. **Telegram Bot không hoạt động**
+```bash
+# Kiểm tra bot token
+echo $TELEGRAM_BOT_TOKEN
+
+# Kiểm tra logs
+docker-compose logs telegram-bot
+
+# Restart telegram bot
+docker-compose restart telegram-bot
+
+# Kiểm tra kết nối database và backend
+docker-compose logs telegram-bot | grep -i error
 ```
 
 ### Kiểm tra sức khỏe hệ thống
@@ -194,6 +217,7 @@ docker exec tabimoney_mysql mysql -u root -ppassword -e "SHOW DATABASES;"
 TabiMoney/
 ├── frontend/          # Vue.js frontend
 ├── ai-service/        # Python AI service
+├── telegram-bot/      # Python Telegram bot
 ├── internal/          # Go backend
 ├── database/          # Database schema
 ├── docker-compose.yml # Docker configuration
@@ -229,6 +253,13 @@ TabiMoney/
 ### AI Assistant
 - `POST /api/v1/ai/chat` - Chat với AI
 - `POST /api/v1/ai/nlu` - Natural Language Understanding
+
+### Telegram Bot
+- Bot tự động chạy khi docker-compose khởi động
+- Sử dụng `/start` để bắt đầu
+- Sử dụng `/link` để liên kết tài khoản với mã liên kết từ web app
+- Sử dụng `/dashboard` để xem dashboard tài chính
+- Gửi tin nhắn bất kỳ để chat với AI assistant
 
 ## Liên hệ hỗ trợ
 Nếu gặp vấn đề, vui lòng tạo issue hoặc liên hệ qua email.

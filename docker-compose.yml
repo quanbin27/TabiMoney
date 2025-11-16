@@ -49,13 +49,9 @@ services:
     environment:
       - DATABASE_URL=mysql+pymysql://${DB_USER:-tabimoney}:${DB_PASSWORD:-password}@mysql:3306/${DB_NAME:-tabimoney}
       - REDIS_URL=redis://redis:6379/1
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - USE_OPENAI=${USE_OPENAI:-false}
-      - OLLAMA_BASE_URL=http://ollama:11434
-      - LLM_MODEL=qwen2.5:7b-instruct
       - USE_GEMINI=${USE_GEMINI:-true}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-1.5-flash}
       - DEBUG=false
     ports:
       - "8001:8001"
@@ -70,8 +66,10 @@ services:
       - ai_models:/app/models
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
       timeout: 10s
-      retries: 5
+      start_period: 90s
+      retries: 3
 
   # Backend API (Go)
   backend:
@@ -111,9 +109,11 @@ services:
     volumes:
       - ./uploads:/app/uploads
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--spider", "http://localhost:8080/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
       timeout: 10s
-      retries: 5
+      start_period: 90s
+      retries: 3
 
   # Frontend Web App
   frontend:
@@ -133,19 +133,49 @@ services:
     networks:
       - tabimoney_network
 
-  # Nginx Reverse Proxy (disabled; use frontend on :3000)
-
-  # Ollama local LLM
-  ollama:
-    image: ollama/ollama:latest
-    container_name: tabimoney_ollama
+  # Telegram Bot
+  telegram-bot:
+    build:
+      context: ./telegram-bot
+      dockerfile: Dockerfile
+    container_name: tabimoney_telegram_bot
     restart: unless-stopped
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_models:/root/.ollama
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - BACKEND_URL=http://backend:8080
+      - AI_SERVICE_URL=http://ai-service:8001
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=${DB_USER:-tabimoney}
+      - DB_PASSWORD=${DB_PASSWORD:-password}
+      - DB_NAME=${DB_NAME:-tabimoney}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - REDIS_DB=0
+      - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-here}
+      - LINK_CODE_EXPIRE_MINUTES=10
+      - LINK_CODE_LENGTH=8
+      - RATE_LIMIT_MESSAGES=30
+      - RATE_LIMIT_WINDOW_MINUTES=1
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - LOG_FORMAT=${LOG_FORMAT:-json}
+      - ENV=production
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+      ai-service:
+        condition: service_healthy
     networks:
       - tabimoney_network
+    volumes:
+      - ./telegram-bot/logs:/app/logs
+
+  # Nginx Reverse Proxy (disabled; use frontend on :3000)
 
 volumes:
   mysql_data:
@@ -153,8 +183,6 @@ volumes:
   redis_data:
     driver: local
   ai_models:
-    driver: local
-  ollama_models:
     driver: local
 
 networks:

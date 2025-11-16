@@ -15,7 +15,6 @@ type Config struct {
 	Redis    RedisConfig
 	JWT      JWTConfig
 	Server   ServerConfig
-	OpenAI   OpenAIConfig
 	Email    EmailConfig
 	Upload   UploadConfig
 	RateLimit RateLimitConfig
@@ -48,12 +47,6 @@ type ServerConfig struct {
 	Port        string
 	Host        string
 	CORSOrigins []string
-}
-
-type OpenAIConfig struct {
-	APIKey     string
-	Model      string
-	MaxTokens  int
 }
 
 type EmailConfig struct {
@@ -108,11 +101,6 @@ func Load() (*Config, error) {
 			Port:        getEnv("SERVER_PORT", "8080"),
 			Host:        getEnv("SERVER_HOST", "localhost"),
 			CORSOrigins: strings.Split(getEnv("CORS_ORIGINS", "http://localhost:3000,http://localhost:8080"), ","),
-		},
-		OpenAI: OpenAIConfig{
-			APIKey:    getEnv("OPENAI_API_KEY", ""),
-			Model:     getEnv("OPENAI_MODEL", "gpt-4"),
-			MaxTokens: getEnvAsInt("OPENAI_MAX_TOKENS", 1000),
 		},
 		Email: EmailConfig{
 			SMTPHost:     getEnv("SMTP_HOST", "smtp.gmail.com"),

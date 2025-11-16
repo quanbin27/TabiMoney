@@ -3,7 +3,7 @@ from typing import List, Optional
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from app.utils.llm import call_ollama
+from app.utils.llm import call_gemini
 from app.utils.json_utils import extract_json_block, ensure_string_list
 
 router = APIRouter()
@@ -44,7 +44,7 @@ async def analyze_spending(req: SpendingAnalysisRequest):
     )
 
     try:
-        result = await call_ollama(
+        result = await call_gemini(
             prompt,
             temperature=0.3,
             max_tokens=400,

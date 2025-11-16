@@ -1,0 +1,79 @@
+<mxfile host="app.diagrams.net" modified="2024-01-15T00:00:00.000Z" agent="5.0" version="21.0.0" etag="drawio" type="device">
+  <diagram name="UseCase_BudgetManagement" id="usecase-budget">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1000" pageHeight="800" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <mxCell id="actor-user" value="User" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#FFD700;" vertex="1" parent="1">
+          <mxGeometry x="80" y="200" width="30" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="system-package" value="Budget Management" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=40;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#90EE90;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="200" y="100" width="700" height="500" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc-create-budget" value="Tạo ngân sách" style="ellipse;whiteSpace=wrap;html=1;fillColor=#87CEEB;strokeColor=#000000;" vertex="1" parent="system-package">
+          <mxGeometry x="50" y="50" width="150" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="uc-list-budgets" value="Xem danh sách ngân sách" style="ellipse;whiteSpace=wrap;html=1;fillColor=#87CEEB;strokeColor=#000000;" vertex="1" parent="system-package">
+          <mxGeometry x="250" y="50" width="150" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="uc-update-budget" value="Cập nhật ngân sách" style="ellipse;whiteSpace=wrap;html=1;fillColor=#87CEEB;strokeColor=#000000;" vertex="1" parent="system-package">
+          <mxGeometry x="450" y="50" width="150" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="uc-delete-budget" value="Xóa ngân sách" style="ellipse;whiteSpace=wrap;html=1;fillColor=#87CEEB;strokeColor=#000000;" vertex="1" parent="system-package">
+          <mxGeometry x="50" y="180" width="150" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="uc-view-stats" value="Xem thống kê ngân sách" style="ellipse;whiteSpace=wrap;html=1;fillColor=#87CEEB;strokeColor=#000000;" vertex="1" parent="system-package">
+          <mxGeometry x="250" y="180" width="150" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="uc-budget-alert" value="Nhận cảnh báo vượt ngân sách" style="ellipse;whiteSpace=wrap;html=1;fillColor=#87CEEB;strokeColor=#000000;" vertex="1" parent="system-package">
+          <mxGeometry x="450" y="180" width="150" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="uc-auto-suggest" value="Gợi ý ngân sách tự động" style="ellipse;whiteSpace=wrap;html=1;fillColor=#87CEEB;strokeColor=#000000;" vertex="1" parent="system-package">
+          <mxGeometry x="50" y="310" width="150" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="uc-create-from-suggestion" value="Tạo ngân sách từ gợi ý" style="ellipse;whiteSpace=wrap;html=1;fillColor=#87CEEB;strokeColor=#000000;" vertex="1" parent="system-package">
+          <mxGeometry x="250" y="310" width="150" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Relationships -->
+        <mxCell id="edge-user-create" value="" style="endArrow=simple;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="actor-user" target="uc-create-budget">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-user-list" value="" style="endArrow=simple;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="actor-user" target="uc-list-budgets">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-user-update" value="" style="endArrow=simple;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="actor-user" target="uc-update-budget">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-user-delete" value="" style="endArrow=simple;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="actor-user" target="uc-delete-budget">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-user-stats" value="" style="endArrow=simple;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="actor-user" target="uc-view-stats">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-user-suggest" value="" style="endArrow=simple;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="actor-user" target="uc-auto-suggest">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-user-create-from" value="" style="endArrow=simple;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="actor-user" target="uc-create-from-suggestion">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Extends/Includes -->
+        <mxCell id="edge-list-includes-stats" value="&lt;&lt;includes&gt;&gt;" style="endArrow=simple;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;dashed=1;" edge="1" parent="1" source="uc-list-budgets" target="uc-view-stats">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-stats-extends-alert" value="&lt;&lt;extends&gt;&gt;" style="endArrow=simple;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;dashed=1;" edge="1" parent="1" source="uc-view-stats" target="uc-budget-alert">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-suggest-extends-create" value="&lt;&lt;extends&gt;&gt;" style="endArrow=simple;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;dashed=1;" edge="1" parent="1" source="uc-auto-suggest" target="uc-create-from-suggestion">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
+

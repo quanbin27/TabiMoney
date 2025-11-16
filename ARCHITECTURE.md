@@ -9,7 +9,7 @@ Hệ thống TabiMoney là một ứng dụng quản lý chi tiêu cá nhân th�
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │   Web App       │    │  Telegram Bot   │    │   Mobile App    │
-│   (Vue.js +     │    │   (Future)      │    │   (Future)      │
+│   (Vue.js +     │    │                 │    │   (Future)      │
 │   Vuetify)      │    │                 │    │                 │
 └─────────┬───────┘    └─────────┬───────┘    └─────────┬───────┘
           │                      │                      │
@@ -40,7 +40,7 @@ Hệ thống TabiMoney là một ứng dụng quản lý chi tiêu cá nhân th�
           │                       │                       │
 ┌─────────┴─────────┐    ┌─────────┴─────────┐    ┌─────────┴─────────┐
 │   MySQL Database  │    │   Redis Cache     │    │   External APIs   │
-│   - Users         │    │   - Session       │    │   - OpenAI API     │
+│   - Users         │    │   - Session       │    │   - Gemini API     │
 │   - Transactions  │    │   - Dashboard     │    │   - Email Service  │
 │   - Categories    │    │   - Real-time     │    │   - Notification   │
 │   - Goals         │    │   - AI Cache      │    │   - Analytics      │
@@ -63,7 +63,7 @@ Hệ thống TabiMoney là một ứng dụng quản lý chi tiêu cá nhân th�
 - **CORS & Security**: Comprehensive security headers
 
 ### 3. AI Agent Layer
-- **NLU Engine**: OpenAI GPT-4 for natural language processing
+- **NLU Engine**: Google Gemini for natural language processing
 - **Expense Prediction**: Machine Learning models
 - **Anomaly Detection**: Statistical analysis + ML
 - **Smart Categorization**: NLP + Classification algorithms
@@ -98,7 +98,7 @@ User Message → NLU Processing → Intent Recognition → Database Query → AI
 - **Database**: MySQL 8.0, Redis 7.0
 - **ORM**: GORM v2
 - **Authentication**: JWT, bcrypt
-- **AI Integration**: OpenAI API, Custom ML models
+- **AI Integration**: Google Gemini API, Custom ML models
 
 ### Frontend
 - **Framework**: Vue.js 3
@@ -108,7 +108,7 @@ User Message → NLU Processing → Intent Recognition → Database Query → AI
 - **Real-time**: WebSocket
 
 ### AI & ML
-- **NLU**: OpenAI GPT-4
+- **NLU**: Google Gemini
 - **Prediction**: Scikit-learn, TensorFlow
 - **Anomaly Detection**: Isolation Forest, LSTM
 - **Categorization**: NLP + Classification

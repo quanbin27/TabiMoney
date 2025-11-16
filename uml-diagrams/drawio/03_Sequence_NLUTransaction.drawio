@@ -1,0 +1,109 @@
+<mxfile host="app.diagrams.net" modified="2024-01-15T00:00:00.000Z" agent="5.0" version="21.0.0" etag="drawio" type="device">
+  <diagram name="Sequence_NLUTransaction" id="sequence-nlu">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="1600" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Lifelines -->
+        <mxCell id="actor-user" value="User" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" vertex="1" parent="1">
+          <mxGeometry x="80" y="80" width="30" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="lifeline-frontend" value="Frontend" style="swimlane;html=1;startSize=40;horizontal=0;swimlaneLine=1;swimlineWidth=2;fillColor=#E1F5FF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="200" y="80" width="150" height="1200" as="geometry" />
+        </mxCell>
+        <mxCell id="lifeline-backend" value="Backend API" style="swimlane;html=1;startSize=40;horizontal=0;swimlaneLine=1;swimlineWidth=2;fillColor=#E1F5FF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="400" y="80" width="150" height="1200" as="geometry" />
+        </mxCell>
+        <mxCell id="lifeline-ai" value="AI Service" style="swimlane;html=1;startSize=40;horizontal=0;swimlaneLine=1;swimlineWidth=2;fillColor=#E1F5FF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="600" y="80" width="150" height="1200" as="geometry" />
+        </mxCell>
+        <mxCell id="lifeline-nlu" value="NLU Service" style="swimlane;html=1;startSize=40;horizontal=0;swimlaneLine=1;swimlineWidth=2;fillColor=#E1F5FF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="800" y="80" width="150" height="1200" as="geometry" />
+        </mxCell>
+        <mxCell id="lifeline-db" value="Database" style="swimlane;html=1;startSize=40;horizontal=0;swimlaneLine=1;swimlineWidth=2;fillColor=#E1F5FF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="80" width="150" height="1200" as="geometry" />
+        </mxCell>
+
+        <!-- Messages -->
+        <mxCell id="msg1" value="Nhập câu: &quot;tôi vừa ăn bún bò 50k&quot;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;" edge="1" parent="1" source="actor-user" target="lifeline-frontend">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="msg2" value="POST /api/v1/ai/nlu" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;" edge="1" parent="1" source="lifeline-frontend" target="lifeline-backend">
+          <mxGeometry y="200" x="50" relative="1" as="geometry">
+            <mxPoint x="350" y="250" as="sourcePoint" />
+            <mxPoint x="550" y="250" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg3" value="Gửi yêu cầu NLU" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;" edge="1" parent="1" source="lifeline-backend" target="lifeline-ai">
+          <mxGeometry y="300" x="50" relative="1" as="geometry">
+            <mxPoint x="550" y="350" as="sourcePoint" />
+            <mxPoint x="750" y="350" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg4" value="Xử lý ngôn ngữ tự nhiên" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;" edge="1" parent="1" source="lifeline-ai" target="lifeline-nlu">
+          <mxGeometry y="400" x="50" relative="1" as="geometry">
+            <mxPoint x="750" y="450" as="sourcePoint" />
+            <mxPoint x="950" y="450" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg5" value="Trích xuất: amount, category, date" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=1;dashed=1;" edge="1" parent="1" source="lifeline-nlu" target="lifeline-nlu">
+          <mxGeometry y="500" x="50" relative="1" as="geometry">
+            <mxPoint x="875" y="550" as="sourcePoint" />
+            <mxPoint x="875" y="600" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg6" value="Trả về structured data" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;dashed=1;" edge="1" parent="1" source="lifeline-nlu" target="lifeline-ai">
+          <mxGeometry y="600" x="50" relative="1" as="geometry">
+            <mxPoint x="950" y="650" as="sourcePoint" />
+            <mxPoint x="750" y="650" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg7" value="{amount: 50000, category: &quot;Ăn uống&quot;, date: &quot;2024-01-15&quot;}" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;dashed=1;" edge="1" parent="1" source="lifeline-ai" target="lifeline-backend">
+          <mxGeometry y="700" x="50" relative="1" as="geometry">
+            <mxPoint x="750" y="750" as="sourcePoint" />
+            <mxPoint x="550" y="750" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg8" value="Kiểm tra category" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;" edge="1" parent="1" source="lifeline-backend" target="lifeline-db">
+          <mxGeometry y="800" x="50" relative="1" as="geometry">
+            <mxPoint x="550" y="850" as="sourcePoint" />
+            <mxPoint x="1000" y="850" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg9" value="Category info" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;dashed=1;" edge="1" parent="1" source="lifeline-db" target="lifeline-backend">
+          <mxGeometry y="900" x="50" relative="1" as="geometry">
+            <mxPoint x="1000" y="950" as="sourcePoint" />
+            <mxPoint x="550" y="950" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg10" value="Tạo transaction" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;" edge="1" parent="1" source="lifeline-backend" target="lifeline-db">
+          <mxGeometry y="1000" x="50" relative="1" as="geometry">
+            <mxPoint x="550" y="1050" as="sourcePoint" />
+            <mxPoint x="1000" y="1050" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg11" value="Transaction created" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;dashed=1;" edge="1" parent="1" source="lifeline-db" target="lifeline-backend">
+          <mxGeometry y="1100" x="50" relative="1" as="geometry">
+            <mxPoint x="1000" y="1150" as="sourcePoint" />
+            <mxPoint x="550" y="1150" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg12" value="Transaction response" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;dashed=1;" edge="1" parent="1" source="lifeline-backend" target="lifeline-frontend">
+          <mxGeometry y="1200" x="50" relative="1" as="geometry">
+            <mxPoint x="550" y="1250" as="sourcePoint" />
+            <mxPoint x="350" y="1250" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg13" value="Hiển thị giao dịch đã tạo" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;" edge="1" parent="1" source="lifeline-frontend" target="actor-user">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="275" y="1350" as="sourcePoint" />
+            <mxPoint x="95" y="140" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
+

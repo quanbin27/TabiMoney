@@ -1,0 +1,88 @@
+<mxfile host="app.diagrams.net" modified="2024-01-15T00:00:00.000Z" agent="5.0" version="21.0.0" etag="drawio" type="device">
+  <diagram name="State_Transaction" id="state-transaction">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1000" pageHeight="1400" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Initial State -->
+        <mxCell id="initial" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="100" y="200" width="30" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- States -->
+        <mxCell id="state-draft" value="Draft&#xa;Tạo mới" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1F5FF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="200" y="180" width="150" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="state-pending" value="Pending&#xa;Lưu nháp" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1F5FF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="200" y="300" width="150" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="state-confirmed" value="Confirmed&#xa;Xác nhận" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#90EE90;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="200" y="420" width="150" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="state-updated" value="Updated&#xa;Cập nhật" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1F5FF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="200" y="540" width="150" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="state-cancelled" value="Cancelled&#xa;Hủy" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFB6C1;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="200" y="660" width="150" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="state-deleted" value="Deleted&#xa;Xóa" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFB6C1;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="200" y="780" width="150" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="state-final" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="240" y="920" width="30" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Composite State Confirmed -->
+        <mxCell id="composite-confirmed" value="Confirmed" style="swimlane;html=1;startSize=30;horizontal=0;swimlaneLine=1;swimlineWidth=2;fillColor=#FFFACD;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="450" y="420" width="300" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="state-active" value="Active" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1F5FF;strokeColor=#000000;" vertex="1" parent="composite-confirmed">
+          <mxGeometry x="50" y="50" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="state-recurring" value="Recurring&#xa;Nếu is_recurring = true" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1F5FF;strokeColor=#000000;" vertex="1" parent="composite-confirmed">
+          <mxGeometry x="50" y="120" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Transitions -->
+        <mxCell id="trans-init-draft" value="Tạo mới" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;" edge="1" parent="1" source="initial" target="state-draft">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="trans-draft-pending" value="Lưu nháp" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;" edge="1" parent="1" source="state-draft" target="state-pending">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="trans-pending-confirmed" value="Xác nhận" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;" edge="1" parent="1" source="state-pending" target="state-confirmed">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="trans-pending-cancelled" value="Hủy" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;" edge="1" parent="1" source="state-pending" target="state-cancelled">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="trans-confirmed-updated" value="Cập nhật" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;" edge="1" parent="1" source="state-confirmed" target="state-updated">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="trans-updated-confirmed" value="Xác nhận lại" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;" edge="1" parent="1" source="state-updated" target="state-confirmed">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="trans-confirmed-deleted" value="Xóa" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;" edge="1" parent="1" source="state-confirmed" target="state-deleted">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="trans-updated-deleted" value="Xóa" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;" edge="1" parent="1" source="state-updated" target="state-deleted">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="trans-cancelled-final" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;" edge="1" parent="1" source="state-cancelled" target="state-final">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="trans-deleted-final" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;" edge="1" parent="1" source="state-deleted" target="state-final">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Transitions in composite state -->
+        <mxCell id="trans-active-recurring" value="is_recurring = true" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;" edge="1" parent="1" source="state-active" target="state-recurring">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
+
