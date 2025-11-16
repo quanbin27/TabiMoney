@@ -1,0 +1,27 @@
+@startuml UseCase_GoalManagement
+actor User as user
+
+package "Financial Goal Management" {
+    usecase "Tạo mục tiêu" as UC_CreateGoal
+    usecase "Xem danh sách mục tiêu" as UC_ListGoals
+    usecase "Cập nhật mục tiêu" as UC_UpdateGoal
+    usecase "Xóa mục tiêu" as UC_DeleteGoal
+    usecase "Đóng góp vào mục tiêu" as UC_Contribute
+    usecase "Xem tiến độ mục tiêu" as UC_ViewProgress
+    usecase "Đánh dấu hoàn thành" as UC_MarkAchieved
+    usecase "Nhận cảnh báo mục tiêu" as UC_GoalAlert
+}
+
+user --> UC_CreateGoal
+user --> UC_ListGoals
+user --> UC_UpdateGoal
+user --> UC_DeleteGoal
+user --> UC_Contribute
+user --> UC_ViewProgress
+
+UC_ListGoals ..> UC_ViewProgress : <<includes>>
+UC_Contribute ..> UC_ViewProgress : <<includes>>
+UC_ViewProgress ..> UC_GoalAlert : <<extends>>
+
+@enduml
+

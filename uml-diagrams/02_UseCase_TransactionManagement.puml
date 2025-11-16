@@ -1,0 +1,33 @@
+@startuml UseCase_TransactionManagement
+actor User as user
+
+package "Transaction Management" {
+    usecase "Nhập giao dịch thủ công" as UC_CreateManual
+    usecase "Nhập giao dịch bằng NLU" as UC_CreateNLU
+    usecase "Xem danh sách giao dịch" as UC_List
+    usecase "Lọc giao dịch" as UC_Filter
+    usecase "Tìm kiếm giao dịch" as UC_Search
+    usecase "Cập nhật giao dịch" as UC_Update
+    usecase "Xóa giao dịch" as UC_Delete
+    usecase "Xem chi tiết giao dịch" as UC_ViewDetail
+    usecase "Đánh dấu giao dịch định kỳ" as UC_MarkRecurring
+    usecase "Phân loại tự động" as UC_AutoCategorize
+}
+
+user --> UC_CreateManual
+user --> UC_CreateNLU
+user --> UC_List
+user --> UC_Filter
+user --> UC_Search
+user --> UC_Update
+user --> UC_Delete
+user --> UC_ViewDetail
+user --> UC_MarkRecurring
+
+UC_CreateNLU ..> UC_AutoCategorize : <<uses>>
+UC_List ..> UC_Filter : <<includes>>
+UC_List ..> UC_Search : <<includes>>
+UC_List ..> UC_ViewDetail : <<includes>>
+
+@enduml
+

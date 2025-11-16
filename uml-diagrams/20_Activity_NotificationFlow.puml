@@ -1,0 +1,48 @@
+@startuml Activity_NotificationFlow
+start
+:Sự kiện trigger (transaction, budget, goal);
+:Kiểm tra notification preferences;
+if (User bật thông báo?) then (Không)
+    stop
+endif
+:Xác định loại thông báo;
+if (Loại thông báo?) then (Budget Alert)
+    :Kiểm tra budget threshold;
+    if (Vượt threshold?) then (Có)
+        :Tạo notification;
+    else (Không)
+        stop
+    endif
+elseif (Goal Alert) then
+    :Kiểm tra goal progress;
+    if (Cần cảnh báo?) then (Có)
+        :Tạo notification;
+    else (Không)
+        stop
+    endif
+elseif (Large Transaction) then
+    :Kiểm tra amount > 1M;
+    if (Lớn hơn?) then (Có)
+        :Tạo notification;
+    else (Không)
+        stop
+    endif
+else (Scheduled)
+    :Kiểm tra lịch;
+    :Tạo notification;
+endif
+:Kiểm tra channel preferences;
+if (Email enabled?) then (Có)
+    :Gửi email;
+endif
+if (In-app enabled?) then (Có)
+    :Lưu vào DB;
+    :Push real-time notification;
+endif
+if (Telegram enabled?) then (Có)
+    :Gửi qua Telegram bot;
+endif
+stop
+
+@enduml
+

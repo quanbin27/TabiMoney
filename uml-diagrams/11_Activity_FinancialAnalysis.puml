@@ -1,0 +1,28 @@
+@startuml Activity_FinancialAnalysis
+start
+:User yêu cầu xem phân tích;
+:Kiểm tra cache;
+if (Có cache?) then (Có)
+    :Trả về dữ liệu từ cache;
+    stop
+endif
+:Lấy dữ liệu giao dịch từ DB;
+:Tính toán tổng thu nhập;
+:Tính toán tổng chi tiêu;
+:Tính toán số dư;
+:Phân tích theo danh mục;
+:Tính toán tỷ lệ phần trăm;
+:Tính toán financial health score;
+:Phân tích xu hướng;
+:Kiểm tra có đủ dữ liệu cho AI?;
+if (Có đủ dữ liệu?) then (Có)
+    :Gọi AI Service phân tích;
+    :Nhận insights và recommendations;
+endif
+:Tổng hợp kết quả;
+:Lưu vào cache;
+:Trả về kết quả cho user;
+stop
+
+@enduml
+

@@ -1,0 +1,23 @@
+@startuml State_FinancialGoal
+[*] --> Created : Tạo mục tiêu
+Created --> Active : Kích hoạt
+Active --> InProgress : Bắt đầu đóng góp
+InProgress --> InProgress : Tiếp tục đóng góp
+InProgress --> Achieved : current_amount >= target_amount
+InProgress --> Paused : Tạm dừng
+Paused --> InProgress : Tiếp tục
+Achieved --> [*] : Hoàn thành
+Active --> Cancelled : Hủy
+InProgress --> Cancelled : Hủy
+Paused --> Cancelled : Hủy
+Cancelled --> [*]
+
+state InProgress {
+    [*] --> Tracking
+    Tracking : Theo dõi tiến độ
+    Tracking --> Alert : Gần deadline
+    Alert --> Tracking : Cập nhật
+}
+
+@enduml
+

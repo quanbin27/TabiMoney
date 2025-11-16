@@ -1,0 +1,27 @@
+@startuml Activity_ExpensePrediction
+start
+:User yêu cầu dự đoán chi tiêu;
+:Lấy lịch sử giao dịch 3-6 tháng;
+if (Đủ dữ liệu?) then (Không)
+    :Trả về thông báo cần thêm dữ liệu;
+    stop
+endif
+:Chuẩn bị dữ liệu training;
+:Phân tích pattern chi tiêu;
+:Tính toán xu hướng;
+:Gọi AI Service;
+:AI Service xử lý với ML model;
+:Phân tích theo danh mục;
+:Tính toán dự đoán cho từng danh mục;
+:Tổng hợp kết quả;
+:Tính toán confidence score;
+if (Confidence > threshold?) then (Có)
+    :Lưu prediction vào DB;
+    :Trả về kết quả dự đoán;
+else (Không)
+    :Trả về với cảnh báo độ tin cậy thấp;
+endif
+stop
+
+@enduml
+

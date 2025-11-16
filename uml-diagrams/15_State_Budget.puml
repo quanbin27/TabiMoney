@@ -1,0 +1,27 @@
+@startuml State_Budget
+[*] --> Created : Tạo ngân sách
+Created --> Active : Kích hoạt
+Active --> Monitoring : Bắt đầu theo dõi
+Monitoring --> Warning : usage >= alert_threshold
+Monitoring --> Exceeded : usage >= 100%
+Warning --> Monitoring : Giảm chi tiêu
+Warning --> Exceeded : Tiếp tục chi tiêu
+Exceeded --> Monitoring : Điều chỉnh ngân sách
+Monitoring --> Completed : Hết thời gian
+Active --> Paused : Tạm dừng
+Paused --> Active : Kích hoạt lại
+Active --> Cancelled : Hủy
+Monitoring --> Cancelled : Hủy
+Completed --> [*]
+Cancelled --> [*]
+
+state Monitoring {
+    [*] --> Normal
+    Normal --> Alert : usage > threshold
+    Alert --> Critical : usage > 90%
+    Critical --> Alert : usage giảm
+    Alert --> Normal : usage < threshold
+}
+
+@enduml
+

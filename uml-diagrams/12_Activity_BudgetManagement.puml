@@ -1,0 +1,28 @@
+@startuml Activity_BudgetManagement
+start
+:User tạo/cập nhật ngân sách;
+:Validate dữ liệu ngân sách;
+if (Dữ liệu hợp lệ?) then (Không)
+    :Hiển thị lỗi;
+    stop
+endif
+:Lưu ngân sách vào DB;
+:Tính toán spent amount;
+:Tính toán remaining amount;
+:Tính toán usage percentage;
+if (Usage > Alert Threshold?) then (Có)
+    :Gửi thông báo cảnh báo;
+endif
+if (Usage >= 100%?) then (Có)
+    :Gửi thông báo vượt ngân sách;
+endif
+:Kiểm tra pacing;
+if (Chi tiêu vượt tốc độ?) then (Có)
+    :Gửi cảnh báo pacing;
+endif
+:Cập nhật dashboard cache;
+:Hiển thị kết quả;
+stop
+
+@enduml
+
