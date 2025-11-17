@@ -448,3 +448,4 @@
 - Collation: utf8mb4_unicode_ci
 - Engine: InnoDB (hỗ trợ transactions và foreign keys)
 
+

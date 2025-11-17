@@ -1,0 +1,51 @@
+@startuml SEQ_003_ManualTransaction
+actor User
+participant "Frontend" as Frontend
+participant "Backend API" as Backend
+participant "Transaction Handler" as Handler
+participant "Transaction Service" as Service
+participant "Database" as DB
+participant "Budget Service" as BudgetService
+participant "Notification Dispatcher" as Notification
+participant "Cache" as Cache
+
+User -> Frontend: Điền form giao dịch
+Frontend -> Backend: POST /api/v1/transactions
+Backend -> Handler: Create(request)
+Handler -> Service: CreateTransaction(userID, request)
+Service -> Service: Validate dữ liệu
+Service -> DB: Kiểm tra category tồn tại và thuộc về user
+DB --> Service: Category valid
+Service -> DB: INSERT INTO transactions
+DB --> Service: Transaction created
+Service -> BudgetService: CheckBudgetNotifications(userID)
+BudgetService -> BudgetService: Tính toán spent amount
+BudgetService -> Notification: TriggerBudgetThresholdAlert (nếu cần)
+Service -> Service: Kiểm tra amount > 1M VND
+alt Amount > 1M VND
+    Service -> Notification: TriggerLargeTransactionAlert
+    Notification --> User: Gửi thông báo
+end
+Service -> Cache: DeleteDashboardCache(userID)
+Service --> Handler: Transaction response
+Handler --> Backend: Transaction response
+Backend --> Frontend: 201 Created
+Frontend --> User: Hiển thị giao dịch mới
+
+alt Category không tồn tại
+    DB --> Service: Category not found
+    Service --> Handler: Error: Category not found
+    Handler --> Backend: 400 Bad Request
+    Backend --> Frontend: Error response
+    Frontend --> User: Hiển thị lỗi
+end
+
+alt Số tiền không hợp lệ
+    Service -> Service: Validate dữ liệu
+    Service --> Handler: Error: Amount must be > 0
+    Handler --> Backend: 400 Bad Request
+    Backend --> Frontend: Error response
+    Frontend --> User: Hiển thị lỗi
+end
+@enduml
+

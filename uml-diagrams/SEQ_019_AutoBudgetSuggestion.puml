@@ -1,0 +1,50 @@
+@startuml SEQ_019_AutoBudgetSuggestion
+actor User
+participant "Frontend" as Frontend
+participant "Backend API" as Backend
+participant "Budget Handler" as Handler
+participant "Budget Service" as Service
+participant "Database" as DB
+participant "AI Service" as AI
+
+User -> Frontend: Truy cập trang "Đề xuất ngân sách"
+Frontend -> Backend: GET /api/v1/budgets/auto/suggestions
+Backend -> Handler: GetAutoBudgetSuggestions(userID)
+Handler -> Service: GetSuggestions(userID)
+Service -> DB: Lấy monthly_income từ user_profile
+DB --> Service: monthly_income
+
+alt Chưa có monthly_income
+    DB --> Service: monthly_income = 0 hoặc NULL
+    Service --> Handler: Error: Need monthly_income
+    Handler --> Backend: 400 Bad Request
+    Backend --> Frontend: Error response
+    Frontend --> User: Yêu cầu khai báo monthly_income
+end
+
+Service -> DB: Query transactions 3 tháng gần nhất
+DB --> Service: Transaction history
+Service -> Service: Phân tích chi tiêu theo category
+Service -> Service: Tính trung bình chi tiêu
+Service -> AI: Phân tích pattern và đề xuất
+AI --> Service: Suggested budgets
+Service -> Service: Đảm bảo tổng <= monthly_income * 0.9
+Service --> Handler: Suggestions response
+Handler --> Backend: Suggestions
+Backend --> Frontend: 200 OK với danh sách đề xuất
+Frontend --> User: Hiển thị đề xuất
+
+User -> Frontend: Chấp nhận hoặc chỉnh sửa
+Frontend -> Backend: POST /api/v1/budgets/auto/create
+Backend -> Handler: CreateBudgetsFromSuggestions(request)
+Handler -> Service: CreateBudgets(userID, suggestions)
+loop Cho mỗi suggestion
+    Service -> DB: INSERT INTO budgets
+end
+DB --> Service: Budgets created
+Service --> Handler: Budgets response
+Handler --> Backend: Budgets created
+Backend --> Frontend: 201 Created
+Frontend --> User: Hiển thị budgets đã tạo
+@enduml
+

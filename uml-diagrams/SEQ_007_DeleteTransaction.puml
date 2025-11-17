@@ -1,0 +1,41 @@
+@startuml SEQ_007_DeleteTransaction
+actor User
+participant "Frontend" as Frontend
+participant "Backend API" as Backend
+participant "Transaction Handler" as Handler
+participant "Transaction Service" as Service
+participant "Database" as DB
+participant "Cache" as Cache
+
+User -> Frontend: Chọn giao dịch cần xóa
+User -> Frontend: Nhấn "Xóa"
+Frontend -> Frontend: Hiển thị xác nhận
+User -> Frontend: Xác nhận xóa
+Frontend -> Backend: DELETE /api/v1/transactions/:id
+Backend -> Handler: Delete(id)
+Handler -> Service: DeleteTransaction(id, userID)
+Service -> DB: SELECT transaction WHERE id = :id
+DB --> Service: Transaction data
+Service -> Service: Kiểm tra quyền sở hữu
+Service -> DB: DELETE FROM transactions WHERE id = :id
+DB --> Service: Transaction deleted
+Service -> Cache: Xóa cache dashboard
+Service --> Handler: Success
+Handler --> Backend: 200 OK
+Backend --> Frontend: Success response
+Frontend --> User: Giao dịch biến mất khỏi danh sách
+
+alt User hủy xóa
+    User -> Frontend: Nhấn "Hủy"
+    Frontend -> Frontend: Đóng dialog
+end
+
+alt Giao dịch không tồn tại
+    DB --> Service: Transaction not found
+    Service --> Handler: Error: Transaction not found
+    Handler --> Backend: 404 Not Found
+    Backend --> Frontend: Error response
+    Frontend --> User: Hiển thị lỗi
+end
+@enduml
+

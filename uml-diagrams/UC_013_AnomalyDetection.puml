@@ -1,0 +1,27 @@
+@startuml UC_013_AnomalyDetection
+actor "AI Service" as AI
+actor "System" as System
+
+package "Anomaly Detection System" {
+    usecase "Phát hiện bất thường" as UC_AnomalyDetection
+    usecase "Lấy lịch sử giao dịch" as UC_GetHistory
+    usecase "Tính toán pattern" as UC_CalculatePattern
+    usecase "So sánh với baseline" as UC_CompareBaseline
+    usecase "Tính anomaly score" as UC_CalculateScore
+    usecase "Lưu kết quả phân tích" as UC_SaveAnalysis
+    usecase "Tạo notification cảnh báo" as UC_CreateAlert
+}
+
+System --> UC_AnomalyDetection
+AI --> UC_CalculatePattern
+AI --> UC_CompareBaseline
+AI --> UC_CalculateScore
+UC_AnomalyDetection ..> UC_GetHistory : <<includes>>
+UC_AnomalyDetection ..> UC_CalculatePattern : <<includes>>
+UC_AnomalyDetection ..> UC_CompareBaseline : <<includes>>
+UC_AnomalyDetection ..> UC_CalculateScore : <<includes>>
+UC_AnomalyDetection ..> UC_SaveAnalysis : <<includes>>
+UC_AnomalyDetection ..> UC_CreateAlert : <<extends>>
+
+@enduml
+

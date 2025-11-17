@@ -1,0 +1,32 @@
+@startuml SEQ_010_CreateBudget
+actor User
+participant "Frontend" as Frontend
+participant "Backend API" as Backend
+participant "Budget Handler" as Handler
+participant "Budget Service" as Service
+participant "Database" as DB
+
+User -> Frontend: Truy cập trang quản lý ngân sách
+User -> Frontend: Nhấn "Tạo ngân sách mới"
+User -> Frontend: Nhập thông tin ngân sách
+Frontend -> Backend: POST /api/v1/budgets
+Backend -> Handler: CreateBudget(request)
+Handler -> Service: CreateBudget(userID, request)
+Service -> Service: Validate dữ liệu
+Service -> Service: Kiểm tra date range
+Service -> DB: INSERT INTO budgets
+DB --> Service: Budget created
+Service --> Handler: Budget response
+Handler --> Backend: Budget response
+Backend --> Frontend: 201 Created
+Frontend --> User: Hiển thị budget mới
+
+alt End date <= Start date
+    Service -> Service: Kiểm tra date range
+    Service --> Handler: Error: End date must be after start date
+    Handler --> Backend: 400 Bad Request
+    Backend --> Frontend: Error response
+    Frontend --> User: Hiển thị lỗi
+end
+@enduml
+

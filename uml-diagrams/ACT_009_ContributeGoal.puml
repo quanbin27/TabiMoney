@@ -1,0 +1,32 @@
+@startuml ACT_009_ContributeGoal
+start
+:User chọn mục tiêu cần thêm tiền;
+:User nhấn "Thêm tiền";
+:User nhập số tiền và note (tùy chọn);
+:Validate amount > 0;
+if (Amount <= 0?) then (có)
+  :Trả về lỗi "Amount must be greater than 0";
+  stop
+endif
+:Kiểm tra goal tồn tại và thuộc về user;
+if (Goal không tồn tại?) then (có)
+  :Trả về lỗi "Goal not found";
+  stop
+endif
+if (Mục tiêu đã đạt?) then (có)
+  :Cảnh báo "Goal already achieved";
+  :Vẫn cho phép thêm tiền (over-achievement);
+endif
+:Cập nhật current_amount = current_amount + amount;
+:Tính progress = (current_amount / target_amount) * 100;
+if (current_amount >= target_amount?) then (có)
+  :Set is_achieved = true;
+  :Set achieved_at = now();
+  :Tạo notification chúc mừng;
+endif
+:Cập nhật goal record;
+:Trả về goal đã cập nhật;
+:Hiển thị tiến độ được cập nhật;
+stop
+@enduml
+

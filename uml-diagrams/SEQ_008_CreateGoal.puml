@@ -1,0 +1,32 @@
+@startuml SEQ_008_CreateGoal
+actor User
+participant "Frontend" as Frontend
+participant "Backend API" as Backend
+participant "Goal Handler" as Handler
+participant "Goal Service" as Service
+participant "Database" as DB
+
+User -> Frontend: Truy cập trang quản lý mục tiêu
+User -> Frontend: Nhấn "Tạo mục tiêu mới"
+User -> Frontend: Nhập thông tin mục tiêu
+Frontend -> Backend: POST /api/v1/goals
+Backend -> Handler: CreateGoal(request)
+Handler -> Service: CreateGoal(userID, request)
+Service -> Service: Validate dữ liệu
+Service -> DB: INSERT INTO financial_goals
+DB --> Service: Goal created
+Service -> Service: Tính toán progress
+Service --> Handler: Goal response
+Handler --> Backend: Goal response
+Backend --> Frontend: 201 Created
+Frontend --> User: Hiển thị mục tiêu mới
+
+alt Target amount không hợp lệ
+    Service -> Service: Validate dữ liệu
+    Service --> Handler: Error: Target amount must be > 0
+    Handler --> Backend: 400 Bad Request
+    Backend --> Frontend: Error response
+    Frontend --> User: Hiển thị lỗi
+end
+@enduml
+

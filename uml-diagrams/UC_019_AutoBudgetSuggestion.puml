@@ -1,0 +1,31 @@
+@startuml UC_019_AutoBudgetSuggestion
+actor User
+actor "AI Service" as AI
+
+package "Budget Suggestion System" {
+    usecase "Đề xuất ngân sách tự động" as UC_AutoBudgetSuggestion
+    usecase "Lấy monthly_income" as UC_GetIncome
+    usecase "Phân tích chi tiêu 3 tháng" as UC_AnalyzeSpending
+    usecase "Tính trung bình theo category" as UC_CalculateAverage
+    usecase "Đề xuất budget" as UC_SuggestBudget
+    usecase "Đảm bảo tổng <= income" as UC_EnsureTotal
+    usecase "Hiển thị đề xuất" as UC_ShowSuggestions
+    usecase "Chấp nhận hoặc chỉnh sửa" as UC_AcceptOrEdit
+    usecase "Tạo budgets" as UC_CreateBudgets
+}
+
+User --> UC_AutoBudgetSuggestion
+AI --> UC_AnalyzeSpending
+AI --> UC_CalculateAverage
+AI --> UC_SuggestBudget
+UC_AutoBudgetSuggestion ..> UC_GetIncome : <<includes>>
+UC_AutoBudgetSuggestion ..> UC_AnalyzeSpending : <<includes>>
+UC_AutoBudgetSuggestion ..> UC_CalculateAverage : <<includes>>
+UC_AutoBudgetSuggestion ..> UC_SuggestBudget : <<includes>>
+UC_AutoBudgetSuggestion ..> UC_EnsureTotal : <<includes>>
+UC_AutoBudgetSuggestion ..> UC_ShowSuggestions : <<includes>>
+UC_AutoBudgetSuggestion ..> UC_AcceptOrEdit : <<includes>>
+UC_AutoBudgetSuggestion ..> UC_CreateBudgets : <<includes>>
+
+@enduml
+

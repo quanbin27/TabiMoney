@@ -1,0 +1,34 @@
+@startuml ACT_012_AIChat
+start
+:User mở chat interface;
+:User nhập câu hỏi:
+"Tháng này tôi tiêu bao nhiêu cho ăn uống?";
+:Gửi request đến AI Service với user_id và message;
+:AI Service phân tích intent từ câu hỏi;
+if (AI không hiểu câu hỏi?) then (có)
+  :AI Service trả về "Tôi không hiểu câu hỏi";
+  :Hiển thị thông báo;
+  stop
+endif
+:AI Service xác định loại câu hỏi;
+if (Hỏi về spending?) then (có)
+  :Query transactions;
+elseif (Hỏi về goals?) then (có)
+  :Query financial_goals;
+elseif (Hỏi về budget?) then (có)
+  :Query budgets;
+endif
+:AI Service tạo context từ dữ liệu;
+if (Không có dữ liệu?) then (có)
+  :AI Service trả về "Bạn chưa có dữ liệu về [topic]";
+  :Hiển thị thông báo;
+  stop
+endif
+:AI Service gọi Gemini API với context và câu hỏi;
+:Gemini trả về câu trả lời tự nhiên;
+:AI Service format câu trả lời;
+:Trả về response cho user;
+:Hiển thị câu trả lời trong chat;
+stop
+@enduml
+

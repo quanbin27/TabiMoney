@@ -1,0 +1,78 @@
+@startuml INDEX_ALL
+title Tổng hợp tất cả các biểu đồ UML - TabiMoney System
+
+package "Use Case Diagrams (20 files)" {
+    [UC_001_Register.puml] - Đăng ký tài khoản
+    [UC_002_Login.puml] - Đăng nhập
+    [UC_003_ManualTransaction.puml] - Nhập giao dịch thủ công
+    [UC_004_NLUTransaction.puml] - Nhập giao dịch bằng NLU
+    [UC_005_ViewTransactions.puml] - Xem danh sách giao dịch
+    [UC_006_UpdateTransaction.puml] - Cập nhật giao dịch
+    [UC_007_DeleteTransaction.puml] - Xóa giao dịch
+    [UC_008_CreateGoal.puml] - Tạo mục tiêu tài chính
+    [UC_009_ContributeGoal.puml] - Đóng góp vào mục tiêu
+    [UC_010_CreateBudget.puml] - Tạo ngân sách
+    [UC_011_DashboardAnalytics.puml] - Xem Dashboard Analytics
+    [UC_012_AIChat.puml] - Chat với AI
+    [UC_013_AnomalyDetection.puml] - Phát hiện bất thường
+    [UC_014_ExpensePrediction.puml] - Dự đoán chi tiêu
+    [UC_015_ManageNotifications.puml] - Quản lý thông báo
+    [UC_016_LinkTelegram.puml] - Liên kết Telegram
+    [UC_017_TelegramTransaction.puml] - Nhập giao dịch qua Telegram
+    [UC_018_BudgetAlert.puml] - Cảnh báo vượt ngân sách
+    [UC_019_AutoBudgetSuggestion.puml] - Đề xuất ngân sách tự động
+    [UC_020_DetailedReport.puml] - Xem báo cáo phân tích chi tiết
+}
+
+package "Activity Diagrams (13+ files)" {
+    [ACT_001_Register.puml] - Quy trình đăng ký
+    [ACT_002_Login.puml] - Quy trình đăng nhập
+    [ACT_005_ViewTransactions.puml] - Quy trình xem giao dịch
+    [ACT_006_UpdateTransaction.puml] - Quy trình cập nhật giao dịch
+    [ACT_007_DeleteTransaction.puml] - Quy trình xóa giao dịch
+    [ACT_008_CreateGoal.puml] - Quy trình tạo mục tiêu
+    [ACT_009_ContributeGoal.puml] - Quy trình đóng góp mục tiêu
+    [ACT_010_CreateBudget.puml] - Quy trình tạo ngân sách
+    [ACT_015_ManageNotifications.puml] - Quy trình quản lý thông báo
+    [ACT_016_LinkTelegram.puml] - Quy trình liên kết Telegram
+    [ACT_017_TelegramTransaction.puml] - Quy trình giao dịch Telegram
+    [ACT_018_BudgetAlert.puml] - Quy trình cảnh báo ngân sách
+    [ACT_019_AutoBudgetSuggestion.puml] - Quy trình đề xuất ngân sách
+    [ACT_020_DetailedReport.puml] - Quy trình báo cáo chi tiết
+    [10_Activity_TransactionEntry.puml] - Quy trình nhập giao dịch (đã có)
+    [11_Activity_FinancialAnalysis.puml] - Quy trình phân tích tài chính (đã có)
+    [12_Activity_BudgetManagement.puml] - Quy trình quản lý ngân sách (đã có)
+    [19_Activity_ExpensePrediction.puml] - Quy trình dự đoán chi tiêu (đã có)
+    [20_Activity_NotificationFlow.puml] - Quy trình thông báo (đã có)
+}
+
+package "Sequence Diagrams (10+ files)" {
+    [SEQ_001_Register.puml] - Luồng đăng ký
+    [SEQ_005_ViewTransactions.puml] - Luồng xem giao dịch
+    [SEQ_006_UpdateTransaction.puml] - Luồng cập nhật giao dịch
+    [SEQ_007_DeleteTransaction.puml] - Luồng xóa giao dịch
+    [SEQ_008_CreateGoal.puml] - Luồng tạo mục tiêu
+    [SEQ_010_CreateBudget.puml] - Luồng tạo ngân sách
+    [SEQ_016_LinkTelegram.puml] - Luồng liên kết Telegram
+    [SEQ_017_TelegramTransaction.puml] - Luồng giao dịch Telegram
+    [SEQ_019_AutoBudgetSuggestion.puml] - Luồng đề xuất ngân sách
+    [06_Sequence_NLUTransaction.puml] - Luồng NLU transaction (đã có)
+    [07_Sequence_GoalManagement.puml] - Luồng quản lý mục tiêu (đã có)
+    [08_Sequence_AnomalyDetection.puml] - Luồng phát hiện bất thường (đã có)
+    [09_Sequence_AIChat.puml] - Luồng AI chat (đã có)
+    [17_Sequence_Authentication.puml] - Luồng xác thực (đã có)
+    [18_Sequence_DashboardAnalytics.puml] - Luồng Dashboard (đã có)
+}
+
+package "State Diagrams (3 files)" {
+    [13_State_Transaction.puml] - Trạng thái giao dịch (đã có)
+    [14_State_FinancialGoal.puml] - Trạng thái mục tiêu (đã có)
+    [15_State_Budget.puml] - Trạng thái ngân sách (đã có)
+}
+
+package "ERD Diagram (1 file)" {
+    [16_ERD_TabiMoney.puml] - Entity Relationship Diagram (đã có)
+}
+
+@enduml
+

@@ -1,0 +1,21 @@
+@startuml UC_005_ViewTransactions
+actor User
+
+package "Transaction Management" {
+    usecase "Xem danh sách giao dịch" as UC_ViewTransactions
+    usecase "Lọc giao dịch" as UC_FilterTransactions
+    usecase "Tìm kiếm giao dịch" as UC_SearchTransactions
+    usecase "Sắp xếp giao dịch" as UC_SortTransactions
+    usecase "Phân trang" as UC_Paginate
+    usecase "Xem chi tiết giao dịch" as UC_ViewDetail
+}
+
+User --> UC_ViewTransactions
+UC_ViewTransactions ..> UC_FilterTransactions : <<includes>>
+UC_ViewTransactions ..> UC_SearchTransactions : <<includes>>
+UC_ViewTransactions ..> UC_SortTransactions : <<includes>>
+UC_ViewTransactions ..> UC_Paginate : <<includes>>
+UC_ViewTransactions ..> UC_ViewDetail : <<includes>>
+
+@enduml
+

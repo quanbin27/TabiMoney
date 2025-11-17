@@ -1,0 +1,25 @@
+@startuml UC_016_LinkTelegram
+actor User
+actor "Telegram Bot" as Telegram
+
+package "Telegram Integration" {
+    usecase "Liên kết Telegram" as UC_LinkTelegram
+    usecase "Tạo link code" as UC_GenerateCode
+    usecase "Hiển thị link code" as UC_ShowCode
+    usecase "Nhập link code trong Telegram" as UC_EnterCode
+    usecase "Validate code" as UC_ValidateCode
+    usecase "Lưu liên kết" as UC_SaveLink
+    usecase "Xác nhận liên kết" as UC_ConfirmLink
+}
+
+User --> UC_LinkTelegram
+Telegram --> UC_EnterCode
+UC_LinkTelegram ..> UC_GenerateCode : <<includes>>
+UC_LinkTelegram ..> UC_ShowCode : <<includes>>
+UC_LinkTelegram ..> UC_EnterCode : <<includes>>
+UC_LinkTelegram ..> UC_ValidateCode : <<includes>>
+UC_LinkTelegram ..> UC_SaveLink : <<includes>>
+UC_LinkTelegram ..> UC_ConfirmLink : <<includes>>
+
+@enduml
+

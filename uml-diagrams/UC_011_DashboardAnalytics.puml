@@ -1,0 +1,27 @@
+@startuml UC_011_DashboardAnalytics
+actor User
+
+package "Analytics System" {
+    usecase "Xem Dashboard Analytics" as UC_DashboardAnalytics
+    usecase "Kiểm tra cache" as UC_CheckCache
+    usecase "Tính toán tổng thu nhập" as UC_CalculateIncome
+    usecase "Tính toán tổng chi tiêu" as UC_CalculateExpense
+    usecase "Tính toán số dư" as UC_CalculateBalance
+    usecase "Phân tích theo danh mục" as UC_AnalyzeByCategory
+    usecase "Phân tích xu hướng" as UC_AnalyzeTrends
+    usecase "Tính financial health" as UC_CalculateHealth
+    usecase "Lưu vào cache" as UC_SaveCache
+}
+
+User --> UC_DashboardAnalytics
+UC_DashboardAnalytics ..> UC_CheckCache : <<includes>>
+UC_DashboardAnalytics ..> UC_CalculateIncome : <<includes>>
+UC_DashboardAnalytics ..> UC_CalculateExpense : <<includes>>
+UC_DashboardAnalytics ..> UC_CalculateBalance : <<includes>>
+UC_DashboardAnalytics ..> UC_AnalyzeByCategory : <<includes>>
+UC_DashboardAnalytics ..> UC_AnalyzeTrends : <<includes>>
+UC_DashboardAnalytics ..> UC_CalculateHealth : <<includes>>
+UC_DashboardAnalytics ..> UC_SaveCache : <<includes>>
+
+@enduml
+

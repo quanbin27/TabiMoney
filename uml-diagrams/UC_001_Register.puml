@@ -1,0 +1,23 @@
+@startuml UC_001_Register
+actor User
+
+package "Authentication System" {
+    usecase "Đăng ký tài khoản" as UC_Register
+    usecase "Validate dữ liệu" as UC_Validate
+    usecase "Kiểm tra email/username tồn tại" as UC_CheckExists
+    usecase "Hash password" as UC_HashPassword
+    usecase "Tạo user record" as UC_CreateUser
+    usecase "Tạo user profile" as UC_CreateProfile
+    usecase "Gửi email xác thực" as UC_SendVerification
+}
+
+User --> UC_Register
+UC_Register ..> UC_Validate : <<includes>>
+UC_Register ..> UC_CheckExists : <<includes>>
+UC_Register ..> UC_HashPassword : <<includes>>
+UC_Register ..> UC_CreateUser : <<includes>>
+UC_Register ..> UC_CreateProfile : <<includes>>
+UC_Register ..> UC_SendVerification : <<extends>>
+
+@enduml
+

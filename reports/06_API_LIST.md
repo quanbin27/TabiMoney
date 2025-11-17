@@ -1070,3 +1070,4 @@ Tất cả API có thể trả về các lỗi sau:
 4. Rate limiting: 100 requests/phút cho mỗi user
 5. CORS: Chỉ cho phép từ origins được cấu hình
 
+

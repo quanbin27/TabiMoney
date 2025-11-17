@@ -1,0 +1,28 @@
+@startuml ACT_015_ManageNotifications
+start
+:User truy cập trang thông báo;
+:Query notifications của user,
+sắp xếp theo created_at DESC;
+if (Có thông báo?) then (không)
+  :Trả về danh sách rỗng;
+  :Hiển thị "Chưa có thông báo";
+  stop
+endif
+:Phân trang (20 items/page);
+:Trả về danh sách thông báo;
+:Hiển thị danh sách thông báo;
+if (User click vào thông báo?) then (có)
+  :Đánh dấu is_read = true;
+  :Set read_at = now();
+  if (Có action_url?) then (có)
+    :Chuyển đến trang đó;
+  endif
+endif
+if (User lọc thông báo?) then (có)
+  :Áp dụng filters;
+  :Query lại database;
+  :Cập nhật danh sách;
+endif
+stop
+@enduml
+

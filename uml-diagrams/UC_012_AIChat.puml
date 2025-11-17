@@ -1,0 +1,28 @@
+@startuml UC_012_AIChat
+actor User
+actor "AI Service" as AI
+
+package "AI Chat System" {
+    usecase "Chat với AI" as UC_AIChat
+    usecase "Nhập câu hỏi" as UC_EnterQuestion
+    usecase "Phân tích intent" as UC_AnalyzeIntent
+    usecase "Query dữ liệu" as UC_QueryData
+    usecase "Tạo context" as UC_CreateContext
+    usecase "Gọi LLM" as UC_CallLLM
+    usecase "Format response" as UC_FormatResponse
+    usecase "Hiển thị câu trả lời" as UC_ShowResponse
+}
+
+User --> UC_AIChat
+AI --> UC_AnalyzeIntent
+AI --> UC_CallLLM
+UC_AIChat ..> UC_EnterQuestion : <<includes>>
+UC_AIChat ..> UC_AnalyzeIntent : <<includes>>
+UC_AIChat ..> UC_QueryData : <<includes>>
+UC_AIChat ..> UC_CreateContext : <<includes>>
+UC_AIChat ..> UC_CallLLM : <<includes>>
+UC_AIChat ..> UC_FormatResponse : <<includes>>
+UC_AIChat ..> UC_ShowResponse : <<includes>>
+
+@enduml
+

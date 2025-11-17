@@ -1,0 +1,28 @@
+@startuml ACT_002_Login
+start
+:User truy cập trang đăng nhập;
+:User nhập email và password;
+:Validate dữ liệu đầu vào;
+:Tìm user theo email;
+if (User không tồn tại?) then (có)
+  :Trả về lỗi "Invalid credentials";
+  stop
+endif
+if (Tài khoản bị khóa?) then (có)
+  :Trả về lỗi "Account is disabled";
+  stop
+endif
+:So sánh password hash;
+if (Password sai?) then (có)
+  :Trả về lỗi "Invalid credentials";
+  stop
+endif
+:Tạo JWT access token (24h);
+:Tạo refresh token (7 ngày);
+:Lưu session vào database;
+:Cập nhật last_login_at;
+:Trả về access_token, refresh_token, user info;
+:Chuyển đến dashboard;
+stop
+@enduml
+

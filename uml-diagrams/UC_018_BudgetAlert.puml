@@ -1,0 +1,23 @@
+@startuml UC_018_BudgetAlert
+actor "System" as System
+
+package "Budget Alert System" {
+    usecase "Cảnh báo vượt ngân sách" as UC_BudgetAlert
+    usecase "Tính spent_amount" as UC_CalculateSpent
+    usecase "Tính usage_percentage" as UC_CalculateUsage
+    usecase "Kiểm tra threshold" as UC_CheckThreshold
+    usecase "Kiểm tra đã gửi notification" as UC_CheckSent
+    usecase "Tạo notification" as UC_CreateNotification
+    usecase "Gửi notification" as UC_SendNotification
+}
+
+System --> UC_BudgetAlert
+UC_BudgetAlert ..> UC_CalculateSpent : <<includes>>
+UC_BudgetAlert ..> UC_CalculateUsage : <<includes>>
+UC_BudgetAlert ..> UC_CheckThreshold : <<includes>>
+UC_BudgetAlert ..> UC_CheckSent : <<includes>>
+UC_BudgetAlert ..> UC_CreateNotification : <<includes>>
+UC_BudgetAlert ..> UC_SendNotification : <<includes>>
+
+@enduml
+

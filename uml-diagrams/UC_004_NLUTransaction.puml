@@ -1,0 +1,31 @@
+@startuml UC_004_NLUTransaction
+actor User
+actor "AI Service" as AI
+
+package "Transaction Management" {
+    usecase "Nhập giao dịch bằng NLU" as UC_NLUTransaction
+    usecase "Nhập câu tự nhiên" as UC_EnterNaturalLanguage
+    usecase "Gửi đến AI Service" as UC_SendToAI
+    usecase "Xử lý NLU" as UC_ProcessNLU
+    usecase "Trích xuất thông tin" as UC_ExtractInfo
+    usecase "Tìm category phù hợp" as UC_FindCategory
+    usecase "Tính confidence score" as UC_CalculateConfidence
+    usecase "Hiển thị preview" as UC_ShowPreview
+    usecase "Xác nhận hoặc chỉnh sửa" as UC_ConfirmOrEdit
+    usecase "Lưu transaction" as UC_SaveTransaction
+}
+
+User --> UC_NLUTransaction
+AI --> UC_ProcessNLU
+UC_NLUTransaction ..> UC_EnterNaturalLanguage : <<includes>>
+UC_NLUTransaction ..> UC_SendToAI : <<includes>>
+UC_NLUTransaction ..> UC_ShowPreview : <<includes>>
+UC_NLUTransaction ..> UC_ConfirmOrEdit : <<includes>>
+UC_NLUTransaction ..> UC_SaveTransaction : <<includes>>
+UC_SendToAI ..> UC_ProcessNLU : <<uses>>
+UC_ProcessNLU ..> UC_ExtractInfo : <<includes>>
+UC_ProcessNLU ..> UC_FindCategory : <<includes>>
+UC_ProcessNLU ..> UC_CalculateConfidence : <<includes>>
+
+@enduml
+

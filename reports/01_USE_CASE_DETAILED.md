@@ -934,3 +934,4 @@
 - **System:** 2 use cases (UC-015, UC-018)
 - **Telegram Bot:** 2 use cases (UC-016, UC-017)
 
+

@@ -1,0 +1,30 @@
+@startuml ACT_013_AnomalyDetection
+start
+:User tạo giao dịch mới;
+:Hệ thống trigger anomaly detection (async);
+:Lấy lịch sử giao dịch của user (30 ngày gần nhất);
+if (User có < 10 giao dịch?) then (có)
+  :Bỏ qua anomaly detection;
+  stop
+endif
+:Tính toán:
+- Mean và standard deviation của amount theo category
+- Pattern chi tiêu theo thời gian;
+:So sánh giao dịch mới với pattern:
+- Nếu amount > mean + 2*std: FLAG
+- Nếu category khác pattern thường ngày: FLAG
+- Nếu thời gian khác pattern: FLAG;
+:Tính anomaly score (0-1);
+if (Score > 0.7?) then (có)
+  :Lưu vào ai_analysis với type='anomaly_detection';
+  :Tạo notification cảnh báo;
+  :Gửi notification cho user;
+endif
+:Giao dịch được đánh dấu (metadata);
+if (User xác nhận đây là giao dịch hợp lệ?) then (có)
+  :Lưu feedback vào ai_feedback;
+  :AI Service học từ feedback để cải thiện;
+endif
+stop
+@enduml
+

@@ -1,0 +1,44 @@
+@startuml SEQ_016_LinkTelegram
+actor User
+participant "Frontend" as Frontend
+participant "Backend API" as Backend
+participant "Database" as DB
+actor "Telegram Bot" as Telegram
+
+User -> Frontend: Truy cập Settings > Telegram Integration
+User -> Frontend: Nhấn "Liên kết Telegram"
+Frontend -> Backend: POST /api/v1/auth/telegram/generate-link-code
+Backend -> DB: Tạo link code (16 ký tự)
+Backend -> DB: INSERT INTO telegram_link_codes
+DB --> Backend: Code created
+Backend --> Frontend: Link code
+Frontend --> User: Hiển thị link code
+
+User -> Telegram: Mở Telegram Bot
+User -> Telegram: Gửi lệnh /link
+Telegram -> Telegram: Yêu cầu nhập link code
+User -> Telegram: Nhập link code
+Telegram -> Backend: POST /api/v1/auth/telegram/link
+Backend -> DB: Validate code: kiểm tra tồn tại, chưa hết hạn
+DB --> Backend: Code valid
+Backend -> DB: INSERT INTO telegram_accounts
+Backend -> DB: UPDATE telegram_link_codes SET used_at
+DB --> Backend: Link successful
+Backend --> Telegram: Success response
+Telegram --> User: "Liên kết thành công"
+Backend --> Frontend: Status updated
+Frontend --> User: Cập nhật trạng thái "Đã liên kết"
+
+alt Code hết hạn
+    DB --> Backend: Code expired
+    Backend --> Telegram: Error: Code expired
+    Telegram --> User: "Code đã hết hạn. Vui lòng tạo code mới."
+end
+
+alt Code đã được dùng
+    DB --> Backend: Code already used
+    Backend --> Telegram: Error: Code already used
+    Telegram --> User: "Code đã được sử dụng"
+end
+@enduml
+
