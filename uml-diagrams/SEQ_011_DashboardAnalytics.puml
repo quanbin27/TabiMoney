@@ -1,0 +1,46 @@
+@startuml SEQ_011_DashboardAnalytics
+actor User
+participant "Frontend" as Frontend
+participant "Backend API" as Backend
+participant "Analytics Handler" as Analytics
+participant "Transaction Service" as TxService
+participant "Database" as DB
+participant "Redis Cache" as Cache
+
+User -> Frontend: Truy cập Dashboard
+Frontend -> Backend: GET /api/v1/analytics/dashboard
+Backend -> Analytics: GetDashboardAnalytics(userID)
+Analytics -> Cache: Kiểm tra cache
+alt Cache hit
+    Cache --> Analytics: Cached data
+    Analytics --> Backend: Analytics data
+    Backend --> Frontend: Response
+    Frontend --> User: Hiển thị dashboard
+else Cache miss
+    Analytics -> TxService: GetMonthlySummary(userID)
+    TxService -> DB: Query transactions
+    DB --> TxService: Transaction list
+    TxService -> TxService: Tính toán analytics
+    TxService --> Analytics: Monthly summary
+    Analytics -> Analytics: Tính toán financial health
+    Analytics -> Analytics: Phân tích category breakdown
+    Analytics -> Cache: Lưu vào cache
+    Analytics --> Backend: Analytics data
+    Backend --> Frontend: Response
+    Frontend --> User: Hiển thị dashboard
+end
+
+User -> Frontend: Xem phân tích chi tiêu theo danh mục
+Frontend -> Backend: GET /api/v1/analytics/category-spending
+Backend -> Analytics: GetCategorySpending(userID, dateRange)
+Analytics -> TxService: GetCategorySpending(userID, startDate, endDate)
+TxService -> DB: Query với GROUP BY category
+DB --> TxService: Category spending data
+TxService -> TxService: Tính toán percentages
+TxService --> Analytics: Category analytics
+Analytics --> Backend: Category spending
+Backend --> Frontend: Response
+Frontend --> User: Hiển thị biểu đồ
+
+@enduml
+

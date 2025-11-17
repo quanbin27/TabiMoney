@@ -1,0 +1,46 @@
+@startuml SEQ_009_ContributeGoal
+actor User
+participant "Frontend" as Frontend
+participant "Backend API" as Backend
+participant "Goal Service" as GoalService
+participant "Database" as DB
+participant "Notification Service" as Notification
+
+User -> Frontend: Mở chi tiết mục tiêu
+Frontend -> Backend: GET /api/v1/goals/:id
+Backend -> GoalService: GetGoal(goalID, userID)
+GoalService -> DB: SELECT financial_goals
+alt Goal thuộc user
+    DB --> GoalService: Goal data
+    GoalService --> Backend: Goal detail
+    Backend --> Frontend: Hiển thị tiến độ hiện tại
+else Không tìm thấy
+    DB --> GoalService: Goal not found
+    GoalService --> Backend: 404 Not Found
+    Backend --> Frontend: Error response
+    Frontend --> User: Hiển thị lỗi
+end
+
+User -> Frontend: Nhập số tiền muốn đóng góp
+Frontend -> Backend: POST /api/v1/goals/:id/contribute
+Backend -> GoalService: AddContribution(goalID, amount, userID)
+GoalService -> GoalService: Validate amount > 0
+GoalService -> DB: UPDATE financial_goals SET current_amount += amount
+DB --> GoalService: Updated
+GoalService -> GoalService: Tính toán progress %
+GoalService -> GoalService: Kiểm tra trạng thái đạt mục tiêu?
+alt Đạt hoặc vượt 100%
+    GoalService -> DB: UPDATE is_achieved = true
+    GoalService -> Notification: SendGoalAchieved(userID, goalID)
+    Notification --> User: Gửi thông báo chúc mừng
+else Chưa đạt
+    GoalService -> Notification: SendProgressUpdate (nếu cần)
+    Notification --> User: Nhắc tiến độ
+end
+GoalService -> GoalService: Ghi log đóng góp mới
+GoalService --> Backend: GoalProgressResponse
+Backend --> Frontend: 200 OK + tiến độ mới
+Frontend --> User: Hiển thị tiến độ sau khi đóng góp
+
+@enduml
+

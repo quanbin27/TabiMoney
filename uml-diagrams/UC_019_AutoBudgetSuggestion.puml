@@ -1,18 +1,44 @@
 @startuml UC_019_AutoBudgetSuggestion
+
+skinparam usecase {
+    BackgroundColor #FFFFFF
+    BorderColor #000000
+    ArrowColor #000000
+    BorderThickness 1.4
+    FontColor #000000
+    FontSize 14
+}
+
+skinparam actor {
+    BackgroundColor #FFFFFF
+    BorderColor #000000
+    FontColor #000000
+    FontSize 14
+}
+
+skinparam package {
+    BorderColor #000000
+    FontColor #000000
+}
+
+skinparam shadowing false
+skinparam dpi 150
+
+' Layout ngang
+left to right direction
+
 actor User
 actor "AI Service" as AI
 
-package "Budget Suggestion System" {
-    usecase "Đề xuất ngân sách tự động" as UC_AutoBudgetSuggestion
-    usecase "Lấy monthly_income" as UC_GetIncome
-    usecase "Phân tích chi tiêu 3 tháng" as UC_AnalyzeSpending
-    usecase "Tính trung bình theo category" as UC_CalculateAverage
-    usecase "Đề xuất budget" as UC_SuggestBudget
-    usecase "Đảm bảo tổng <= income" as UC_EnsureTotal
-    usecase "Hiển thị đề xuất" as UC_ShowSuggestions
-    usecase "Chấp nhận hoặc chỉnh sửa" as UC_AcceptOrEdit
-    usecase "Tạo budgets" as UC_CreateBudgets
-}
+usecase "Đề xuất ngân sách tự động" as UC_AutoBudgetSuggestion
+usecase "Lấy monthly_income" as UC_GetIncome
+usecase "Phân tích chi tiêu 3 tháng" as UC_AnalyzeSpending
+usecase "Tính trung bình theo category" as UC_CalculateAverage
+usecase "Đề xuất budget" as UC_SuggestBudget
+usecase "Đảm bảo tổng <= income" as UC_EnsureTotal
+usecase "Hiển thị đề xuất" as UC_ShowSuggestions
+usecase "Chấp nhận hoặc chỉnh sửa" as UC_AcceptOrEdit
+usecase "Tạo budgets" as UC_CreateBudgets
 
 User --> UC_AutoBudgetSuggestion
 AI --> UC_AnalyzeSpending
@@ -28,4 +54,3 @@ UC_AutoBudgetSuggestion ..> UC_AcceptOrEdit : <<includes>>
 UC_AutoBudgetSuggestion ..> UC_CreateBudgets : <<includes>>
 
 @enduml
-

@@ -1,19 +1,45 @@
 @startuml UC_004_NLUTransaction
+
+skinparam usecase {
+    BackgroundColor #FFFFFF
+    BorderColor #000000
+    ArrowColor #000000
+    BorderThickness 1.4
+    FontColor #000000
+    FontSize 14
+}
+
+skinparam actor {
+    BackgroundColor #FFFFFF
+    BorderColor #000000
+    FontColor #000000
+    FontSize 14
+}
+
+skinparam package {
+    BorderColor #000000
+    FontColor #000000
+}
+
+skinparam shadowing false
+skinparam dpi 150
+
+' Layout ngang
+left to right direction
+
 actor User
 actor "AI Service" as AI
 
-package "Transaction Management" {
-    usecase "Nhập giao dịch bằng NLU" as UC_NLUTransaction
-    usecase "Nhập câu tự nhiên" as UC_EnterNaturalLanguage
-    usecase "Gửi đến AI Service" as UC_SendToAI
-    usecase "Xử lý NLU" as UC_ProcessNLU
-    usecase "Trích xuất thông tin" as UC_ExtractInfo
-    usecase "Tìm category phù hợp" as UC_FindCategory
-    usecase "Tính confidence score" as UC_CalculateConfidence
-    usecase "Hiển thị preview" as UC_ShowPreview
-    usecase "Xác nhận hoặc chỉnh sửa" as UC_ConfirmOrEdit
-    usecase "Lưu transaction" as UC_SaveTransaction
-}
+usecase "Nhập giao dịch bằng NLU" as UC_NLUTransaction
+usecase "Nhập câu tự nhiên" as UC_EnterNaturalLanguage
+usecase "Gửi đến AI Service" as UC_SendToAI
+usecase "Xử lý NLU" as UC_ProcessNLU
+usecase "Trích xuất thông tin" as UC_ExtractInfo
+usecase "Tìm category phù hợp" as UC_FindCategory
+usecase "Tính confidence score" as UC_CalculateConfidence
+usecase "Hiển thị preview" as UC_ShowPreview
+usecase "Xác nhận hoặc chỉnh sửa" as UC_ConfirmOrEdit
+usecase "Lưu transaction" as UC_SaveTransaction
 
 User --> UC_NLUTransaction
 AI --> UC_ProcessNLU
@@ -28,4 +54,3 @@ UC_ProcessNLU ..> UC_FindCategory : <<includes>>
 UC_ProcessNLU ..> UC_CalculateConfidence : <<includes>>
 
 @enduml
-

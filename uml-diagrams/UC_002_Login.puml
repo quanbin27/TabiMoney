@@ -1,15 +1,41 @@
 @startuml UC_002_Login
+
+skinparam usecase {
+    BackgroundColor #FFFFFF
+    BorderColor #000000
+    ArrowColor #000000
+    BorderThickness 1.4
+    FontColor #000000
+    FontSize 14
+}
+
+skinparam actor {
+    BackgroundColor #FFFFFF
+    BorderColor #000000
+    FontColor #000000
+    FontSize 14
+}
+
+skinparam package {
+    BorderColor #000000
+    FontColor #000000
+}
+
+skinparam shadowing false
+skinparam dpi 150
+
+' Layout ngang
+left to right direction
+
 actor User
 
-package "Authentication System" {
-    usecase "Đăng nhập" as UC_Login
-    usecase "Validate credentials" as UC_Validate
-    usecase "Tìm user theo email" as UC_FindUser
-    usecase "Verify password" as UC_VerifyPassword
-    usecase "Tạo JWT tokens" as UC_GenerateTokens
-    usecase "Lưu session" as UC_SaveSession
-    usecase "Cập nhật last_login" as UC_UpdateLastLogin
-}
+usecase "Đăng nhập" as UC_Login
+usecase "Validate credentials" as UC_Validate
+usecase "Tìm user theo email" as UC_FindUser
+usecase "Verify password" as UC_VerifyPassword
+usecase "Tạo JWT tokens" as UC_GenerateTokens
+usecase "Lưu session" as UC_SaveSession
+usecase "Cập nhật last_login" as UC_UpdateLastLogin
 
 User --> UC_Login
 UC_Login ..> UC_Validate : <<includes>>
@@ -20,4 +46,3 @@ UC_Login ..> UC_SaveSession : <<includes>>
 UC_Login ..> UC_UpdateLastLogin : <<includes>>
 
 @enduml
-

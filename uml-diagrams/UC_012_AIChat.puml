@@ -1,17 +1,43 @@
 @startuml UC_012_AIChat
+
+skinparam usecase {
+    BackgroundColor #FFFFFF
+    BorderColor #000000
+    ArrowColor #000000
+    BorderThickness 1.4
+    FontColor #000000
+    FontSize 14
+}
+
+skinparam actor {
+    BackgroundColor #FFFFFF
+    BorderColor #000000
+    FontColor #000000
+    FontSize 14
+}
+
+skinparam package {
+    BorderColor #000000
+    FontColor #000000
+}
+
+skinparam shadowing false
+skinparam dpi 150
+
+' Layout ngang
+left to right direction
+
 actor User
 actor "AI Service" as AI
 
-package "AI Chat System" {
-    usecase "Chat với AI" as UC_AIChat
-    usecase "Nhập câu hỏi" as UC_EnterQuestion
-    usecase "Phân tích intent" as UC_AnalyzeIntent
-    usecase "Query dữ liệu" as UC_QueryData
-    usecase "Tạo context" as UC_CreateContext
-    usecase "Gọi LLM" as UC_CallLLM
-    usecase "Format response" as UC_FormatResponse
-    usecase "Hiển thị câu trả lời" as UC_ShowResponse
-}
+usecase "Chat với AI" as UC_AIChat
+usecase "Nhập câu hỏi" as UC_EnterQuestion
+usecase "Phân tích intent" as UC_AnalyzeIntent
+usecase "Query dữ liệu" as UC_QueryData
+usecase "Tạo context" as UC_CreateContext
+usecase "Gọi LLM" as UC_CallLLM
+usecase "Format response" as UC_FormatResponse
+usecase "Hiển thị câu trả lời" as UC_ShowResponse
 
 User --> UC_AIChat
 AI --> UC_AnalyzeIntent
@@ -25,4 +51,3 @@ UC_AIChat ..> UC_FormatResponse : <<includes>>
 UC_AIChat ..> UC_ShowResponse : <<includes>>
 
 @enduml
-

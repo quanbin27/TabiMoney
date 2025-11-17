@@ -221,7 +221,7 @@ UC_Analyze ..> UC_Suggest : <<includes>>
 ## 6. Biểu đồ Tuần tự - Nhập giao dịch bằng NLU
 
 ```
-@startuml Sequence_NLUTransaction
+@startuml SEQ_004_NLUTransaction
 actor User
 participant "Frontend" as Frontend
 participant "Backend API" as Backend
@@ -251,7 +251,7 @@ Frontend --> User: Hiển thị giao dịch đã tạo
 ## 7. Biểu đồ Tuần tự - Tạo và theo dõi Mục tiêu
 
 ```
-@startuml Sequence_GoalManagement
+@startuml SEQ_009_ContributeGoal
 actor User
 participant "Frontend" as Frontend
 participant "Backend API" as Backend
@@ -259,28 +259,42 @@ participant "Goal Service" as GoalService
 participant "Database" as DB
 participant "Notification Service" as Notification
 
-User -> Frontend: Tạo mục tiêu mới
-Frontend -> Backend: POST /api/v1/goals
-Backend -> GoalService: CreateGoal(userID, request)
-GoalService -> DB: INSERT INTO financial_goals
-DB --> GoalService: Goal created
-GoalService --> Backend: Goal response
-Backend --> Frontend: Goal created
-
-User -> Frontend: Đóng góp vào mục tiêu
-Frontend -> Backend: POST /api/v1/goals/:id/contribute
-Backend -> GoalService: AddContribution(goalID, amount)
-GoalService -> DB: UPDATE financial_goals SET current_amount
-DB --> GoalService: Updated
-GoalService -> GoalService: Tính toán progress
-GoalService -> GoalService: Kiểm tra đạt mục tiêu?
-alt Mục tiêu đạt được
-    GoalService -> DB: UPDATE is_achieved = true
-    GoalService -> Notification: Gửi thông báo chúc mừng
-    Notification --> User: Thông báo
+User -> Frontend: Mở chi tiết mục tiêu
+Frontend -> Backend: GET /api/v1/goals/:id
+Backend -> GoalService: GetGoal(goalID, userID)
+GoalService -> DB: SELECT financial_goals
+alt Goal thuộc user
+    DB --> GoalService: Goal data
+    GoalService --> Backend: Goal detail
+    Backend --> Frontend: Hiển thị tiến độ hiện tại
+else Không tìm thấy
+    DB --> GoalService: Goal not found
+    GoalService --> Backend: 404 Not Found
+    Backend --> Frontend: Error response
+    Frontend --> User: Hiển thị lỗi
+    stop
 end
-GoalService --> Backend: Updated goal
-Backend --> Frontend: Goal updated
+
+User -> Frontend: Nhập số tiền muốn đóng góp
+Frontend -> Backend: POST /api/v1/goals/:id/contribute
+Backend -> GoalService: AddContribution(goalID, amount, userID)
+GoalService -> GoalService: Validate amount > 0
+GoalService -> DB: UPDATE financial_goals SET current_amount += amount
+DB --> GoalService: Updated
+GoalService -> GoalService: Tính toán progress %
+GoalService -> GoalService: Kiểm tra trạng thái đạt mục tiêu?
+alt Đạt hoặc vượt 100%
+    GoalService -> DB: UPDATE is_achieved = true
+    GoalService -> Notification: SendGoalAchieved(userID, goalID)
+    Notification --> User: Gửi thông báo chúc mừng
+else Chưa đạt
+    GoalService -> Notification: SendProgressUpdate (nếu cần)
+    Notification --> User: Nhắc tiến độ
+end
+GoalService -> GoalService: Ghi log đóng góp mới
+GoalService --> Backend: GoalProgressResponse
+Backend --> Frontend: 200 OK + tiến độ mới
+Frontend --> User: Hiển thị tiến độ sau khi đóng góp
 
 @enduml
 ```
@@ -288,7 +302,7 @@ Backend --> Frontend: Goal updated
 ## 8. Biểu đồ Tuần tự - Phát hiện Bất thường
 
 ```
-@startuml Sequence_AnomalyDetection
+@startuml SEQ_013_AnomalyDetection
 actor User
 participant "Frontend" as Frontend
 participant "Backend API" as Backend
@@ -324,7 +338,7 @@ Frontend --> User: Hiển thị bất thường
 ## 9. Biểu đồ Tuần tự - Chat với AI
 
 ```
-@startuml Sequence_AIChat
+@startuml SEQ_012_AIChat
 actor User
 participant "Frontend" as Frontend
 participant "Backend API" as Backend
@@ -354,112 +368,6 @@ Frontend --> User: Hiển thị câu trả lời
 @enduml
 ```
 
-## 10. Biểu đồ Hoạt động - Quy trình Nhập Giao dịch
-
-```
-@startuml Activity_TransactionEntry
-start
-:User chọn phương thức nhập;
-if (Phương thức?) then (Thủ công)
-    :Điền form: category, amount, date, description;
-else (NLU)
-    :Nhập câu tự nhiên;
-    :Gửi đến AI Service;
-    :AI xử lý và trích xuất thông tin;
-    :Hiển thị preview;
-    if (User xác nhận?) then (Không)
-        :Cho phép chỉnh sửa;
-    endif
-endif
-:Validate dữ liệu;
-if (Dữ liệu hợp lệ?) then (Không)
-    :Hiển thị lỗi;
-    stop
-endif
-:Kiểm tra category;
-if (Category hợp lệ?) then (Không)
-    :Gợi ý category từ AI;
-    :User chọn category;
-endif
-:Lưu transaction vào DB;
-:Kiểm tra budget threshold;
-if (Vượt ngân sách?) then (Có)
-    :Gửi thông báo cảnh báo;
-endif
-:Kiểm tra giao dịch lớn;
-if (Amount > 1M VND?) then (Có)
-    :Gửi thông báo giao dịch lớn;
-endif
-:Xóa dashboard cache;
-:Hiển thị thông báo thành công;
-stop
-
-@enduml
-```
-
-## 11. Biểu đồ Hoạt động - Quy trình Phân tích Tài chính
-
-```
-@startuml Activity_FinancialAnalysis
-start
-:User yêu cầu xem phân tích;
-:Kiểm tra cache;
-if (Có cache?) then (Có)
-    :Trả về dữ liệu từ cache;
-    stop
-endif
-:Lấy dữ liệu giao dịch từ DB;
-:Tính toán tổng thu nhập;
-:Tính toán tổng chi tiêu;
-:Tính toán số dư;
-:Phân tích theo danh mục;
-:Tính toán tỷ lệ phần trăm;
-:Tính toán financial health score;
-:Phân tích xu hướng;
-:Kiểm tra có đủ dữ liệu cho AI?;
-if (Có đủ dữ liệu?) then (Có)
-    :Gọi AI Service phân tích;
-    :Nhận insights và recommendations;
-endif
-:Tổng hợp kết quả;
-:Lưu vào cache;
-:Trả về kết quả cho user;
-stop
-
-@enduml
-```
-
-## 12. Biểu đồ Hoạt động - Quy trình Quản lý Ngân sách
-
-```
-@startuml Activity_BudgetManagement
-start
-:User tạo/cập nhật ngân sách;
-:Validate dữ liệu ngân sách;
-if (Dữ liệu hợp lệ?) then (Không)
-    :Hiển thị lỗi;
-    stop
-endif
-:Lưu ngân sách vào DB;
-:Tính toán spent amount;
-:Tính toán remaining amount;
-:Tính toán usage percentage;
-if (Usage > Alert Threshold?) then (Có)
-    :Gửi thông báo cảnh báo;
-endif
-if (Usage >= 100%?) then (Có)
-    :Gửi thông báo vượt ngân sách;
-endif
-:Kiểm tra pacing;
-if (Chi tiêu vượt tốc độ?) then (Có)
-    :Gửi cảnh báo pacing;
-endif
-:Cập nhật dashboard cache;
-:Hiển thị kết quả;
-stop
-
-@enduml
-```
 
 ## 13. Biểu đồ Trạng thái - Giao dịch (Transaction)
 
@@ -742,7 +650,7 @@ transactions ||--o{ ai_feedback : "has feedback"
 ## 17. Biểu đồ Tuần tự - Đăng ký và Đăng nhập
 
 ```
-@startuml Sequence_Authentication
+@startuml SEQ_002_Login
 actor User
 participant "Frontend" as Frontend
 participant "Backend API" as Backend
@@ -750,30 +658,6 @@ participant "Auth Service" as Auth
 participant "Database" as DB
 participant "JWT Service" as JWT
 
-== Đăng ký ==
-User -> Frontend: Điền form đăng ký
-Frontend -> Backend: POST /api/v1/auth/register
-Backend -> Auth: Register(request)
-Auth -> DB: Kiểm tra email/username tồn tại
-alt Email/Username đã tồn tại
-    DB --> Auth: Conflict
-    Auth --> Backend: Error
-    Backend --> Frontend: 409 Conflict
-    Frontend --> User: Hiển thị lỗi
-else Email/Username hợp lệ
-    Auth -> Auth: Hash password
-    Auth -> DB: INSERT INTO users
-    DB --> Auth: User created
-    Auth -> DB: INSERT INTO user_profiles
-    DB --> Auth: Profile created
-    Auth -> JWT: Generate tokens
-    JWT --> Auth: AccessToken + RefreshToken
-    Auth --> Backend: AuthResponse
-    Backend --> Frontend: 201 Created
-    Frontend --> User: Đăng ký thành công
-end
-
-== Đăng nhập ==
 User -> Frontend: Nhập email/password
 Frontend -> Backend: POST /api/v1/auth/login
 Backend -> Auth: Login(request)
@@ -800,7 +684,7 @@ end
 ## 18. Biểu đồ Tuần tự - Dashboard và Analytics
 
 ```
-@startuml Sequence_DashboardAnalytics
+@startuml SEQ_011_DashboardAnalytics
 actor User
 participant "Frontend" as Frontend
 participant "Backend API" as Backend
@@ -847,88 +731,6 @@ Frontend --> User: Hiển thị biểu đồ
 @enduml
 ```
 
-## 19. Biểu đồ Hoạt động - Quy trình Dự đoán Chi tiêu
-
-```
-@startuml Activity_ExpensePrediction
-start
-:User yêu cầu dự đoán chi tiêu;
-:Lấy lịch sử giao dịch 3-6 tháng;
-if (Đủ dữ liệu?) then (Không)
-    :Trả về thông báo cần thêm dữ liệu;
-    stop
-endif
-:Chuẩn bị dữ liệu training;
-:Phân tích pattern chi tiêu;
-:Tính toán xu hướng;
-:Gọi AI Service;
-:AI Service xử lý với ML model;
-:Phân tích theo danh mục;
-:Tính toán dự đoán cho từng danh mục;
-:Tổng hợp kết quả;
-:Tính toán confidence score;
-if (Confidence > threshold?) then (Có)
-    :Lưu prediction vào DB;
-    :Trả về kết quả dự đoán;
-else (Không)
-    :Trả về với cảnh báo độ tin cậy thấp;
-endif
-stop
-
-@enduml
-```
-
-## 20. Biểu đồ Hoạt động - Quy trình Thông báo
-
-```
-@startuml Activity_NotificationFlow
-start
-:Sự kiện trigger (transaction, budget, goal);
-:Kiểm tra notification preferences;
-if (User bật thông báo?) then (Không)
-    stop
-endif
-:Xác định loại thông báo;
-if (Loại thông báo?) then (Budget Alert)
-    :Kiểm tra budget threshold;
-    if (Vượt threshold?) then (Có)
-        :Tạo notification;
-    else (Không)
-        stop
-    endif
-elseif (Goal Alert) then
-    :Kiểm tra goal progress;
-    if (Cần cảnh báo?) then (Có)
-        :Tạo notification;
-    else (Không)
-        stop
-    endif
-elseif (Large Transaction) then
-    :Kiểm tra amount > 1M;
-    if (Lớn hơn?) then (Có)
-        :Tạo notification;
-    else (Không)
-        stop
-    endif
-else (Scheduled)
-    :Kiểm tra lịch;
-    :Tạo notification;
-endif
-:Kiểm tra channel preferences;
-if (Email enabled?) then (Có)
-    :Gửi email;
-endif
-if (In-app enabled?) then (Có)
-    :Lưu vào DB;
-    :Push real-time notification;
-endif
-if (Telegram enabled?) then (Có)
-    :Gửi qua Telegram bot;
-endif
-stop
-
-@enduml
-```
 
 ---
 

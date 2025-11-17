@@ -1,18 +1,44 @@
 @startuml UC_003_ManualTransaction
+
+skinparam usecase {
+    BackgroundColor #FFFFFF
+    BorderColor #000000
+    ArrowColor #000000
+    BorderThickness 1.4
+    FontColor #000000
+    FontSize 14
+}
+
+skinparam actor {
+    BackgroundColor #FFFFFF
+    BorderColor #000000
+    FontColor #000000
+    FontSize 14
+}
+
+skinparam package {
+    BorderColor #000000
+    FontColor #000000
+}
+
+skinparam shadowing false
+skinparam dpi 150
+
+' Layout ngang
+left to right direction
+
 actor User
 
-package "Transaction Management" {
-    usecase "Nhập giao dịch thủ công" as UC_ManualTransaction
-    usecase "Chọn loại giao dịch" as UC_SelectType
-    usecase "Chọn category" as UC_SelectCategory
-    usecase "Nhập số tiền" as UC_EnterAmount
-    usecase "Nhập mô tả" as UC_EnterDescription
-    usecase "Chọn ngày" as UC_SelectDate
-    usecase "Validate dữ liệu" as UC_Validate
-    usecase "Lưu transaction" as UC_SaveTransaction
-    usecase "Cập nhật cache" as UC_UpdateCache
-    usecase "Kiểm tra budget" as UC_CheckBudget
-}
+usecase "Nhập giao dịch thủ công" as UC_ManualTransaction
+usecase "Chọn loại giao dịch" as UC_SelectType
+usecase "Chọn category" as UC_SelectCategory
+usecase "Nhập số tiền" as UC_EnterAmount
+usecase "Nhập mô tả" as UC_EnterDescription
+usecase "Chọn ngày" as UC_SelectDate
+usecase "Validate dữ liệu" as UC_Validate
+usecase "Lưu transaction" as UC_SaveTransaction
+usecase "Cập nhật cache" as UC_UpdateCache
+usecase "Kiểm tra budget" as UC_CheckBudget
 
 User --> UC_ManualTransaction
 UC_ManualTransaction ..> UC_SelectType : <<includes>>
@@ -26,4 +52,3 @@ UC_ManualTransaction ..> UC_UpdateCache : <<includes>>
 UC_ManualTransaction ..> UC_CheckBudget : <<includes>>
 
 @enduml
-

@@ -1,13 +1,39 @@
 @startuml UC_010_CreateBudget
+
+skinparam usecase {
+    BackgroundColor #FFFFFF
+    BorderColor #000000
+    ArrowColor #000000
+    BorderThickness 1.4
+    FontColor #000000
+    FontSize 14
+}
+
+skinparam actor {
+    BackgroundColor #FFFFFF
+    BorderColor #000000
+    FontColor #000000
+    FontSize 14
+}
+
+skinparam package {
+    BorderColor #000000
+    FontColor #000000
+}
+
+skinparam shadowing false
+skinparam dpi 150
+
+' Layout ngang
+left to right direction
+
 actor User
 
-package "Budget Management" {
-    usecase "Tạo ngân sách" as UC_CreateBudget
-    usecase "Nhập thông tin ngân sách" as UC_EnterBudgetInfo
-    usecase "Validate dữ liệu" as UC_Validate
-    usecase "Kiểm tra date range" as UC_CheckDateRange
-    usecase "Tạo budget record" as UC_CreateRecord
-}
+usecase "Tạo ngân sách" as UC_CreateBudget
+usecase "Nhập thông tin ngân sách" as UC_EnterBudgetInfo
+usecase "Validate dữ liệu" as UC_Validate
+usecase "Kiểm tra date range" as UC_CheckDateRange
+usecase "Tạo budget record" as UC_CreateRecord
 
 User --> UC_CreateBudget
 UC_CreateBudget ..> UC_EnterBudgetInfo : <<includes>>
@@ -16,4 +42,3 @@ UC_CreateBudget ..> UC_CheckDateRange : <<includes>>
 UC_CreateBudget ..> UC_CreateRecord : <<includes>>
 
 @enduml
-

@@ -1,16 +1,42 @@
 @startuml UC_016_LinkTelegram
+
+skinparam usecase {
+    BackgroundColor #FFFFFF
+    BorderColor #000000
+    ArrowColor #000000
+    BorderThickness 1.4
+    FontColor #000000
+    FontSize 14
+}
+
+skinparam actor {
+    BackgroundColor #FFFFFF
+    BorderColor #000000
+    FontColor #000000
+    FontSize 14
+}
+
+skinparam package {
+    BorderColor #000000
+    FontColor #000000
+}
+
+skinparam shadowing false
+skinparam dpi 150
+
+' Layout ngang
+left to right direction
+
 actor User
 actor "Telegram Bot" as Telegram
 
-package "Telegram Integration" {
-    usecase "Liên kết Telegram" as UC_LinkTelegram
-    usecase "Tạo link code" as UC_GenerateCode
-    usecase "Hiển thị link code" as UC_ShowCode
-    usecase "Nhập link code trong Telegram" as UC_EnterCode
-    usecase "Validate code" as UC_ValidateCode
-    usecase "Lưu liên kết" as UC_SaveLink
-    usecase "Xác nhận liên kết" as UC_ConfirmLink
-}
+usecase "Liên kết Telegram" as UC_LinkTelegram
+usecase "Tạo link code" as UC_GenerateCode
+usecase "Hiển thị link code" as UC_ShowCode
+usecase "Nhập link code trong Telegram" as UC_EnterCode
+usecase "Validate code" as UC_ValidateCode
+usecase "Lưu liên kết" as UC_SaveLink
+usecase "Xác nhận liên kết" as UC_ConfirmLink
 
 User --> UC_LinkTelegram
 Telegram --> UC_EnterCode
@@ -22,4 +48,3 @@ UC_LinkTelegram ..> UC_SaveLink : <<includes>>
 UC_LinkTelegram ..> UC_ConfirmLink : <<includes>>
 
 @enduml
-

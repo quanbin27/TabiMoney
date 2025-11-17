@@ -4,8 +4,8 @@
 
 Tài liệu này liệt kê **đầy đủ tất cả các biểu đồ UML** đã được tạo cho hệ thống TabiMoney, bao gồm:
 - **20 Use Case Diagrams** - Mỗi use case có một biểu đồ riêng
-- **18+ Activity Diagrams** - Quy trình chi tiết cho các use cases
-- **15+ Sequence Diagrams** - Luồng tương tác giữa các components
+- **20 Activity Diagrams** - Quy trình chi tiết cho từng use case
+- **16 Sequence Diagrams** - Luồng tương tác giữa các components
 - **3 State Diagrams** - Trạng thái của các entities chính
 - **1 ERD Diagram** - Mô hình dữ liệu
 
@@ -40,7 +40,7 @@ Mỗi use case có một biểu đồ Use Case riêng mô tả các sub-use case
 
 ---
 
-## 2. ACTIVITY DIAGRAMS (18+ files)
+## 2. ACTIVITY DIAGRAMS (20 files)
 
 Mô tả quy trình chi tiết từng bước của các use cases:
 
@@ -48,47 +48,49 @@ Mô tả quy trình chi tiết từng bước của các use cases:
 |------|----------|-------|
 | `ACT_001_Register.puml` | Đăng ký tài khoản | Quy trình từ nhập form đến tạo tài khoản thành công |
 | `ACT_002_Login.puml` | Đăng nhập | Quy trình xác thực và tạo session |
+| `ACT_003_ManualTransaction.puml` | Nhập giao dịch thủ công | Quy trình nhập, validate và lưu giao dịch |
+| `ACT_004_NLUTransaction.puml` | Nhập giao dịch bằng NLU | Quy trình gửi câu tự nhiên và xử lý AI |
 | `ACT_005_ViewTransactions.puml` | Xem danh sách giao dịch | Quy trình lọc, tìm kiếm, phân trang |
 | `ACT_006_UpdateTransaction.puml` | Cập nhật giao dịch | Quy trình chỉnh sửa và validate |
 | `ACT_007_DeleteTransaction.puml` | Xóa giao dịch | Quy trình xác nhận và xóa |
 | `ACT_008_CreateGoal.puml` | Tạo mục tiêu tài chính | Quy trình tạo và validate mục tiêu |
 | `ACT_009_ContributeGoal.puml` | Đóng góp vào mục tiêu | Quy trình thêm tiền và kiểm tra đạt mục tiêu |
 | `ACT_010_CreateBudget.puml` | Tạo ngân sách | Quy trình tạo và validate ngân sách |
+| `ACT_011_DashboardAnalytics.puml` | Dashboard & Analytics | Quy trình lấy dữ liệu dashboard và cache |
+| `ACT_012_AIChat.puml` | Chat với AI | Quy trình AI trả lời câu hỏi |
+| `ACT_013_AnomalyDetection.puml` | Phát hiện bất thường | Quy trình tính toán anomaly score |
+| `ACT_014_ExpensePrediction.puml` | Dự đoán chi tiêu | Quy trình dự đoán với AI |
 | `ACT_015_ManageNotifications.puml` | Quản lý thông báo | Quy trình xem, đánh dấu đọc, lọc |
 | `ACT_016_LinkTelegram.puml` | Liên kết Telegram | Quy trình tạo code và liên kết |
-| `ACT_017_TelegramTransaction.puml` | Nhập giao dịch qua Telegram | Quy trình xử lý tin nhắn và tạo giao dịch |
-| `ACT_018_BudgetAlert.puml` | Cảnh báo vượt ngân sách | Quy trình tính toán và gửi cảnh báo |
-| `ACT_019_AutoBudgetSuggestion.puml` | Đề xuất ngân sách tự động | Quy trình phân tích và đề xuất |
-| `ACT_020_DetailedReport.puml` | Xem báo cáo phân tích chi tiết | Quy trình tính toán và hiển thị báo cáo |
-| `10_Activity_TransactionEntry.puml` | Nhập giao dịch (tổng hợp) | Quy trình nhập giao dịch với NLU và thủ công |
-| `11_Activity_FinancialAnalysis.puml` | Phân tích tài chính | Quy trình phân tích và cache |
-| `12_Activity_BudgetManagement.puml` | Quản lý ngân sách | Quy trình quản lý và cảnh báo |
-| `19_Activity_ExpensePrediction.puml` | Dự đoán chi tiêu | Quy trình dự đoán với AI |
-| `20_Activity_NotificationFlow.puml` | Quy trình thông báo | Quy trình gửi thông báo qua các channels |
+| `ACT_017_TelegramTransaction.puml` | Giao dịch Telegram | Quy trình xử lý tin nhắn và tạo giao dịch |
+| `ACT_018_BudgetAlert.puml` | Cảnh báo ngân sách | Quy trình tính toán và gửi cảnh báo |
+| `ACT_019_AutoBudgetSuggestion.puml` | Đề xuất ngân sách | Quy trình phân tích và đề xuất |
+| `ACT_020_DetailedReport.puml` | Báo cáo chi tiết | Quy trình tính toán và hiển thị báo cáo |
 
 ---
 
-## 3. SEQUENCE DIAGRAMS (15+ files)
+## 3. SEQUENCE DIAGRAMS (16 files)
 
 Mô tả luồng tương tác giữa các components:
 
 | File | Use Case | Components |
 |------|----------|------------|
-| `SEQ_001_Register.puml` | Đăng ký tài khoản | User, Frontend, Backend, AuthService, Database |
+| `SEQ_001_Register.puml` | Đăng ký tài khoản | User, Frontend, Backend, Auth Service, Database |
+| `SEQ_002_Login.puml` | Đăng nhập | User, Frontend, Backend, Auth Service, DB, JWT |
+| `SEQ_003_ManualTransaction.puml` | Nhập giao dịch thủ công | User, Frontend, Backend, Handler, Service, DB, Budget, Notification, Cache |
+| `SEQ_004_NLUTransaction.puml` | Nhập giao dịch bằng NLU | User, Frontend, Backend, AI Service, NLU Service, Database |
 | `SEQ_005_ViewTransactions.puml` | Xem danh sách giao dịch | User, Frontend, Backend, Handler, Database |
 | `SEQ_006_UpdateTransaction.puml` | Cập nhật giao dịch | User, Frontend, Backend, Handler, Service, Database, Cache |
 | `SEQ_007_DeleteTransaction.puml` | Xóa giao dịch | User, Frontend, Backend, Handler, Service, Database, Cache |
-| `SEQ_008_CreateGoal.puml` | Tạo mục tiêu tài chính | User, Frontend, Backend, Handler, Service, Database |
-| `SEQ_010_CreateBudget.puml` | Tạo ngân sách | User, Frontend, Backend, Handler, Service, Database |
+| `SEQ_008_CreateGoal.puml` | Tạo mục tiêu tài chính | User, Frontend, Backend, Goal Service, Database |
+| `SEQ_009_ContributeGoal.puml` | Đóng góp vào mục tiêu | User, Frontend, Backend, Goal Service, Database, Notification |
+| `SEQ_010_CreateBudget.puml` | Tạo ngân sách | User, Frontend, Backend, Budget Service, Database |
+| `SEQ_011_DashboardAnalytics.puml` | Dashboard Analytics | User, Frontend, Backend, Analytics, Transaction Service, Database, Cache |
+| `SEQ_012_AIChat.puml` | Chat với AI | User, Frontend, Backend, AI Handler, AI Service, Chat Service, Database |
+| `SEQ_013_AnomalyDetection.puml` | Phát hiện bất thường | User, Frontend, Backend, Analytics, AI Service, Anomaly Service, Notification |
 | `SEQ_016_LinkTelegram.puml` | Liên kết Telegram | User, Frontend, Backend, Database, Telegram Bot |
 | `SEQ_017_TelegramTransaction.puml` | Nhập giao dịch qua Telegram | User, Telegram Bot, Backend, AI Service, Service, Database |
 | `SEQ_019_AutoBudgetSuggestion.puml` | Đề xuất ngân sách tự động | User, Frontend, Backend, Handler, Service, Database, AI Service |
-| `06_Sequence_NLUTransaction.puml` | Nhập giao dịch bằng NLU | User, Frontend, Backend, AI Service, NLU Service, Database |
-| `07_Sequence_GoalManagement.puml` | Quản lý mục tiêu | User, Frontend, Backend, Goal Service, Database, Notification |
-| `08_Sequence_AnomalyDetection.puml` | Phát hiện bất thường | User, Frontend, Backend, Analytics, AI Service, Anomaly Service |
-| `09_Sequence_AIChat.puml` | Chat với AI | User, Frontend, Backend, AI Handler, AI Service, Chat Service |
-| `17_Sequence_Authentication.puml` | Xác thực (Register + Login) | User, Frontend, Backend, Auth Service, Database, JWT Service |
-| `18_Sequence_DashboardAnalytics.puml` | Dashboard Analytics | User, Frontend, Backend, Analytics, Transaction Service, Database, Cache |
 
 ---
 

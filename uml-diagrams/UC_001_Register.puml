@@ -1,15 +1,41 @@
 @startuml UC_001_Register
+
+skinparam usecase {
+    BackgroundColor #FFFFFF
+    BorderColor #000000
+    ArrowColor #000000
+    BorderThickness 1.4
+    FontColor #000000
+    FontSize 14
+}
+
+skinparam actor {
+    BackgroundColor #FFFFFF
+    BorderColor #000000
+    FontColor #000000
+    FontSize 14
+}
+
+skinparam package {
+    BorderColor #000000
+    FontColor #000000
+}
+
+skinparam shadowing false
+skinparam dpi 150
+
+' Layout ngang
+left to right direction
+
 actor User
 
-package "Authentication System" {
-    usecase "Đăng ký tài khoản" as UC_Register
-    usecase "Validate dữ liệu" as UC_Validate
-    usecase "Kiểm tra email/username tồn tại" as UC_CheckExists
-    usecase "Hash password" as UC_HashPassword
-    usecase "Tạo user record" as UC_CreateUser
-    usecase "Tạo user profile" as UC_CreateProfile
-    usecase "Gửi email xác thực" as UC_SendVerification
-}
+usecase "Đăng ký tài khoản" as UC_Register
+usecase "Validate dữ liệu" as UC_Validate
+usecase "Kiểm tra email/username tồn tại" as UC_CheckExists
+usecase "Hash password" as UC_HashPassword
+usecase "Tạo user record" as UC_CreateUser
+usecase "Tạo user profile" as UC_CreateProfile
+usecase "Gửi email xác thực" as UC_SendVerification
 
 User --> UC_Register
 UC_Register ..> UC_Validate : <<includes>>
@@ -20,4 +46,3 @@ UC_Register ..> UC_CreateProfile : <<includes>>
 UC_Register ..> UC_SendVerification : <<extends>>
 
 @enduml
-
