@@ -229,7 +229,7 @@ CORS_ORIGINS=http://localhost:3000
 - `POST /api/v1/ai/nlu` - Xử lý ngôn ngữ tự nhiên
 - `POST /api/v1/ai/predict-expenses` - Dự đoán chi tiêu
 - `POST /api/v1/ai/detect-anomalies` - Phát hiện bất thường
-- `POST /api/v1/ai/chat` - Chat với AI
+- `POST {AI_SERVICE_URL}/api/v1/chat/process` - Chat với AI (Frontend & Telegram Bot gọi trực tiếp AI Service; backend không còn expose proxy)
 
 ## 🤝 Contributing
 

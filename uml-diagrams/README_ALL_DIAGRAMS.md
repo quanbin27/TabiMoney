@@ -1,4 +1,4 @@
-# Tổng hợp đầy đủ tất cả biểu đồ UML - TabiMoney System
+    # Tổng hợp đầy đủ tất cả biểu đồ UML - TabiMoney System
 
 ## Tổng quan
 
@@ -86,10 +86,10 @@ Mô tả luồng tương tác giữa các components:
 | `SEQ_009_ContributeGoal.puml` | Đóng góp vào mục tiêu | User, Frontend, Backend, Goal Service, Database, Notification |
 | `SEQ_010_CreateBudget.puml` | Tạo ngân sách | User, Frontend, Backend, Budget Service, Database |
 | `SEQ_011_DashboardAnalytics.puml` | Dashboard Analytics | User, Frontend, Backend, Analytics, Transaction Service, Database, Cache |
-| `SEQ_012_AIChat.puml` | Chat với AI | User, Frontend, Backend, AI Handler, AI Service, Chat Service, Database |
+| `SEQ_012_AIChat.puml` | Chat với AI | User, Frontend, AI Service, Transaction Service, Gemini API, Database |
 | `SEQ_013_AnomalyDetection.puml` | Phát hiện bất thường | User, Frontend, Backend, Analytics, AI Service, Anomaly Service, Notification |
 | `SEQ_016_LinkTelegram.puml` | Liên kết Telegram | User, Frontend, Backend, Database, Telegram Bot |
-| `SEQ_017_TelegramTransaction.puml` | Nhập giao dịch qua Telegram | User, Telegram Bot, Backend, AI Service, Service, Database |
+| `SEQ_017_TelegramTransaction.puml` | Nhập giao dịch qua Telegram | User, Telegram Bot, AI Service, Transaction Service, Database |
 | `SEQ_019_AutoBudgetSuggestion.puml` | Đề xuất ngân sách tự động | User, Frontend, Backend, Handler, Service, Database, AI Service |
 
 ---
@@ -110,7 +110,7 @@ Mô tả trạng thái và chuyển đổi trạng thái của các entities:
 
 | File | Mô tả |
 |------|-------|
-| `16_ERD_TabiMoney.puml` | Entity Relationship Diagram với 12 bảng: users, user_profiles, categories, transactions, financial_goals, budgets, notifications, ai_analyses, chat_messages, user_sessions, telegram_accounts, telegram_link_codes |
+| `16_ERD_TabiMoney.puml` | Entity Relationship Diagram với 11 bảng: users, user_profiles, categories, transactions, financial_goals, budgets, notifications, ai_analyses, user_sessions, telegram_accounts, telegram_link_codes |
 
 ---
 

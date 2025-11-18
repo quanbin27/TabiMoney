@@ -340,29 +340,24 @@ Frontend --> User: Hiển thị bất thường
 ```
 @startuml SEQ_012_AIChat
 actor User
-participant "Frontend" as Frontend
-participant "Backend API" as Backend
-participant "AI Handler" as AIHandler
-participant "AI Service" as AIService
-participant "Chat Service" as ChatService
+participant "Frontend (Web)" as Frontend
+participant "AI Service (FastAPI)" as AIService
+participant "Transaction Service" as TxService
 participant "Database" as DB
+participant "Gemini API" as Gemini
 
-User -> Frontend: Gửi tin nhắn: "Tháng này tôi tiêu bao nhiêu cho ăn uống?"
-Frontend -> Backend: POST /api/v1/ai/chat
-Backend -> AIHandler: ProcessChat(request)
-AIHandler -> AIService: ProcessChatMessage(userID, message)
-AIService -> ChatService: Phân tích intent
-ChatService -> ChatService: Xác định loại câu hỏi
-alt Câu hỏi về dữ liệu
-    ChatService -> DB: Query transactions
-    DB --> ChatService: Transaction data
-    ChatService -> AIService: Format data for LLM
+User -> Frontend: Gửi tin nhắn
+Frontend -> AIService: POST {AI_SERVICE_URL}/api/v1/chat/process
+AIService -> TxService: Lấy dữ liệu context (transactions/budgets/goals)
+TxService -> DB: SELECT theo user_id
+DB --> TxService: Data
+TxService --> AIService: Context
+AIService -> Gemini: Prompt + context
+Gemini --> AIService: Natural response + entities
+alt Intent = add_transaction
+    AIService -> DB: INSERT INTO transactions
 end
-AIService -> AIService: Gọi LLM với context
-AIService -> AIService: Xử lý response
-AIService --> AIHandler: AI response
-AIHandler --> Backend: Chat response
-Backend --> Frontend: Response message
+AIService --> Frontend: ChatResponse (response, intent, suggestions)
 Frontend --> User: Hiển thị câu trả lời
 
 @enduml

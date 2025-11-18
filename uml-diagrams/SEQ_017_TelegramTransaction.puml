@@ -1,38 +1,34 @@
 @startuml SEQ_017_TelegramTransaction
 actor User
 actor "Telegram Bot" as Telegram
-participant "Backend API" as Backend
-participant "AI Service" as AI
-participant "Transaction Service" as Service
+participant "AI Service" as AIService
+participant "Transaction Service" as TxService
 participant "Database" as DB
 
 User -> Telegram: Gửi tin nhắn: "ăn bún bò 50k"
-Telegram -> Telegram: Nhận diện telegram_user_id
-Telegram -> DB: Tìm web_user_id từ telegram_accounts
+Telegram -> Telegram: Lấy telegram_user_id
+Telegram -> DB: SELECT web_user_id FROM telegram_accounts
 DB --> Telegram: web_user_id
 
 alt Chưa liên kết
-    DB --> Telegram: Không tìm thấy web_user_id
+    DB --> Telegram: NULL
     Telegram --> User: "Bạn chưa liên kết tài khoản. Dùng /link để liên kết."
+else Đã liên kết
+    Telegram -> AIService: POST {AI_SERVICE_URL}/api/v1/chat/process\n(Authorization: Telegram JWT,\n user_id, message)
+    AIService -> TxService: Xử lý intent + truy vấn dữ liệu user
+    TxService -> DB: Query transactions/categories/budgets
+    DB --> TxService: Context data
+    TxService --> AIService: Context
+
+    alt Intent = add_transaction
+        AIService -> DB: INSERT INTO transactions\n(through TxService)
+        DB --> AIService: Transaction created
+    end
+
+    AIService --> Telegram: ChatResponse (response, suggestions)
+    Telegram -> Telegram: Format message
+    Telegram --> User: "✅ Đã thêm: Ăn uống - 50,000 VND"
 end
 
-Telegram -> Backend: POST /api/v1/transactions (với web_user_id và message)
-Backend -> AI: POST /api/v1/ai/nlu/process
-AI -> AI: Xử lý NLU: trích xuất amount, category, description
-AI --> Backend: NLU result
-
-alt AI không hiểu
-    AI --> Backend: Error: Cannot parse
-    Backend --> Telegram: Error response
-    Telegram --> User: "Tôi không hiểu. Vui lòng nhập lại hoặc dùng format: /add [số tiền] [mô tả]"
-end
-
-Backend -> Service: CreateTransaction(userID, transactionData)
-Service -> DB: INSERT INTO transactions
-DB --> Service: Transaction created
-Service --> Backend: Transaction response
-Backend --> Telegram: Transaction created
-Telegram -> Telegram: Format xác nhận
-Telegram --> User: "✅ Đã thêm: Ăn uống - 50,000 VND"
 @enduml
 

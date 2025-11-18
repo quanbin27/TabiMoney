@@ -809,34 +809,38 @@ Authorization: Bearer <access_token>
 }
 ```
 
-### 9.2. AI Chat
+### 9.2. AI Chat (AI Service trực tiếp)
 - **Method:** `POST`
-- **Endpoint:** `/ai/chat`
-- **Mô tả:** Chat với AI để hỏi đáp về tài chính
-- **Headers:** `Authorization: Bearer <token>`
+- **Endpoint:** `{AI_SERVICE_URL}/api/v1/chat/process`
+- **Mô tả:** Frontend web (Vue) và Telegram Bot gọi **trực tiếp** tới AI Service để hỏi đáp tài chính. Backend không còn expose endpoint `/api/v1/ai/chat`.
+- **Headers:** 
+  - Web: không cần (đã cấu hình CORS riêng cho AI Service)
+  - Telegram Bot: `Authorization: Bearer <telegram_jwt>`
 - **Request Body:**
 ```json
 {
-  "message": "Tháng này tôi tiêu bao nhiêu cho ăn uống?",
-  "conversation_id": "optional-conversation-id"
+  "user_id": 42,
+  "message": "Tháng này tôi tiêu bao nhiêu cho ăn uống?"
 }
 ```
 - **Response (200):**
 ```json
 {
-  "response": "Tháng này bạn đã chi 2,500,000 VND cho ăn uống, chiếm 25% tổng chi tiêu.",
-  "conversation_id": "conv-123",
-  "sources": [
-    {
-      "type": "transactions",
-      "data": {
-        "total": 2500000,
-        "count": 45
-      }
-    }
-  ]
+  "user_id": 42,
+  "response": "Tháng này bạn đã chi 2.500.000 VND cho ăn uống, chiếm 25% tổng chi tiêu.",
+  "intent": "transaction_analysis",
+  "entities": [
+    { "type": "category_id", "value": "5", "confidence": 0.92 },
+    { "type": "amount", "value": "2500000", "confidence": 0.88 }
+  ],
+  "suggestions": [
+    "Tôi đã chi bao nhiêu cho giao thông?",
+    "Gợi ý cách giảm chi tiêu"
+  ],
+  "generated_at": "2024-11-18T08:45:12Z"
 }
 ```
+- **Ghi chú:** Nếu muốn audit qua backend, cần tự xây dựng service riêng; route `/api/v1/ai/chat` đã được gỡ.
 
 ---
 
@@ -1069,5 +1073,6 @@ Tất cả API có thể trả về các lỗi sau:
 3. Pagination: mặc định page=1, limit=20, tối đa limit=100
 4. Rate limiting: 100 requests/phút cho mỗi user
 5. CORS: Chỉ cho phép từ origins được cấu hình
+
 
 

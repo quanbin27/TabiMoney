@@ -30,7 +30,7 @@
 
 **Quan hệ:**
 - 1:1 với `user_profiles`
-- 1:N với `transactions`, `categories`, `financial_goals`, `budgets`, `notifications`, `ai_analyses`, `chat_messages`
+- 1:N với `transactions`, `categories`, `financial_goals`, `budgets`, `notifications`, `ai_analyses`
 - 1:1 với `telegram_accounts`
 
 ---
@@ -271,32 +271,7 @@
 
 ---
 
-## 9. BẢNG chat_messages
-
-**Mô tả:** Lưu trữ lịch sử chat với AI assistant
-
-| Tên cột | Kiểu dữ liệu | Ràng buộc | Ý nghĩa |
-|---------|--------------|-----------|---------|
-| id | BIGINT UNSIGNED | PRIMARY KEY, AUTO_INCREMENT | ID duy nhất |
-| user_id | BIGINT UNSIGNED | FOREIGN KEY → users.id, NOT NULL | ID của user |
-| message | TEXT | NOT NULL | Tin nhắn của user |
-| response | TEXT | NULL | Phản hồi từ AI |
-| intent | VARCHAR(100) | NULL | Intent được phát hiện |
-| entities | JSON | NULL | Entities được trích xuất |
-| is_processed | BOOLEAN | DEFAULT FALSE | Đã xử lý chưa |
-| created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Thời gian tạo |
-
-**Indexes:**
-- PRIMARY KEY: `id`
-- FOREIGN KEY: `user_id` → `users.id` (ON DELETE CASCADE)
-- INDEX: `idx_user_id`, `idx_created_at`
-
-**Quan hệ:**
-- N:1 với `users`
-
----
-
-## 10. BẢNG user_sessions
+## 9. BẢNG user_sessions
 
 **Mô tả:** Lưu trữ session JWT của user
 
@@ -323,7 +298,7 @@
 
 ---
 
-## 11. BẢNG telegram_accounts
+## 10. BẢNG telegram_accounts
 
 **Mô tả:** Liên kết tài khoản Telegram với web account
 
@@ -346,7 +321,7 @@
 
 ---
 
-## 12. BẢNG telegram_link_codes
+## 11. BẢNG telegram_link_codes
 
 **Mô tả:** Mã liên kết tạm thời để liên kết Telegram
 
@@ -373,7 +348,7 @@
 
 ## VIEWS (VIEWS)
 
-### 13. VIEW user_monthly_summary
+### 12. VIEW user_monthly_summary
 
 **Mô tả:** Tổng hợp chi tiêu theo tháng cho mỗi user
 
@@ -391,7 +366,7 @@
 
 ---
 
-### 14. VIEW category_spending
+### 13. VIEW category_spending
 
 **Mô tả:** Tổng hợp chi tiêu theo category
 

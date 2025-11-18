@@ -251,7 +251,7 @@ TabiMoney/
 - `DELETE /api/v1/goals/:id` - Xóa mục tiêu
 
 ### AI Assistant
-- `POST /api/v1/ai/chat` - Chat với AI
+- `POST {AI_SERVICE_URL}/api/v1/chat/process` - Chat với AI (Frontend & Telegram bot gọi trực tiếp)
 - `POST /api/v1/ai/nlu` - Natural Language Understanding
 
 ### Telegram Bot

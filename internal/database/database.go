@@ -17,14 +17,14 @@ var DB *gorm.DB
 
 func InitDatabase(cfg *config.Config) error {
 	dsn := cfg.GetDatabaseDSN()
-	
+
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info),
 		NowFunc: func() time.Time {
 			return time.Now().UTC()
 		},
 	})
-	
+
 	if err != nil {
 		return fmt.Errorf("failed to connect to database: %w", err)
 	}
@@ -60,7 +60,6 @@ func AutoMigrate() error {
 		&models.Budget{},
 		&models.AIAnalysis{},
 		&models.Notification{},
-		&models.ChatMessage{},
 		&models.TelegramAccount{},
 		&models.TelegramLinkCode{},
 	)

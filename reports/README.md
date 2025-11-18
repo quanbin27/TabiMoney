@@ -105,7 +105,7 @@ Tài liệu đầy đủ về tất cả API endpoints, bao gồm:
 
 Sơ đồ ERD đầy đủ của database, bao gồm:
 
-**12 bảng chính:**
+**11 bảng chính:**
 - users
 - user_profiles
 - categories
@@ -114,7 +114,6 @@ Sơ đồ ERD đầy đủ của database, bao gồm:
 - budgets
 - notifications
 - ai_analyses
-- chat_messages
 - user_sessions
 - telegram_accounts
 - telegram_link_codes

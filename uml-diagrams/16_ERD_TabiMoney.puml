@@ -135,18 +135,6 @@ entity "ai_analyses" as ai_analyses TABLE_COLOR {
     * created_at : TIMESTAMP
 }
 
-entity "chat_messages" as chat_messages TABLE_COLOR {
-    * id : BIGINT <<PK>> PK_COLOR
-    * user_id : BIGINT <<FK>>
-    --
-    * message : TEXT
-    response : TEXT
-    intent : VARCHAR(100)
-    entities : JSON
-    is_processed : BOOLEAN
-    * created_at : TIMESTAMP
-}
-
 entity "user_sessions" as sessions TABLE_COLOR {
     * id : BIGINT <<PK>> PK_COLOR
     * user_id : BIGINT <<FK>>
@@ -188,7 +176,6 @@ users ||--o{ goals : "has many"
 users ||--o{ budgets : "has many"
 users ||--o{ notifications : "has many"
 users ||--o{ ai_analyses : "has many"
-users ||--o{ chat_messages : "has many"
 users ||--o| telegram : "has one"
 users ||--o{ telegram_codes : "has many link codes"
 

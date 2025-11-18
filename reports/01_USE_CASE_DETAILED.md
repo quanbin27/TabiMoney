@@ -749,13 +749,12 @@
 2. User gửi tin nhắn: "ăn bún bò 50k"
 3. Bot nhận diện telegram_user_id
 4. Bot tìm web_user_id từ telegram_accounts
-5. Bot gửi request đến Backend API với web_user_id và message
-6. Backend gọi AI Service để xử lý NLU
-7. AI Service trích xuất: amount, category, description
-8. Backend tạo transaction
-9. Backend trả về transaction đã tạo
-10. Bot format và gửi xác nhận cho user: "✅ Đã thêm: Ăn uống - 50,000 VND"
-11. User thấy xác nhận trong Telegram
+5. Bot gửi request trực tiếp đến **AI Service** (`POST {AI_SERVICE_URL}/api/v1/chat/process`) kèm JWT và `user_id`
+6. AI Service phân tích intent, tự truy vấn dữ liệu (transactions/budgets/goals)
+7. Nếu intent = `add_transaction`, AI Service (Transaction Service) ghi giao dịch mới vào database
+8. AI Service trả về thông điệp tự nhiên + thông tin hành động đã thực hiện
+9. Bot format và gửi xác nhận cho user: "✅ Đã thêm: Ăn uống - 50,000 VND"
+10. User thấy xác nhận trong Telegram
 
 **Luồng sự kiện phụ (Alternate Flow):**
 
@@ -765,8 +764,8 @@
 - 4c. Use case kết thúc
 
 **A2: AI không hiểu**
-- 7a. AI không thể trích xuất đủ thông tin
-- 7b. Bot yêu cầu user nhập lại hoặc dùng format: "/add [số tiền] [mô tả]"
+- 6a. AI Service không thể trích xuất đủ thông tin
+- 6b. Bot yêu cầu user nhập lại hoặc dùng format: "/add [số tiền] [mô tả]"
 - 7c. Use case kết thúc
 
 ---

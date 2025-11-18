@@ -1,7 +1,7 @@
 package main
 
 import (
-    "context"
+	"context"
 	"log"
 	"net/http"
 	"os"
@@ -49,11 +49,11 @@ func main() {
 
 	// Initialize services
 	authService := services.NewAuthService(cfg)
-    // Initialize optional services later
-    txHandler := handlers.NewTransactionHandler()
-    categoryHandler := handlers.NewCategoryHandler()
-    aiService := services.NewAIService(cfg)
-    aiHandler := handlers.NewAIHandler(aiService)
+	// Initialize optional services later
+	txHandler := handlers.NewTransactionHandler()
+	categoryHandler := handlers.NewCategoryHandler()
+	aiService := services.NewAIService(cfg)
+	aiHandler := handlers.NewAIHandler(aiService)
 
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(authService)
@@ -74,7 +74,7 @@ func main() {
 	e.GET("/health", func(c echo.Context) error {
 		status := "healthy"
 		errors := make(map[string]string)
-		
+
 		// Check database health (non-blocking)
 		if err := database.HealthCheck(); err != nil {
 			status = "degraded"
@@ -93,7 +93,7 @@ func main() {
 			"status": status,
 			"time":   time.Now().Format(time.RFC3339),
 		}
-		
+
 		if len(errors) > 0 {
 			response["errors"] = errors
 		}
@@ -109,81 +109,80 @@ func main() {
 	auth.POST("/register", authHandler.Register)
 	auth.POST("/login", authHandler.Login)
 	auth.POST("/refresh", authHandler.RefreshToken)
-    auth.POST("/logout", authHandler.Logout, appmw.AuthMiddleware(authService))
-    auth.POST("/change-password", authHandler.ChangePassword, appmw.AuthMiddleware(authService))
-    auth.GET("/profile", authHandler.GetProfile, appmw.AuthMiddleware(authService))
-    auth.PUT("/profile", authHandler.UpdateProfile, appmw.AuthMiddleware(authService))
-    auth.GET("/income", authHandler.GetMonthlyIncome, appmw.AuthMiddleware(authService))
-    auth.PUT("/income", authHandler.SetMonthlyIncome, appmw.AuthMiddleware(authService))
-    
-    // Telegram integration routes
-    auth.POST("/telegram/generate-link-code", authHandler.GenerateTelegramLinkCode, appmw.AuthMiddleware(authService))
-    auth.GET("/telegram/status", authHandler.GetTelegramStatus, appmw.AuthMiddleware(authService))
-    auth.POST("/telegram/disconnect", authHandler.DisconnectTelegram, appmw.AuthMiddleware(authService))
-    auth.POST("/telegram/link", authHandler.LinkTelegramAccount)
+	auth.POST("/logout", authHandler.Logout, appmw.AuthMiddleware(authService))
+	auth.POST("/change-password", authHandler.ChangePassword, appmw.AuthMiddleware(authService))
+	auth.GET("/profile", authHandler.GetProfile, appmw.AuthMiddleware(authService))
+	auth.PUT("/profile", authHandler.UpdateProfile, appmw.AuthMiddleware(authService))
+	auth.GET("/income", authHandler.GetMonthlyIncome, appmw.AuthMiddleware(authService))
+	auth.PUT("/income", authHandler.SetMonthlyIncome, appmw.AuthMiddleware(authService))
 
-    // Transactions routes
-    tx := api.Group("/transactions", appmw.AuthMiddleware(authService))
-    tx.GET("", txHandler.List)
-    tx.POST("", txHandler.Create)
-    tx.PUT("/:id", txHandler.Update)
-    tx.DELETE("/:id", txHandler.Delete)
+	// Telegram integration routes
+	auth.POST("/telegram/generate-link-code", authHandler.GenerateTelegramLinkCode, appmw.AuthMiddleware(authService))
+	auth.GET("/telegram/status", authHandler.GetTelegramStatus, appmw.AuthMiddleware(authService))
+	auth.POST("/telegram/disconnect", authHandler.DisconnectTelegram, appmw.AuthMiddleware(authService))
+	auth.POST("/telegram/link", authHandler.LinkTelegramAccount)
 
-    // Categories
-    cat := api.Group("/categories", appmw.AuthMiddleware(authService))
-    cat.GET("", categoryHandler.List)
-    cat.POST("", categoryHandler.Create)
-    cat.PUT("/:id", categoryHandler.Update)
-    cat.DELETE("/:id", categoryHandler.Delete)
+	// Transactions routes
+	tx := api.Group("/transactions", appmw.AuthMiddleware(authService))
+	tx.GET("", txHandler.List)
+	tx.POST("", txHandler.Create)
+	tx.PUT("/:id", txHandler.Update)
+	tx.DELETE("/:id", txHandler.Delete)
 
-    // Goals routes
-    goalHandler := handlers.NewGoalHandler()
-    goals := api.Group("/goals", appmw.AuthMiddleware(authService))
-    goals.GET("", goalHandler.GetGoals)
-    goals.POST("", goalHandler.CreateGoal)
-    goals.PUT("/:id", goalHandler.UpdateGoal)
-    goals.DELETE("/:id", goalHandler.DeleteGoal)
-    goals.POST("/:id/contribute", goalHandler.AddContribution)
+	// Categories
+	cat := api.Group("/categories", appmw.AuthMiddleware(authService))
+	cat.GET("", categoryHandler.List)
+	cat.POST("", categoryHandler.Create)
+	cat.PUT("/:id", categoryHandler.Update)
+	cat.DELETE("/:id", categoryHandler.Delete)
 
-    // Budgets routes
-    budgetHandler := handlers.NewBudgetHandler()
-    // Notifications routes
-    notificationHandler := handlers.NewNotificationHandler()
-    notifications := api.Group("/notifications", appmw.AuthMiddleware(authService))
-    notifications.GET("", notificationHandler.List)
-    notifications.POST("/:id/read", notificationHandler.MarkRead)
+	// Goals routes
+	goalHandler := handlers.NewGoalHandler()
+	goals := api.Group("/goals", appmw.AuthMiddleware(authService))
+	goals.GET("", goalHandler.GetGoals)
+	goals.POST("", goalHandler.CreateGoal)
+	goals.PUT("/:id", goalHandler.UpdateGoal)
+	goals.DELETE("/:id", goalHandler.DeleteGoal)
+	goals.POST("/:id/contribute", goalHandler.AddContribution)
 
-    // Notification preferences routes
-    notificationPrefsHandler := handlers.NewNotificationPreferencesHandler()
-    notificationPrefs := api.Group("/notification-preferences", appmw.AuthMiddleware(authService))
-    notificationPrefs.GET("", notificationPrefsHandler.GetPreferences)
-    notificationPrefs.PUT("", notificationPrefsHandler.UpdatePreferences)
-    notificationPrefs.GET("/summary", notificationPrefsHandler.GetSummary)
-    notificationPrefs.POST("/reset", notificationPrefsHandler.ResetToDefaults)
-    notificationPrefs.GET("/channels", notificationPrefsHandler.GetEnabledChannels)
-    notificationPrefs.POST("/test", notificationPrefsHandler.TestNotification)
-    budgets := api.Group("/budgets", appmw.AuthMiddleware(authService))
-    budgets.GET("", budgetHandler.GetBudgets)
-    budgets.POST("", budgetHandler.CreateBudget)
-    budgets.PUT("/:id", budgetHandler.UpdateBudget)
-    budgets.DELETE("/:id", budgetHandler.DeleteBudget)
-    budgets.GET("/insights", budgetHandler.GetBudgetInsights)
-    budgets.GET("/auto/suggestions", budgetHandler.GetAutoBudgetSuggestions)
-    budgets.POST("/auto/create", budgetHandler.CreateBudgetsFromSuggestions)
+	// Budgets routes
+	budgetHandler := handlers.NewBudgetHandler()
+	// Notifications routes
+	notificationHandler := handlers.NewNotificationHandler()
+	notifications := api.Group("/notifications", appmw.AuthMiddleware(authService))
+	notifications.GET("", notificationHandler.List)
+	notifications.POST("/:id/read", notificationHandler.MarkRead)
 
-    // AI endpoints
-    ai := api.Group("/ai", appmw.AuthMiddleware(authService))
-    ai.POST("/suggest-category", aiHandler.SuggestCategory)
-    ai.POST("/chat", aiHandler.ProcessChat)
+	// Notification preferences routes
+	notificationPrefsHandler := handlers.NewNotificationPreferencesHandler()
+	notificationPrefs := api.Group("/notification-preferences", appmw.AuthMiddleware(authService))
+	notificationPrefs.GET("", notificationPrefsHandler.GetPreferences)
+	notificationPrefs.PUT("", notificationPrefsHandler.UpdatePreferences)
+	notificationPrefs.GET("/summary", notificationPrefsHandler.GetSummary)
+	notificationPrefs.POST("/reset", notificationPrefsHandler.ResetToDefaults)
+	notificationPrefs.GET("/channels", notificationPrefsHandler.GetEnabledChannels)
+	notificationPrefs.POST("/test", notificationPrefsHandler.TestNotification)
+	budgets := api.Group("/budgets", appmw.AuthMiddleware(authService))
+	budgets.GET("", budgetHandler.GetBudgets)
+	budgets.POST("", budgetHandler.CreateBudget)
+	budgets.PUT("/:id", budgetHandler.UpdateBudget)
+	budgets.DELETE("/:id", budgetHandler.DeleteBudget)
+	budgets.GET("/insights", budgetHandler.GetBudgetInsights)
+	budgets.GET("/auto/suggestions", budgetHandler.GetAutoBudgetSuggestions)
+	budgets.POST("/auto/create", budgetHandler.CreateBudgetsFromSuggestions)
 
-    // Analytics routes
-    analyticsHandler := handlers.NewAnalyticsHandler(cfg)
-    analytics := api.Group("/analytics", appmw.AuthMiddleware(authService))
-    analytics.GET("/dashboard", analyticsHandler.GetDashboardAnalytics)
-    analytics.GET("/category-spending", analyticsHandler.GetCategorySpending)
-    analytics.GET("/spending-patterns", analyticsHandler.GetSpendingPatterns)
-    analytics.GET("/anomalies", analyticsHandler.GetAnomalies)
-    analytics.GET("/predictions", analyticsHandler.GetPredictions)
+	// AI endpoints
+	ai := api.Group("/ai", appmw.AuthMiddleware(authService))
+	ai.POST("/suggest-category", aiHandler.SuggestCategory)
+
+	// Analytics routes
+	analyticsHandler := handlers.NewAnalyticsHandler(cfg)
+	analytics := api.Group("/analytics", appmw.AuthMiddleware(authService))
+	analytics.GET("/dashboard", analyticsHandler.GetDashboardAnalytics)
+	analytics.GET("/category-spending", analyticsHandler.GetCategorySpending)
+	analytics.GET("/spending-patterns", analyticsHandler.GetSpendingPatterns)
+	analytics.GET("/anomalies", analyticsHandler.GetAnomalies)
+	analytics.GET("/predictions", analyticsHandler.GetPredictions)
 
 	// Start server
 	server := &http.Server{
