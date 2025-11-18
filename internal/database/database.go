@@ -59,9 +59,10 @@ func AutoMigrate() error {
 		&models.FinancialGoal{},
 		&models.Budget{},
 		&models.AIAnalysis{},
-		&models.AIFeedback{},
 		&models.Notification{},
 		&models.ChatMessage{},
+		&models.TelegramAccount{},
+		&models.TelegramLinkCode{},
 	)
 
 	if err != nil {

@@ -30,7 +30,7 @@
 
 **Quan hệ:**
 - 1:1 với `user_profiles`
-- 1:N với `transactions`, `categories`, `financial_goals`, `budgets`, `notifications`, `ai_analysis`
+- 1:N với `transactions`, `categories`, `financial_goals`, `budgets`, `notifications`, `ai_analyses`, `chat_messages`
 - 1:1 với `telegram_accounts`
 
 ---
@@ -247,9 +247,9 @@
 
 ---
 
-## 8. BẢNG ai_analysis
+## 8. BẢNG ai_analyses
 
-**Mô tả:** Lưu trữ kết quả phân tích AI
+**Mô tả:** Lưu trữ kết quả phân tích AI (expense prediction, anomaly detection, etc.)
 
 | Tên cột | Kiểu dữ liệu | Ràng buộc | Ý nghĩa |
 |---------|--------------|-----------|---------|
@@ -269,36 +269,30 @@
 **Quan hệ:**
 - N:1 với `users`
 
-**Ví dụ data JSON:**
-- `expense_prediction`: `{"total_expense": 7800000, "by_category": [...], "confidence": 0.82}`
-- `anomaly_detection`: `{"transaction_id": 123, "score": 0.85, "reason": "..."}`
-
 ---
 
-## 9. BẢNG ai_feedback
+## 9. BẢNG chat_messages
 
-**Mô tả:** Lưu trữ feedback của user cho AI để học hỏi
+**Mô tả:** Lưu trữ lịch sử chat với AI assistant
 
 | Tên cột | Kiểu dữ liệu | Ràng buộc | Ý nghĩa |
 |---------|--------------|-----------|---------|
 | id | BIGINT UNSIGNED | PRIMARY KEY, AUTO_INCREMENT | ID duy nhất |
 | user_id | BIGINT UNSIGNED | FOREIGN KEY → users.id, NOT NULL | ID của user |
-| transaction_id | BIGINT UNSIGNED | FOREIGN KEY → transactions.id, NULL | ID giao dịch liên quan |
-| feedback_type | ENUM | NOT NULL | Loại: 'category_correct', 'category_incorrect', 'prediction_accurate', 'prediction_inaccurate', 'suggestion_helpful', 'suggestion_not_helpful' |
-| original_prediction | JSON | NULL | Dự đoán ban đầu của AI |
-| user_correction | JSON | NULL | Sửa đổi của user |
-| feedback_text | TEXT | NULL | Feedback dạng text |
+| message | TEXT | NOT NULL | Tin nhắn của user |
+| response | TEXT | NULL | Phản hồi từ AI |
+| intent | VARCHAR(100) | NULL | Intent được phát hiện |
+| entities | JSON | NULL | Entities được trích xuất |
+| is_processed | BOOLEAN | DEFAULT FALSE | Đã xử lý chưa |
 | created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Thời gian tạo |
 
 **Indexes:**
 - PRIMARY KEY: `id`
 - FOREIGN KEY: `user_id` → `users.id` (ON DELETE CASCADE)
-- FOREIGN KEY: `transaction_id` → `transactions.id` (ON DELETE SET NULL)
-- INDEX: `idx_user_id`, `idx_feedback_type`
+- INDEX: `idx_user_id`, `idx_created_at`
 
 **Quan hệ:**
 - N:1 với `users`
-- N:1 với `transactions` (có thể NULL)
 
 ---
 

@@ -16,15 +16,10 @@ endif
 - Nếu thời gian khác pattern: FLAG;
 :Tính anomaly score (0-1);
 if (Score > 0.7?) then (có)
-  :Lưu vào ai_analysis với type='anomaly_detection';
   :Tạo notification cảnh báo;
   :Gửi notification cho user;
 endif
 :Giao dịch được đánh dấu (metadata);
-if (User xác nhận đây là giao dịch hợp lệ?) then (có)
-  :Lưu feedback vào ai_feedback;
-  :AI Service học từ feedback để cải thiện;
-endif
 stop
 @enduml
 

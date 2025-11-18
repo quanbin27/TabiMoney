@@ -134,22 +134,6 @@ CREATE TABLE ai_analysis (
     INDEX idx_created_at (created_at)
 ) ENGINE=InnoDB;
 
--- User feedback for AI learning
-CREATE TABLE ai_feedback (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    user_id BIGINT UNSIGNED NOT NULL,
-    transaction_id BIGINT UNSIGNED NULL,
-    feedback_type ENUM('category_correct', 'category_incorrect', 'prediction_accurate', 'prediction_inaccurate', 'suggestion_helpful', 'suggestion_not_helpful') NOT NULL,
-    original_prediction JSON,
-    user_correction JSON,
-    feedback_text TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE SET NULL,
-    INDEX idx_user_id (user_id),
-    INDEX idx_feedback_type (feedback_type)
-) ENGINE=InnoDB;
-
 -- Notifications
 CREATE TABLE notifications (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

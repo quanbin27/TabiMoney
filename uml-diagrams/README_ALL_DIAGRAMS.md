@@ -110,7 +110,7 @@ Mô tả trạng thái và chuyển đổi trạng thái của các entities:
 
 | File | Mô tả |
 |------|-------|
-| `16_ERD_TabiMoney.puml` | Entity Relationship Diagram với 11 bảng: users, user_profiles, categories, transactions, financial_goals, budgets, notifications, ai_analysis, ai_feedback, user_sessions, telegram_accounts |
+| `16_ERD_TabiMoney.puml` | Entity Relationship Diagram với 12 bảng: users, user_profiles, categories, transactions, financial_goals, budgets, notifications, ai_analyses, chat_messages, user_sessions, telegram_accounts, telegram_link_codes |
 
 ---
 

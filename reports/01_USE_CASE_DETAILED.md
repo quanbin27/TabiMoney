@@ -583,9 +583,8 @@
    - Nếu thời gian khác pattern: FLAG
 6. AI Service tính anomaly score (0-1)
 7. Nếu score > 0.7:
-   7a. AI Service lưu vào ai_analysis với type='anomaly_detection'
-   7b. Hệ thống tạo notification cảnh báo
-   7c. Hệ thống gửi notification cho user
+   7a. Hệ thống tạo notification cảnh báo
+   7b. Hệ thống gửi notification cho user
 8. Giao dịch được đánh dấu (metadata)
 
 **Luồng sự kiện phụ (Alternate Flow):**
@@ -597,8 +596,7 @@
 
 **A2: False positive**
 - 7a. User xác nhận đây là giao dịch hợp lệ
-- 7b. Hệ thống lưu feedback vào ai_feedback
-- 7c. AI Service học từ feedback để cải thiện
+- 7b. Hệ thống ghi nhận và điều chỉnh threshold
 
 ---
 
@@ -616,7 +614,6 @@
 
 **Điều kiện sau (Postcondition):**
 - Dự đoán chi tiêu tháng tới được tạo
-- Kết quả được lưu trong ai_analysis
 
 **Luồng sự kiện chính (Main Flow):**
 1. User truy cập trang "Dự đoán chi tiêu" hoặc hệ thống tự động chạy (cuối tháng)
@@ -630,9 +627,8 @@
    - Tổng chi tiêu
    - Chi tiêu theo category
    - Confidence score
-6. AI Service lưu kết quả vào ai_analysis với type='expense_prediction'
-7. Hệ thống hiển thị dự đoán cho user
-8. User có thể xem chi tiết và so sánh với thực tế sau này
+6. Hệ thống hiển thị dự đoán cho user
+7. User có thể xem chi tiết và so sánh với thực tế sau này
 
 **Luồng sự kiện phụ (Alternate Flow):**
 

@@ -113,8 +113,8 @@ Sơ đồ ERD đầy đủ của database, bao gồm:
 - financial_goals
 - budgets
 - notifications
-- ai_analysis
-- ai_feedback
+- ai_analyses
+- chat_messages
 - user_sessions
 - telegram_accounts
 - telegram_link_codes

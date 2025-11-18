@@ -32,6 +32,9 @@ entity "user_profiles" as profiles TABLE_COLOR {
     language : VARCHAR(5)
     notification_settings : JSON
     ai_settings : JSON
+    telegram_enabled : BOOLEAN
+    telegram_notifications : BOOLEAN
+    telegram_language : VARCHAR(5)
     * created_at : TIMESTAMP
     * updated_at : TIMESTAMP
 }
@@ -39,7 +42,6 @@ entity "user_profiles" as profiles TABLE_COLOR {
 entity "categories" as categories TABLE_COLOR {
     * id : BIGINT <<PK>> PK_COLOR
     user_id : BIGINT <<FK>>
-    parent_id : BIGINT <<FK>>
     --
     * name : VARCHAR(100)
     name_en : VARCHAR(100)
@@ -57,7 +59,6 @@ entity "transactions" as transactions TABLE_COLOR {
     * id : BIGINT <<PK>> PK_COLOR
     * user_id : BIGINT <<FK>>
     * category_id : BIGINT <<FK>>
-    parent_transaction_id : BIGINT <<FK>>
     ai_suggested_category_id : BIGINT <<FK>>
     --
     * amount : DECIMAL(15,2)
@@ -123,7 +124,7 @@ entity "notifications" as notifications TABLE_COLOR {
     * created_at : TIMESTAMP
 }
 
-entity "ai_analysis" as ai_analysis TABLE_COLOR {
+entity "ai_analyses" as ai_analyses TABLE_COLOR {
     * id : BIGINT <<PK>> PK_COLOR
     * user_id : BIGINT <<FK>>
     --
@@ -134,15 +135,15 @@ entity "ai_analysis" as ai_analysis TABLE_COLOR {
     * created_at : TIMESTAMP
 }
 
-entity "ai_feedback" as ai_feedback TABLE_COLOR {
+entity "chat_messages" as chat_messages TABLE_COLOR {
     * id : BIGINT <<PK>> PK_COLOR
     * user_id : BIGINT <<FK>>
-    transaction_id : BIGINT <<FK>>
     --
-    * feedback_type : ENUM
-    original_prediction : JSON
-    user_correction : JSON
-    feedback_text : TEXT
+    * message : TEXT
+    response : TEXT
+    intent : VARCHAR(100)
+    entities : JSON
+    is_processed : BOOLEAN
     * created_at : TIMESTAMP
 }
 
@@ -169,6 +170,16 @@ entity "telegram_accounts" as telegram TABLE_COLOR {
     * updated_at : TIMESTAMP
 }
 
+entity "telegram_link_codes" as telegram_codes TABLE_COLOR {
+    * id : BIGINT <<PK>> PK_COLOR
+    * code : VARCHAR(16) <<UNIQUE>>
+    telegram_user_id : BIGINT
+    * web_user_id : BIGINT <<FK>>
+    * expires_at : TIMESTAMP
+    used_at : TIMESTAMP
+    * created_at : TIMESTAMP
+}
+
 users ||--o{ profiles : "has one"
 users ||--o{ sessions : "has many"
 users ||--o{ transactions : "has many"
@@ -176,17 +187,15 @@ users ||--o{ categories : "has many"
 users ||--o{ goals : "has many"
 users ||--o{ budgets : "has many"
 users ||--o{ notifications : "has many"
-users ||--o{ ai_analysis : "has many"
-users ||--o{ ai_feedback : "has many"
+users ||--o{ ai_analyses : "has many"
+users ||--o{ chat_messages : "has many"
 users ||--o| telegram : "has one"
+users ||--o{ telegram_codes : "has many link codes"
 
-categories ||--o{ categories : "parent-child"
 categories ||--o{ transactions : "categorizes"
 categories ||--o{ budgets : "has budget"
 
-transactions ||--o| transactions : "parent-child (recurring)"
 transactions ||--o| categories : "ai_suggested"
-transactions ||--o{ ai_feedback : "has feedback"
 
 @enduml
 

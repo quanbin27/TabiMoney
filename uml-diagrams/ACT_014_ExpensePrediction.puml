@@ -20,7 +20,6 @@ if (Confidence score < 0.5?) then (có)
   :Cảnh báo "Dự đoán có độ tin cậy thấp";
   :Hiển thị với disclaimer;
 endif
-:Lưu kết quả vào ai_analysis với type='expense_prediction';
 :Hiển thị dự đoán cho user;
 :User có thể xem chi tiết và so sánh với thực tế sau này;
 stop
