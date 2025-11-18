@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"tabimoney/internal/database"
@@ -162,27 +161,6 @@ func (s *TelegramService) sendMessage(chatID int64, text string, notification *m
 		"parse_mode": "Markdown",
 	}
 
-	// Add inline keyboard if action URL exists and is a valid absolute URL
-	// Telegram doesn't accept localhost URLs, so only add keyboard for public URLs
-	if notification.ActionURL != "" && 
-		strings.HasPrefix(notification.ActionURL, "https://") && 
-		!strings.Contains(notification.ActionURL, "localhost") &&
-		!strings.Contains(notification.ActionURL, "127.0.0.1") &&
-		!strings.Contains(notification.ActionURL, "192.168.") &&
-		!strings.Contains(notification.ActionURL, "172.") {
-		keyboard := TelegramKeyboard{
-			InlineKeyboard: [][]TelegramInlineButton{
-				{
-					{
-						Text: "Xem chi tiết",
-						URL:  notification.ActionURL,
-					},
-				},
-			},
-		}
-		payload["reply_markup"] = keyboard
-	}
-
 	// Convert to JSON
 	jsonData, err := json.Marshal(payload)
 	if err != nil {
@@ -243,7 +221,7 @@ func (s *TelegramService) SendGoalAlert(userID uint64, goal *models.FinancialGoa
 	data := map[string]interface{}{
 		"goal_name": goal.Title,
 		"amount":    goal.TargetAmount,
-		"progress": goal.Progress,
+		"progress":  goal.Progress,
 	}
 
 	return s.SendNotificationMessage(userID, notification, data)
@@ -370,15 +348,15 @@ func (s *TelegramService) SendMonthlyReport(userID uint64, report *models.Dashbo
 🏥 Sức khỏe tài chính: *%s* (%.1f/100)
 
 📂 Top danh mục chi tiêu:
-`, report.Period, report.TotalIncome, report.TotalExpense, report.NetAmount, 
-	report.FinancialHealth.Level, report.FinancialHealth.Score)
+`, report.Period, report.TotalIncome, report.TotalExpense, report.NetAmount,
+		report.FinancialHealth.Level, report.FinancialHealth.Score)
 
 	// Add top categories
 	for i, category := range report.CategoryBreakdown {
 		if i >= 5 { // Limit to top 5
 			break
 		}
-		message += fmt.Sprintf("%d. %s: *%.0f VND* (%.1f%%)\n", 
+		message += fmt.Sprintf("%d. %s: *%.0f VND* (%.1f%%)\n",
 			i+1, category.CategoryName, category.Amount, category.Percentage)
 	}
 
@@ -408,9 +386,8 @@ func (s *TelegramService) SendLargeTransactionAlert(userID uint64, transaction *
 	data := map[string]interface{}{
 		"amount":        transaction.Amount,
 		"category_name": transaction.Category.Name,
-		"description":  transaction.Description,
+		"description":   transaction.Description,
 	}
 
 	return s.SendNotificationMessage(userID, notification, data)
 }
-

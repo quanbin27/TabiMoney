@@ -524,8 +524,7 @@ def check_budget_alerts(user_id, transaction):
                         title="Vượt ngân sách",
                         message=f"Bạn đã vượt {budget.name} ({usage_pct:.1f}%)",
                         type='error',
-                        priority='urgent',
-                        action_url=f"/budgets/{budget.id}"
+                    priority='urgent'
                     )
                 else:
                     create_notification(
@@ -533,8 +532,7 @@ def check_budget_alerts(user_id, transaction):
                         title="Cảnh báo ngân sách",
                         message=f"Bạn đã sử dụng {usage_pct:.1f}% {budget.name}",
                         type='warning',
-                        priority='high',
-                        action_url=f"/budgets/{budget.id}"
+                    priority='high'
                     )
 ```
 

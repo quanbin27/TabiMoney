@@ -68,6 +68,11 @@ func AutoMigrate() error {
 		return fmt.Errorf("failed to auto migrate: %w", err)
 	}
 
+	// Cleanup legacy columns
+	if DB.Migrator().HasColumn(&models.Notification{}, "action_url") {
+		_ = DB.Migrator().DropColumn(&models.Notification{}, "action_url")
+	}
+
 	log.Println("Database migration completed successfully")
 	return nil
 }

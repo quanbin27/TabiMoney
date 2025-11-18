@@ -41,7 +41,6 @@ type Notification struct {
 	Priority         string     `json:"priority" gorm:"type:enum('low','medium','high','urgent');default:'medium'"`
 	IsRead           bool       `json:"is_read" gorm:"default:false"`
 	ReadAt           *time.Time `json:"read_at"`
-	ActionURL        string     `json:"action_url"`
 	Metadata         string     `json:"metadata" gorm:"type:json"`
 	CreatedAt        time.Time  `json:"created_at"`
 

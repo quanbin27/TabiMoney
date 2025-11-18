@@ -20,13 +20,12 @@ type NotificationDispatcher struct {
 }
 
 type NotificationTrigger struct {
-	UserID          uint64
+	UserID           uint64
 	NotificationType string
-	Priority        string
-	Title           string
-	Message         string
-	ActionURL       string
-	Metadata        map[string]interface{}
+	Priority         string
+	Title            string
+	Message          string
+	Metadata         map[string]interface{}
 }
 
 func NewNotificationDispatcher() *NotificationDispatcher {
@@ -68,7 +67,6 @@ func (d *NotificationDispatcher) DispatchNotification(trigger NotificationTrigge
 		trigger.NotificationType,
 		trigger.Priority,
 		metadataJSON,
-		trigger.ActionURL,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create notification: %w", err)
@@ -84,14 +82,14 @@ func (d *NotificationDispatcher) DispatchNotification(trigger NotificationTrigge
 // getUserNotificationPreferences gets user's notification preferences
 func (d *NotificationDispatcher) getUserNotificationPreferences(user *models.User) map[string]interface{} {
 	preferences := map[string]interface{}{
-		"email_enabled":     true,
-		"telegram_enabled": true,
-		"in_app_enabled":    true,
-		"budget_alerts":     true,
-		"goal_alerts":       true,
-		"ai_alerts":         true,
+		"email_enabled":      true,
+		"telegram_enabled":   true,
+		"in_app_enabled":     true,
+		"budget_alerts":      true,
+		"goal_alerts":        true,
+		"ai_alerts":          true,
 		"transaction_alerts": true,
-		"analytics_alerts":  true,
+		"analytics_alerts":   true,
 	}
 
 	if user.Profile != nil && user.Profile.NotificationSettings != "" {
@@ -134,13 +132,12 @@ func (d *NotificationDispatcher) sendEmailNotification(user *models.User, notifi
 	}
 
 	emailData := EmailData{
-		Title:        notification.Title,
-		Message:      notification.Message,
-		ActionURL:    notification.ActionURL,
-		Priority:     notification.Priority,
+		Title:            notification.Title,
+		Message:          notification.Message,
+		Priority:         notification.Priority,
 		NotificationType: notification.NotificationType,
-		Date:         notification.CreatedAt.Format("02/01/2006"),
-		Time:         notification.CreatedAt.Format("15:04"),
+		Date:             notification.CreatedAt.Format("02/01/2006"),
+		Time:             notification.CreatedAt.Format("15:04"),
 	}
 
 	// Add metadata to email data
@@ -184,12 +181,11 @@ func (d *NotificationDispatcher) sendTelegramNotification(userID uint64, notific
 // TriggerBudgetThresholdAlert triggers budget threshold alert
 func (d *NotificationDispatcher) TriggerBudgetThresholdAlert(userID uint64, budget *models.Budget) error {
 	trigger := NotificationTrigger{
-		UserID:          userID,
+		UserID:           userID,
 		NotificationType: "warning",
-		Priority:        "high",
-		Title:           "Ngân sách đạt ngưỡng cảnh báo",
-		Message:         fmt.Sprintf("Ngân sách '%s' đã đạt %.1f%% ngưỡng cảnh báo (%.0f%%).", budget.Name, budget.UsagePercentage, budget.AlertThreshold),
-		ActionURL:       fmt.Sprintf("/budgets/%d", budget.ID),
+		Priority:         "high",
+		Title:            "Ngân sách đạt ngưỡng cảnh báo",
+		Message:          fmt.Sprintf("Ngân sách '%s' đã đạt %.1f%% ngưỡng cảnh báo (%.0f%%).", budget.Name, budget.UsagePercentage, budget.AlertThreshold),
 		Metadata: map[string]interface{}{
 			"budget_id":        budget.ID,
 			"budget_name":      budget.Name,
@@ -206,12 +202,11 @@ func (d *NotificationDispatcher) TriggerBudgetThresholdAlert(userID uint64, budg
 // TriggerBudgetExceededAlert triggers budget exceeded alert
 func (d *NotificationDispatcher) TriggerBudgetExceededAlert(userID uint64, budget *models.Budget) error {
 	trigger := NotificationTrigger{
-		UserID:          userID,
+		UserID:           userID,
 		NotificationType: "warning",
-		Priority:        "urgent",
-		Title:           "Ngân sách đã vượt quá",
-		Message:         fmt.Sprintf("Ngân sách '%s' đã vượt quá %.1f%%!", budget.Name, budget.UsagePercentage),
-		ActionURL:       fmt.Sprintf("/budgets/%d", budget.ID),
+		Priority:         "urgent",
+		Title:            "Ngân sách đã vượt quá",
+		Message:          fmt.Sprintf("Ngân sách '%s' đã vượt quá %.1f%%!", budget.Name, budget.UsagePercentage),
 		Metadata: map[string]interface{}{
 			"budget_id":        budget.ID,
 			"budget_name":      budget.Name,
@@ -226,33 +221,31 @@ func (d *NotificationDispatcher) TriggerBudgetExceededAlert(userID uint64, budge
 
 // TriggerBudgetPacingAlert warns when spending pace is too fast
 func (d *NotificationDispatcher) TriggerBudgetPacingAlert(userID uint64, budget *models.Budget, allowedPacePct, actualPacePct float64, daysLeft int) error {
-    trigger := NotificationTrigger{
-        UserID:          userID,
-        NotificationType: "warning",
-        Priority:        "medium",
-        Title:           "Tốc độ chi vượt pace ngân sách",
-        Message:         fmt.Sprintf("Ngân sách '%s' đang chi %.1f%% so với pace cho phép (%.1f%%). Còn %d ngày trong kỳ.", budget.Name, actualPacePct, allowedPacePct, daysLeft),
-        ActionURL:       fmt.Sprintf("/budgets/%d", budget.ID),
-        Metadata: map[string]interface{}{
-            "budget_id":        budget.ID,
-            "budget_name":      budget.Name,
-            "allowed_pace_pct": allowedPacePct,
-            "actual_pace_pct":  actualPacePct,
-            "days_left":        daysLeft,
-        },
-    }
-    return d.DispatchNotification(trigger)
+	trigger := NotificationTrigger{
+		UserID:           userID,
+		NotificationType: "warning",
+		Priority:         "medium",
+		Title:            "Tốc độ chi vượt pace ngân sách",
+		Message:          fmt.Sprintf("Ngân sách '%s' đang chi %.1f%% so với pace cho phép (%.1f%%). Còn %d ngày trong kỳ.", budget.Name, actualPacePct, allowedPacePct, daysLeft),
+		Metadata: map[string]interface{}{
+			"budget_id":        budget.ID,
+			"budget_name":      budget.Name,
+			"allowed_pace_pct": allowedPacePct,
+			"actual_pace_pct":  actualPacePct,
+			"days_left":        daysLeft,
+		},
+	}
+	return d.DispatchNotification(trigger)
 }
 
 // TriggerBudgetAchievementAlert triggers budget achievement alert
 func (d *NotificationDispatcher) TriggerBudgetAchievementAlert(userID uint64, budget *models.Budget) error {
 	trigger := NotificationTrigger{
-		UserID:          userID,
+		UserID:           userID,
 		NotificationType: "success",
-		Priority:        "medium",
-		Title:           "Hoàn thành tiết kiệm ngân sách",
-		Message:         fmt.Sprintf("Chúc mừng! Bạn đã hoàn thành tiết kiệm ngân sách '%s'.", budget.Name),
-		ActionURL:       fmt.Sprintf("/budgets/%d", budget.ID),
+		Priority:         "medium",
+		Title:            "Hoàn thành tiết kiệm ngân sách",
+		Message:          fmt.Sprintf("Chúc mừng! Bạn đã hoàn thành tiết kiệm ngân sách '%s'.", budget.Name),
 		Metadata: map[string]interface{}{
 			"budget_id":   budget.ID,
 			"budget_name": budget.Name,
@@ -268,18 +261,17 @@ func (d *NotificationDispatcher) TriggerBudgetAchievementAlert(userID uint64, bu
 // TriggerGoalProgressAlert triggers goal progress alert
 func (d *NotificationDispatcher) TriggerGoalProgressAlert(userID uint64, goal *models.FinancialGoal, milestone string) error {
 	trigger := NotificationTrigger{
-		UserID:          userID,
+		UserID:           userID,
 		NotificationType: "info",
-		Priority:        "medium",
-		Title:           fmt.Sprintf("Mục tiêu đạt %s", milestone),
-		Message:         fmt.Sprintf("Mục tiêu '%s' đã đạt %.1f%%!", goal.Title, goal.Progress),
-		ActionURL:       fmt.Sprintf("/goals/%d", goal.ID),
+		Priority:         "medium",
+		Title:            fmt.Sprintf("Mục tiêu đạt %s", milestone),
+		Message:          fmt.Sprintf("Mục tiêu '%s' đã đạt %.1f%%!", goal.Title, goal.Progress),
 		Metadata: map[string]interface{}{
-			"goal_id":    goal.ID,
-			"goal_name":  goal.Title,
-			"amount":     goal.TargetAmount,
+			"goal_id":   goal.ID,
+			"goal_name": goal.Title,
+			"amount":    goal.TargetAmount,
 			"progress":  goal.Progress,
-			"milestone":  milestone,
+			"milestone": milestone,
 		},
 	}
 
@@ -289,18 +281,17 @@ func (d *NotificationDispatcher) TriggerGoalProgressAlert(userID uint64, goal *m
 // TriggerGoalDeadlineAlert triggers goal deadline alert
 func (d *NotificationDispatcher) TriggerGoalDeadlineAlert(userID uint64, goal *models.FinancialGoal, daysLeft int) error {
 	trigger := NotificationTrigger{
-		UserID:          userID,
+		UserID:           userID,
 		NotificationType: "warning",
-		Priority:        "high",
-		Title:           "Cảnh báo hạn chót mục tiêu",
-		Message:         fmt.Sprintf("Mục tiêu '%s' còn %d ngày nữa đến hạn!", goal.Title, daysLeft),
-		ActionURL:       fmt.Sprintf("/goals/%d", goal.ID),
+		Priority:         "high",
+		Title:            "Cảnh báo hạn chót mục tiêu",
+		Message:          fmt.Sprintf("Mục tiêu '%s' còn %d ngày nữa đến hạn!", goal.Title, daysLeft),
 		Metadata: map[string]interface{}{
-			"goal_id":     goal.ID,
-			"goal_name":   goal.Title,
-			"amount":      goal.TargetAmount,
-			"progress":   goal.Progress,
-			"days_left":  daysLeft,
+			"goal_id":   goal.ID,
+			"goal_name": goal.Title,
+			"amount":    goal.TargetAmount,
+			"progress":  goal.Progress,
+			"days_left": daysLeft,
 		},
 	}
 
@@ -310,12 +301,11 @@ func (d *NotificationDispatcher) TriggerGoalDeadlineAlert(userID uint64, goal *m
 // TriggerGoalAchievedAlert triggers goal achieved alert
 func (d *NotificationDispatcher) TriggerGoalAchievedAlert(userID uint64, goal *models.FinancialGoal) error {
 	trigger := NotificationTrigger{
-		UserID:          userID,
+		UserID:           userID,
 		NotificationType: "success",
-		Priority:        "high",
-		Title:           "Chúc mừng hoàn thành mục tiêu!",
-		Message:         fmt.Sprintf("Chúc mừng! Bạn đã hoàn thành mục tiêu '%s'!", goal.Title),
-		ActionURL:       fmt.Sprintf("/goals/%d", goal.ID),
+		Priority:         "high",
+		Title:            "Chúc mừng hoàn thành mục tiêu!",
+		Message:          fmt.Sprintf("Chúc mừng! Bạn đã hoàn thành mục tiêu '%s'!", goal.Title),
 		Metadata: map[string]interface{}{
 			"goal_id":   goal.ID,
 			"goal_name": goal.Title,
@@ -332,12 +322,11 @@ func (d *NotificationDispatcher) TriggerGoalAchievedAlert(userID uint64, goal *m
 // TriggerAnomalyAlert triggers anomaly detection alert
 func (d *NotificationDispatcher) TriggerAnomalyAlert(userID uint64, anomaly *models.Anomaly) error {
 	trigger := NotificationTrigger{
-		UserID:          userID,
+		UserID:           userID,
 		NotificationType: "warning",
-		Priority:        "high",
-		Title:           "Phát hiện giao dịch bất thường",
-		Message:         fmt.Sprintf("Giao dịch %.0f VND tại %s có vẻ bất thường (điểm số: %.2f).", anomaly.Amount, anomaly.CategoryName, anomaly.AnomalyScore),
-		ActionURL:       fmt.Sprintf("/transactions/%d", anomaly.TransactionID),
+		Priority:         "high",
+		Title:            "Phát hiện giao dịch bất thường",
+		Message:          fmt.Sprintf("Giao dịch %.0f VND tại %s có vẻ bất thường (điểm số: %.2f).", anomaly.Amount, anomaly.CategoryName, anomaly.AnomalyScore),
 		Metadata: map[string]interface{}{
 			"transaction_id": anomaly.TransactionID,
 			"amount":         anomaly.Amount,
@@ -353,14 +342,13 @@ func (d *NotificationDispatcher) TriggerAnomalyAlert(userID uint64, anomaly *mod
 // TriggerSpendingPredictionAlert triggers spending prediction alert
 func (d *NotificationDispatcher) TriggerSpendingPredictionAlert(userID uint64, prediction *models.ExpensePredictionResponse) error {
 	trigger := NotificationTrigger{
-		UserID:          userID,
+		UserID:           userID,
 		NotificationType: "info",
-		Priority:        "medium",
-		Title:           "Dự đoán chi tiêu tháng tới",
-		Message:         fmt.Sprintf("Dự đoán chi tiêu tháng tới: %.0f VND (độ tin cậy: %.1f%%)", prediction.PredictedAmount, prediction.ConfidenceScore*100),
-		ActionURL:       "/analytics/predictions",
+		Priority:         "medium",
+		Title:            "Dự đoán chi tiêu tháng tới",
+		Message:          fmt.Sprintf("Dự đoán chi tiêu tháng tới: %.0f VND (độ tin cậy: %.1f%%)", prediction.PredictedAmount, prediction.ConfidenceScore*100),
 		Metadata: map[string]interface{}{
-			"predicted_amount":  prediction.PredictedAmount,
+			"predicted_amount": prediction.PredictedAmount,
 			"confidence_score": prediction.ConfidenceScore,
 			"recommendations":  prediction.Recommendations,
 		},
@@ -374,17 +362,16 @@ func (d *NotificationDispatcher) TriggerSpendingPredictionAlert(userID uint64, p
 // TriggerLargeTransactionAlert triggers large transaction alert
 func (d *NotificationDispatcher) TriggerLargeTransactionAlert(userID uint64, transaction *models.Transaction, threshold float64) error {
 	trigger := NotificationTrigger{
-		UserID:          userID,
+		UserID:           userID,
 		NotificationType: "warning",
-		Priority:        "medium",
-		Title:           "Giao dịch lớn được phát hiện",
-		Message:         fmt.Sprintf("Giao dịch %.0f VND tại %s vượt quá ngưỡng %.0f VND", transaction.Amount, transaction.Category.Name, threshold),
-		ActionURL:       fmt.Sprintf("/transactions/%d", transaction.ID),
+		Priority:         "medium",
+		Title:            "Giao dịch lớn được phát hiện",
+		Message:          fmt.Sprintf("Giao dịch %.0f VND tại %s vượt quá ngưỡng %.0f VND", transaction.Amount, transaction.Category.Name, threshold),
 		Metadata: map[string]interface{}{
 			"transaction_id": transaction.ID,
 			"amount":         transaction.Amount,
 			"category_name":  transaction.Category.Name,
-			"description":   transaction.Description,
+			"description":    transaction.Description,
 			"threshold":      threshold,
 		},
 	}
@@ -397,18 +384,17 @@ func (d *NotificationDispatcher) TriggerLargeTransactionAlert(userID uint64, tra
 // TriggerMonthlyReportAlert triggers monthly report alert
 func (d *NotificationDispatcher) TriggerMonthlyReportAlert(userID uint64, analytics *models.DashboardAnalytics) error {
 	trigger := NotificationTrigger{
-		UserID:          userID,
+		UserID:           userID,
 		NotificationType: "info",
-		Priority:        "low",
-		Title:           "Báo cáo tài chính hàng tháng",
-		Message:         fmt.Sprintf("Báo cáo tháng %s: Thu %.0f VND, Chi %.0f VND, Chênh lệch %.0f VND", analytics.Period, analytics.TotalIncome, analytics.TotalExpense, analytics.NetAmount),
-		ActionURL:       "/analytics/monthly",
+		Priority:         "low",
+		Title:            "Báo cáo tài chính hàng tháng",
+		Message:          fmt.Sprintf("Báo cáo tháng %s: Thu %.0f VND, Chi %.0f VND, Chênh lệch %.0f VND", analytics.Period, analytics.TotalIncome, analytics.TotalExpense, analytics.NetAmount),
 		Metadata: map[string]interface{}{
 			"period":        analytics.Period,
 			"total_income":  analytics.TotalIncome,
 			"total_expense": analytics.TotalExpense,
 			"net_amount":    analytics.NetAmount,
-			"health_score": analytics.FinancialHealth.Score,
+			"health_score":  analytics.FinancialHealth.Score,
 		},
 	}
 
@@ -419,7 +405,7 @@ func (d *NotificationDispatcher) TriggerMonthlyReportAlert(userID uint64, analyt
 func (d *NotificationDispatcher) TriggerFinancialHealthAlert(userID uint64, health *models.FinancialHealth, period string) error {
 	var priority string
 	var notificationType string
-	
+
 	switch health.Level {
 	case "excellent":
 		priority = "low"
@@ -439,17 +425,16 @@ func (d *NotificationDispatcher) TriggerFinancialHealthAlert(userID uint64, heal
 	}
 
 	trigger := NotificationTrigger{
-		UserID:          userID,
+		UserID:           userID,
 		NotificationType: notificationType,
-		Priority:        priority,
-		Title:           fmt.Sprintf("Sức khỏe tài chính: %s", health.Level),
-		Message:         fmt.Sprintf("Sức khỏe tài chính tháng %s: %.1f/100 điểm. Tỷ lệ tiết kiệm: %.1f%%", period, health.Score, health.SavingsRate),
-		ActionURL:       "/analytics/health",
+		Priority:         priority,
+		Title:            fmt.Sprintf("Sức khỏe tài chính: %s", health.Level),
+		Message:          fmt.Sprintf("Sức khỏe tài chính tháng %s: %.1f/100 điểm. Tỷ lệ tiết kiệm: %.1f%%", period, health.Score, health.SavingsRate),
 		Metadata: map[string]interface{}{
-			"period":         period,
-			"health_score":   health.Score,
-			"health_level":   health.Level,
-			"savings_rate":   health.SavingsRate,
+			"period":          period,
+			"health_score":    health.Score,
+			"health_level":    health.Level,
+			"savings_rate":    health.SavingsRate,
 			"recommendations": health.Recommendations,
 		},
 	}
@@ -496,11 +481,11 @@ func (d *NotificationDispatcher) checkBudgetAlerts() error {
 			// Check if we already sent this alert recently
 			var recentNotification models.Notification
 			oneDayAgo := time.Now().Add(-24 * time.Hour)
-			
-			err := d.db.Where("user_id = ? AND notification_type = ? AND created_at > ? AND metadata LIKE ?", 
+
+			err := d.db.Where("user_id = ? AND notification_type = ? AND created_at > ? AND metadata LIKE ?",
 				budget.UserID, "warning", oneDayAgo, fmt.Sprintf("%%\"budget_id\":%d%%", budget.ID)).
 				First(&recentNotification).Error
-			
+
 			if err == gorm.ErrRecordNotFound {
 				// No recent alert, send one
 				if budget.UsagePercentage >= 100 {
@@ -535,11 +520,11 @@ func (d *NotificationDispatcher) checkGoalAlerts() error {
 				// Check if we already sent this alert recently
 				var recentNotification models.Notification
 				oneWeekAgo := time.Now().Add(-7 * 24 * time.Hour)
-				
-				err := d.db.Where("user_id = ? AND notification_type = ? AND created_at > ? AND metadata LIKE ?", 
+
+				err := d.db.Where("user_id = ? AND notification_type = ? AND created_at > ? AND metadata LIKE ?",
 					goal.UserID, "warning", oneWeekAgo, fmt.Sprintf("%%\"goal_id\":%d%%", goal.ID)).
 					First(&recentNotification).Error
-				
+
 				if err == gorm.ErrRecordNotFound {
 					d.TriggerGoalDeadlineAlert(goal.UserID, &goal, daysLeft)
 				}
@@ -553,11 +538,11 @@ func (d *NotificationDispatcher) checkGoalAlerts() error {
 				// Check if we already sent this milestone alert
 				var recentNotification models.Notification
 				oneWeekAgo := time.Now().Add(-7 * 24 * time.Hour)
-				
-				err := d.db.Where("user_id = ? AND notification_type = ? AND created_at > ? AND metadata LIKE ?", 
+
+				err := d.db.Where("user_id = ? AND notification_type = ? AND created_at > ? AND metadata LIKE ?",
 					goal.UserID, "info", oneWeekAgo, fmt.Sprintf("%%\"milestone\":\"%.0f%%\"%%", milestone)).
 					First(&recentNotification).Error
-				
+
 				if err == gorm.ErrRecordNotFound {
 					d.TriggerGoalProgressAlert(goal.UserID, &goal, fmt.Sprintf("%.0f%%", milestone))
 				}
@@ -587,12 +572,12 @@ func (d *NotificationDispatcher) checkMonthlyReports() error {
 		// Check if we already sent monthly report for this month
 		var recentNotification models.Notification
 		startOfMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
-		
-		err := d.db.Where("user_id = ? AND notification_type = ? AND created_at >= ?", 
+
+		err := d.db.Where("user_id = ? AND notification_type = ? AND created_at >= ?",
 			user.ID, "info", startOfMonth).
 			Where("title LIKE ?", "%Báo cáo tài chính hàng tháng%").
 			First(&recentNotification).Error
-		
+
 		if err == gorm.ErrRecordNotFound {
 			// Generate and send monthly report
 			ts := NewTransactionService()
@@ -605,4 +590,3 @@ func (d *NotificationDispatcher) checkMonthlyReports() error {
 
 	return nil
 }
-

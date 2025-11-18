@@ -78,7 +78,6 @@
 | description | TEXT | NULL | Mô tả |
 | icon | VARCHAR(50) | NULL | Icon name (Material Icons) |
 | color | VARCHAR(7) | NULL | Màu sắc (HEX) |
-| parent_id | BIGINT UNSIGNED | FOREIGN KEY → categories.id, NULL | ID danh mục cha (hierarchical) |
 | is_system | BOOLEAN | DEFAULT FALSE | Là danh mục hệ thống |
 | is_active | BOOLEAN | DEFAULT TRUE | Đang hoạt động |
 | sort_order | INT | DEFAULT 0 | Thứ tự sắp xếp |
@@ -88,12 +87,10 @@
 **Indexes:**
 - PRIMARY KEY: `id`
 - FOREIGN KEY: `user_id` → `users.id` (ON DELETE CASCADE)
-- FOREIGN KEY: `parent_id` → `categories.id` (ON DELETE SET NULL)
-- INDEX: `idx_user_id`, `idx_parent_id`, `idx_is_system`
+- INDEX: `idx_user_id`, `idx_is_system`
 
 **Quan hệ:**
 - N:1 với `users` (user_id có thể NULL cho system categories)
-- N:1 với `categories` (self-referential, parent-child)
 - 1:N với `transactions`, `budgets`
 
 **Danh mục hệ thống mặc định:**
@@ -128,7 +125,6 @@
 | metadata | JSON | NULL | Dữ liệu bổ sung (payment method, etc.) |
 | is_recurring | BOOLEAN | DEFAULT FALSE | Giao dịch định kỳ |
 | recurring_pattern | VARCHAR(50) | NULL | Pattern: 'daily', 'weekly', 'monthly', 'yearly' |
-| parent_transaction_id | BIGINT UNSIGNED | FOREIGN KEY → transactions.id, NULL | ID giao dịch cha (cho recurring) |
 | ai_confidence | DECIMAL(3,2) | NULL | Độ tin cậy AI (0.00-1.00) |
 | ai_suggested_category_id | BIGINT UNSIGNED | FOREIGN KEY → categories.id, NULL | Category AI đề xuất |
 | created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Thời gian tạo |
@@ -138,7 +134,6 @@
 - PRIMARY KEY: `id`
 - FOREIGN KEY: `user_id` → `users.id` (ON DELETE CASCADE)
 - FOREIGN KEY: `category_id` → `categories.id` (ON DELETE RESTRICT)
-- FOREIGN KEY: `parent_transaction_id` → `transactions.id` (ON DELETE SET NULL)
 - FOREIGN KEY: `ai_suggested_category_id` → `categories.id` (ON DELETE SET NULL)
 - INDEX: `idx_user_id`, `idx_category_id`, `idx_transaction_date`, `idx_transaction_type`, `idx_amount`, `idx_created_at`
 - COMPOSITE: `idx_transactions_user_date`, `idx_transactions_user_type`
@@ -146,7 +141,6 @@
 **Quan hệ:**
 - N:1 với `users`
 - N:1 với `categories`
-- N:1 với `transactions` (self-referential, parent-child cho recurring)
 
 ---
 
@@ -233,7 +227,6 @@
 | priority | ENUM | DEFAULT 'medium' | Độ ưu tiên: 'low', 'medium', 'high', 'urgent' |
 | is_read | BOOLEAN | DEFAULT FALSE | Đã đọc |
 | read_at | TIMESTAMP | NULL | Thời gian đọc |
-| action_url | VARCHAR(500) | NULL | URL để chuyển đến khi click |
 | metadata | JSON | NULL | Dữ liệu bổ sung |
 | created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Thời gian tạo |
 

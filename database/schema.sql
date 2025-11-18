@@ -144,7 +144,6 @@ CREATE TABLE notifications (
     priority ENUM('low', 'medium', 'high', 'urgent') DEFAULT 'medium',
     is_read BOOLEAN DEFAULT FALSE,
     read_at TIMESTAMP NULL,
-    action_url VARCHAR(500),
     metadata JSON,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,

@@ -667,7 +667,6 @@
 5. User thấy danh sách thông báo
 6. User click vào thông báo
 7. Hệ thống đánh dấu is_read = true, read_at = now()
-8. Nếu có action_url, user được chuyển đến trang đó
 
 **Luồng sự kiện phụ (Alternate Flow):**
 

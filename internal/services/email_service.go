@@ -28,19 +28,18 @@ type EmailTemplate struct {
 }
 
 type EmailData struct {
-	UserName     string
-	Title        string
-	Message      string
-	ActionURL    string
-	Priority     string
+	UserName         string
+	Title            string
+	Message          string
+	Priority         string
 	NotificationType string
-	Amount       float64
-	CategoryName string
-	BudgetName   string
-	GoalName     string
-	Progress     float64
-	Date         string
-	Time         string
+	Amount           float64
+	CategoryName     string
+	BudgetName       string
+	GoalName         string
+	Progress         float64
+	Date             string
+	Time             string
 }
 
 func NewEmailService() *EmailService {
@@ -68,7 +67,7 @@ func (s *EmailService) SendNotificationEmail(user *models.User, notification *mo
 
 	// Get email template based on notification type
 	template := s.getEmailTemplate(notification.NotificationType, notification.Priority)
-	
+
 	// Prepare email data
 	emailData := data
 	emailData.UserName = user.FirstName
@@ -77,7 +76,6 @@ func (s *EmailService) SendNotificationEmail(user *models.User, notification *mo
 	}
 	emailData.Title = notification.Title
 	emailData.Message = notification.Message
-	emailData.ActionURL = notification.ActionURL
 	emailData.Priority = notification.Priority
 	emailData.NotificationType = notification.NotificationType
 	emailData.Date = notification.CreatedAt.Format("02/01/2006")
@@ -100,32 +98,32 @@ func (s *EmailService) getEmailTemplate(notificationType, priority string) Email
 		if priority == "urgent" || priority == "high" {
 			return EmailTemplate{
 				Subject: "🚨 Cảnh báo khẩn cấp từ TabiMoney",
-				Body: s.getUrgentWarningTemplate(),
+				Body:    s.getUrgentWarningTemplate(),
 			}
 		}
 		return EmailTemplate{
 			Subject: "⚠️ Cảnh báo từ TabiMoney",
-			Body: s.getWarningTemplate(),
+			Body:    s.getWarningTemplate(),
 		}
 	case "error":
 		return EmailTemplate{
 			Subject: "❌ Thông báo lỗi từ TabiMoney",
-			Body: s.getErrorTemplate(),
+			Body:    s.getErrorTemplate(),
 		}
 	case "success":
 		return EmailTemplate{
 			Subject: "✅ Thành công từ TabiMoney",
-			Body: s.getSuccessTemplate(),
+			Body:    s.getSuccessTemplate(),
 		}
 	case "reminder":
 		return EmailTemplate{
 			Subject: "🔔 Nhắc nhở từ TabiMoney",
-			Body: s.getReminderTemplate(),
+			Body:    s.getReminderTemplate(),
 		}
 	default:
 		return EmailTemplate{
 			Subject: "📊 Thông báo từ TabiMoney",
-			Body: s.getInfoTemplate(),
+			Body:    s.getInfoTemplate(),
 		}
 	}
 }
@@ -137,7 +135,7 @@ func (s *EmailService) renderEmailTemplate(emailTemplate EmailTemplate, data Ema
 	if err != nil {
 		return "", "", err
 	}
-	
+
 	var subjectBuf bytes.Buffer
 	if err := subjectTmpl.Execute(&subjectBuf, data); err != nil {
 		return "", "", err
@@ -149,7 +147,7 @@ func (s *EmailService) renderEmailTemplate(emailTemplate EmailTemplate, data Ema
 	if err != nil {
 		return "", "", err
 	}
-	
+
 	var bodyBuf bytes.Buffer
 	if err := bodyTmpl.Execute(&bodyBuf, data); err != nil {
 		return "", "", err
@@ -175,7 +173,7 @@ func (s *EmailService) sendEmail(to, subject, body string) error {
 
 	// Connect to server
 	addr := fmt.Sprintf("%s:%d", s.smtpHost, s.smtpPort)
-	
+
 	// Create TLS config
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: false,
@@ -253,9 +251,6 @@ func (s *EmailService) getUrgentWarningTemplate() string {
                 <h3>{{.Title}}</h3>
                 <p>{{.Message}}</p>
             </div>
-            {{if .ActionURL}}
-            <p><a href="{{.ActionURL}}" class="button">Xem chi tiết</a></p>
-            {{end}}
             <p><strong>Thời gian:</strong> {{.Date}} lúc {{.Time}}</p>
         </div>
         <div class="footer">
@@ -293,9 +288,6 @@ func (s *EmailService) getWarningTemplate() string {
                 <h3>{{.Title}}</h3>
                 <p>{{.Message}}</p>
             </div>
-            {{if .ActionURL}}
-            <p><a href="{{.ActionURL}}" class="button">Xem chi tiết</a></p>
-            {{end}}
             <p><strong>Thời gian:</strong> {{.Date}} lúc {{.Time}}</p>
         </div>
         <div class="footer">
@@ -333,9 +325,6 @@ func (s *EmailService) getErrorTemplate() string {
                 <h3>{{.Title}}</h3>
                 <p>{{.Message}}</p>
             </div>
-            {{if .ActionURL}}
-            <p><a href="{{.ActionURL}}" class="button">Xem chi tiết</a></p>
-            {{end}}
             <p><strong>Thời gian:</strong> {{.Date}} lúc {{.Time}}</p>
         </div>
         <div class="footer">
@@ -373,9 +362,6 @@ func (s *EmailService) getSuccessTemplate() string {
                 <h3>{{.Title}}</h3>
                 <p>{{.Message}}</p>
             </div>
-            {{if .ActionURL}}
-            <p><a href="{{.ActionURL}}" class="button">Xem chi tiết</a></p>
-            {{end}}
             <p><strong>Thời gian:</strong> {{.Date}} lúc {{.Time}}</p>
         </div>
         <div class="footer">
@@ -413,9 +399,6 @@ func (s *EmailService) getReminderTemplate() string {
                 <h3>{{.Title}}</h3>
                 <p>{{.Message}}</p>
             </div>
-            {{if .ActionURL}}
-            <p><a href="{{.ActionURL}}" class="button">Xem chi tiết</a></p>
-            {{end}}
             <p><strong>Thời gian:</strong> {{.Date}} lúc {{.Time}}</p>
         </div>
         <div class="footer">
@@ -453,9 +436,6 @@ func (s *EmailService) getInfoTemplate() string {
                 <h3>{{.Title}}</h3>
                 <p>{{.Message}}</p>
             </div>
-            {{if .ActionURL}}
-            <p><a href="{{.ActionURL}}" class="button">Xem chi tiết</a></p>
-            {{end}}
             <p><strong>Thời gian:</strong> {{.Date}} lúc {{.Time}}</p>
         </div>
         <div class="footer">
@@ -465,4 +445,3 @@ func (s *EmailService) getInfoTemplate() string {
 </body>
 </html>`
 }
-

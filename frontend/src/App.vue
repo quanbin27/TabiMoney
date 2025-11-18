@@ -221,6 +221,7 @@ const chipColor = (type) => {
   }
   return colors[type] || 'grey'
 }
+
 </script>
 
 <style scoped>
@@ -231,4 +232,5 @@ const chipColor = (type) => {
 .v-app-bar {
   border-bottom: 1px solid rgba(0, 0, 0, 0.12);
 }
+
 </style>

@@ -14,9 +14,6 @@ endif
 if (User click vào thông báo?) then (có)
   :Đánh dấu is_read = true;
   :Set read_at = now();
-  if (Có action_url?) then (có)
-    :Chuyển đến trang đó;
-  endif
 endif
 if (User lọc thông báo?) then (có)
   :Áp dụng filters;

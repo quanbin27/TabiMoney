@@ -3,8 +3,8 @@ package handlers
 import (
 	"net/http"
 
-	"tabimoney/internal/services"
 	"github.com/labstack/echo/v4"
+	"tabimoney/internal/services"
 )
 
 type NotificationPreferencesHandler struct {
@@ -20,7 +20,7 @@ func NewNotificationPreferencesHandler() *NotificationPreferencesHandler {
 // GetPreferences gets user's notification preferences
 func (h *NotificationPreferencesHandler) GetPreferences(c echo.Context) error {
 	userID := c.Get("user_id").(uint64)
-	
+
 	preferences, err := h.svc.GetUserPreferences(userID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, ErrorResponse{
@@ -37,7 +37,7 @@ func (h *NotificationPreferencesHandler) GetPreferences(c echo.Context) error {
 // UpdatePreferences updates user's notification preferences
 func (h *NotificationPreferencesHandler) UpdatePreferences(c echo.Context) error {
 	userID := c.Get("user_id").(uint64)
-	
+
 	var preferences services.NotificationPreferences
 	if err := c.Bind(&preferences); err != nil {
 		return c.JSON(http.StatusBadRequest, ErrorResponse{
@@ -54,7 +54,7 @@ func (h *NotificationPreferencesHandler) UpdatePreferences(c echo.Context) error
 	}
 
 	return c.JSON(http.StatusOK, map[string]interface{}{
-		"status": "success",
+		"status":  "success",
 		"message": "Preferences updated successfully",
 	})
 }
@@ -62,7 +62,7 @@ func (h *NotificationPreferencesHandler) UpdatePreferences(c echo.Context) error
 // GetSummary gets user's notification preferences summary
 func (h *NotificationPreferencesHandler) GetSummary(c echo.Context) error {
 	userID := c.Get("user_id").(uint64)
-	
+
 	summary, err := h.svc.GetPreferencesSummary(userID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, ErrorResponse{
@@ -79,7 +79,7 @@ func (h *NotificationPreferencesHandler) GetSummary(c echo.Context) error {
 // ResetToDefaults resets user's notification preferences to defaults
 func (h *NotificationPreferencesHandler) ResetToDefaults(c echo.Context) error {
 	userID := c.Get("user_id").(uint64)
-	
+
 	if err := h.svc.ResetToDefaults(userID); err != nil {
 		return c.JSON(http.StatusInternalServerError, ErrorResponse{
 			Error:   "Failed to reset preferences",
@@ -88,7 +88,7 @@ func (h *NotificationPreferencesHandler) ResetToDefaults(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, map[string]interface{}{
-		"status": "success",
+		"status":  "success",
 		"message": "Preferences reset to defaults",
 	})
 }
@@ -96,7 +96,7 @@ func (h *NotificationPreferencesHandler) ResetToDefaults(c echo.Context) error {
 // GetEnabledChannels gets user's enabled notification channels
 func (h *NotificationPreferencesHandler) GetEnabledChannels(c echo.Context) error {
 	userID := c.Get("user_id").(uint64)
-	
+
 	channels, err := h.svc.GetEnabledChannels(userID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, ErrorResponse{
@@ -113,7 +113,7 @@ func (h *NotificationPreferencesHandler) GetEnabledChannels(c echo.Context) erro
 // TestNotification sends a test notification to user
 func (h *NotificationPreferencesHandler) TestNotification(c echo.Context) error {
 	userID := c.Get("user_id").(uint64)
-	
+
 	// Get channel from query parameter
 	channel := c.QueryParam("channel")
 	if channel == "" {
@@ -122,20 +122,13 @@ func (h *NotificationPreferencesHandler) TestNotification(c echo.Context) error 
 
 	// Create test notification
 	dispatcher := services.NewNotificationDispatcher()
-	
-	// Get frontend URL from config or use default
-	frontendURL := c.Request().Header.Get("Origin")
-	if frontendURL == "" {
-		frontendURL = "http://localhost:3000"
-	}
-	
+
 	trigger := services.NotificationTrigger{
-		UserID:          userID,
+		UserID:           userID,
 		NotificationType: "info",
-		Priority:        "low",
-		Title:           "🔔 Thông báo Test",
-		Message:         "Đây là thông báo test để kiểm tra cài đặt thông báo của bạn có hoạt động đúng không.",
-		ActionURL:       frontendURL + "/notifications",
+		Priority:         "low",
+		Title:            "🔔 Thông báo Test",
+		Message:          "Đây là thông báo test để kiểm tra cài đặt thông báo của bạn có hoạt động đúng không.",
 		Metadata: map[string]interface{}{
 			"test": true,
 		},
@@ -149,8 +142,7 @@ func (h *NotificationPreferencesHandler) TestNotification(c echo.Context) error 
 	}
 
 	return c.JSON(http.StatusOK, map[string]interface{}{
-		"status": "success",
+		"status":  "success",
 		"message": "Test notification sent successfully",
 	})
 }
-

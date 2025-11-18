@@ -569,7 +569,6 @@ entity "notifications" as notifications TABLE_COLOR {
     priority : ENUM
     is_read : BOOLEAN
     read_at : TIMESTAMP
-    action_url : VARCHAR(500)
     metadata : JSON
     * created_at : TIMESTAMP
 }

@@ -694,7 +694,6 @@ Authorization: Bearer <access_token>
       "notification_type": "warning",
       "priority": "high",
       "is_read": false,
-      "action_url": "/budgets/1",
       "created_at": "2024-01-15T10:00:00Z"
     }
   ],
