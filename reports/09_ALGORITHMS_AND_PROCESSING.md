@@ -3,45 +3,92 @@
 ## 1. THUẬT TOÁN XỬ LÝ NLU (NATURAL LANGUAGE UNDERSTANDING)
 
 ### 1.1. Mô tả
-Xử lý câu lệnh tự nhiên để trích xuất thông tin giao dịch (amount, category, description, date).
+Xử lý câu lệnh tự nhiên để trích xuất thông tin giao dịch (amount, category, description, date) sử dụng Google Gemini API với fallback rule-based.
 
 ### 1.2. Luồng xử lý
 
 ```
 Input: "tôi vừa ăn bún bò 50k"
 
-1. Preprocessing
-   - Chuẩn hóa text (lowercase, remove extra spaces)
-   - Tokenize: ["tôi", "vừa", "ăn", "bún", "bò", "50k"]
+1. Preprocessing & Initialization
+   - Kiểm tra Gemini API availability
+   - Nếu không có → fallback to rule-based NLU
+   - Nếu có → sử dụng Gemini với structured prompt
 
-2. Entity Extraction (sử dụng Gemini API)
-   - Amount: "50k" → 50000
-   - Category keywords: "ăn", "bún bò" → Food category
-   - Description: "ăn bún bò"
-   - Date: "vừa" → today (hoặc parse explicit date)
+2. Entity Extraction (Primary: Gemini API)
+   
+   a. Build Prompt với Context:
+      - Lấy danh sách categories của user (top 30 categories)
+      - Format: "id|name (name_en)"
+      - Đưa vào prompt để AI chọn đúng category_id
+   
+   b. Gemini Processing:
+      - Model: gemini-1.5-flash
+      - Temperature: 0.3 (low để đảm bảo consistency)
+      - Response format: JSON strict schema
+      - Prompt yêu cầu:
+        * Parse amount về VND đầy đủ (16 triệu → 16000000)
+        * Trả về category_id (không phải category name)
+        * Xác định intent: add_transaction, query_balance, analyze_data, etc.
+        * Tự quyết định needs_confirmation
+   
+   c. Parse Response:
+      - Extract JSON từ response
+      - Validate schema
+      - Normalize amount (đảm bảo là số VND đầy đủ)
+      - Resolve category_id nếu chỉ có category name
 
-3. Category Matching
-   - Tìm category phù hợp nhất:
-     a. Tìm trong user's custom categories
-     b. Tìm trong system categories
-     c. So sánh với keywords/patterns
-   - Tính confidence score dựa trên:
-     - Keyword match
-     - Historical patterns của user
-     - AI confidence từ Gemini
+3. Category Resolution
+   - Nếu AI trả về category name → query DB để resolve category_id
+   - Match theo: exact name (VI/EN), partial match, fallback to "Khác"
+   - Remove category entity, add category_id entity
 
-4. Validation
-   - Kiểm tra amount > 0
-   - Kiểm tra category tồn tại
-   - Kiểm tra date hợp lệ
+4. Fallback: Rule-based NLU (khi Gemini không available)
+   
+   a. Amount Extraction:
+      - Regex patterns: (\d+)k, (\d+)tr, (\d+)tỷ, (\d+)đ
+      - Parse và convert: 50k → 50000, 16tr → 16000000
+   
+   b. Category Matching:
+      - Keyword dictionary cho các categories phổ biến
+      - Match keywords trong text
+      - Map to category_id
+   
+   c. Date Parsing:
+      - "hôm nay" → today
+      - "hôm qua" → yesterday
+      - DD/MM/YYYY format parsing
 
-5. Output
+5. Intent Classification
+   - add_transaction: có amount + category
+   - query_balance: keywords "bao nhiêu", "tổng", "số dư"
+   - budget_management: keywords "ngân sách", "budget"
+   - goal_tracking: keywords "mục tiêu", "goal"
+   - analyze_data: keywords "phân tích", "xu hướng"
+   - expense_forecasting: keywords "dự đoán", "forecast"
+   - general: default
+
+6. Action Execution (tự động nếu confidence cao)
+   - add_transaction: Tạo transaction trực tiếp vào DB
+   - query_balance: Query và trả về số dư
+   - analyze_data: Phân tích dữ liệu 30 ngày gần nhất
+   - budget_management: Kiểm tra tình hình ngân sách
+   - goal_tracking: Hiển thị tiến độ mục tiêu
+   - smart_recommendations: Đưa ra gợi ý thông minh
+   - expense_forecasting: Dự đoán chi tiêu tương lai
+
+7. Output
    {
-     "category_id": 5,
-     "amount": 50000,
-     "description": "ăn bún bò",
-     "transaction_date": "2024-01-15",
-     "confidence": 0.95
+     "intent": "add_transaction",
+     "entities": [
+       {"type": "amount", "value": "50000", "confidence": 0.95},
+       {"type": "category_id", "value": "5", "confidence": 0.90},
+       {"type": "date", "value": "2024-01-15", "confidence": 0.85}
+     ],
+     "confidence": 0.90,
+     "needs_confirmation": false,
+     "response": "Đã thêm giao dịch ăn bún bò 50,000 VND",
+     "action": "create_transaction"
    }
 ```
 
@@ -73,92 +120,116 @@ Input: "tôi vừa ăn bún bò 50k"
 ## 2. THUẬT TOÁN PHÁT HIỆN BẤT THƯỜNG (ANOMALY DETECTION)
 
 ### 2.1. Mô tả
-Phát hiện giao dịch bất thường dựa trên lịch sử chi tiêu của user.
+Phát hiện giao dịch bất thường dựa trên lịch sử chi tiêu của user sử dụng Isolation Forest algorithm.
 
-### 2.2. Phương pháp: Statistical Analysis + Isolation Forest
+### 2.2. Phương pháp: Isolation Forest (ML-based)
 
 #### Bước 1: Thu thập dữ liệu
 ```python
-# Lấy lịch sử 30 ngày gần nhất
-history = get_transactions(user_id, last_30_days)
-
-# Tính toán các features:
-features = {
-    "amount": transaction.amount,
-    "category_id": transaction.category_id,
-    "day_of_week": transaction.date.weekday(),
-    "hour": transaction.time.hour if transaction.time else None,
-    "amount_by_category_mean": mean(history[category]),
-    "amount_by_category_std": std(history[category])
-}
+# Lấy lịch sử giao dịch trong khoảng thời gian
+query = (
+    "SELECT t.id, t.amount, t.transaction_type, t.transaction_date, "
+    "t.category_id, c.name as category_name "
+    "FROM transactions t LEFT JOIN categories c ON c.id = t.category_id "
+    "WHERE t.user_id = %s AND t.transaction_type = 'expense' "
+    "AND t.transaction_date BETWEEN %s AND %s "
+    "ORDER BY t.transaction_date ASC"
+)
 ```
 
-#### Bước 2: Phát hiện bất thường
-
-**Phương pháp 1: Z-Score (Statistical)**
+#### Bước 2: Chuẩn bị Features
 ```python
-def detect_anomaly_zscore(transaction, history):
-    category_history = filter_by_category(history, transaction.category_id)
+# Xây dựng feature matrix với các đặc trưng:
+# - amount (log-transformed để xử lý skewness)
+# - day_of_week (0-6)
+# - month (1-12)
+# - category_id (integer)
+
+X = []
+for transaction in transactions:
+    dt = datetime.strptime(transaction["transaction_date"], "%Y-%m-%d")
+    amount = float(transaction["amount"] or 0.0)
+    amount_log = np.log1p(max(amount, 0.0))  # Log transform để giảm skewness
+    day_of_week = dt.weekday()
+    month = dt.month
+    category_id = int(transaction["category_id"] or 0)
     
-    mean = calculate_mean(category_history.amounts)
-    std = calculate_std(category_history.amounts)
-    
-    if std == 0:
-        return False, 0.0
-    
-    z_score = abs((transaction.amount - mean) / std)
-    
-    # Nếu z-score > 2 (nằm ngoài 2 standard deviations)
-    if z_score > 2:
-        anomaly_score = min(z_score / 4, 1.0)  # Normalize to 0-1
-        return True, anomaly_score
-    
-    return False, 0.0
+    X.append([amount_log, day_of_week, month, category_id])
 ```
 
-**Phương pháp 2: Isolation Forest (ML)**
+#### Bước 3: Phát hiện bất thường với Isolation Forest
 ```python
 from sklearn.ensemble import IsolationForest
 
-def detect_anomaly_isolation_forest(transaction, history):
-    # Chuẩn bị training data
-    X = prepare_features(history)
+def detect_anomalies(transactions, threshold=0.6):
+    """
+    Phát hiện anomalies sử dụng Isolation Forest
     
-    # Train model
-    model = IsolationForest(contamination=0.1, random_state=42)
+    Args:
+        transactions: List các giao dịch
+        threshold: Contamination rate (0-1), điều chỉnh độ nhạy
+    
+    Returns:
+        List các anomalies với scores
+    """
+    # Yêu cầu tối thiểu 10 giao dịch để train model
+    if len(transactions) < 10:
+        return {"anomalies": [], "total_anomalies": 0, "detection_score": 0.0}
+    
+    # Chuẩn bị feature matrix
+    X = prepare_features(transactions)
+    
+    # Điều chỉnh contamination rate (0.01 - 0.4)
+    contamination = min(max(threshold, 0.01), 0.4)
+    
+    # Train Isolation Forest model
+    model = IsolationForest(
+        n_estimators=200,      # Số cây quyết định
+        contamination=contamination,  # Tỷ lệ outliers mong đợi
+        random_state=42        # Đảm bảo reproducibility
+    )
     model.fit(X)
     
-    # Predict
-    transaction_features = prepare_features([transaction])
-    prediction = model.predict(transaction_features)
-    score = model.score_samples(transaction_features)
+    # Predict và tính scores
+    predictions = model.predict(X)  # -1: anomaly, 1: normal
+    scores = model.decision_function(X)  # Higher = more normal, Lower = more anomalous
     
-    # prediction = -1: anomaly, 1: normal
-    is_anomaly = (prediction[0] == -1)
-    anomaly_score = 1 - normalize_score(score[0])
+    # Xác định anomalies
+    anomalies = []
+    for i, pred in enumerate(predictions):
+        if pred == -1:  # Là anomaly
+            anomaly_score = float(-scores[i])  # Invert để score cao = anomalous hơn
+            anomalies.append({
+                "transaction_id": transactions[i]["id"],
+                "amount": float(transactions[i]["amount"]),
+                "category_name": transactions[i].get("category_name", ""),
+                "anomaly_score": anomaly_score,
+                "anomaly_type": "amount_pattern",
+                "description": "Giao dịch có mẫu khác thường theo mô hình IsolationForest",
+                "transaction_date": str(transactions[i]["transaction_date"])
+            })
     
-    return is_anomaly, anomaly_score
+    # Tính detection score tổng thể
+    if anomalies:
+        detection_score = float(np.clip(
+            np.mean([-scores[i] for i, p in enumerate(predictions) if p == -1]),
+            0.0, 1.0
+        ))
+    else:
+        detection_score = 0.0
+    
+    return {
+        "anomalies": anomalies,
+        "total_anomalies": len(anomalies),
+        "detection_score": detection_score
+    }
 ```
 
-#### Bước 3: Kết hợp kết quả
-```python
-def detect_anomaly(transaction, history):
-    # Nếu không đủ dữ liệu (< 10 transactions)
-    if len(history) < 10:
-        return False, 0.0
-    
-    # Phương pháp 1: Z-Score
-    is_anomaly_1, score_1 = detect_anomaly_zscore(transaction, history)
-    
-    # Phương pháp 2: Isolation Forest
-    is_anomaly_2, score_2 = detect_anomaly_isolation_forest(transaction, history)
-    
-    # Kết hợp (weighted average)
-    final_score = (score_1 * 0.6) + (score_2 * 0.4)
-    is_anomaly = (final_score > 0.7) or (is_anomaly_1 and is_anomaly_2)
-    
-    return is_anomaly, final_score
-```
+#### Bước 4: Giải thích Isolation Forest
+- **Isolation Forest** là thuật toán unsupervised learning dựa trên nguyên lý: outliers dễ bị "cô lập" hơn normal points
+- Mỗi tree trong forest cố gắng isolate một điểm bằng cách chọn random feature và split value
+- Anomalies cần ít splits hơn để isolate → có path ngắn hơn trong tree
+- Kết hợp nhiều trees (200 estimators) để tăng độ chính xác
 
 ### 2.3. Ví dụ minh họa
 
@@ -182,134 +253,217 @@ def detect_anomaly(transaction, history):
 ## 3. THUẬT TOÁN DỰ ĐOÁN CHI TIÊU (EXPENSE PREDICTION)
 
 ### 3.1. Mô tả
-Dự đoán chi tiêu tháng tới dựa trên lịch sử chi tiêu.
+Dự đoán chi tiêu tháng tới dựa trên lịch sử chi tiêu sử dụng Random Forest Regressor kết hợp với Exponential Moving Average (EMA).
 
-### 3.2. Phương pháp: Linear Regression + Time Series Analysis
+### 3.2. Phương pháp: Random Forest Regressor + EMA (Ensemble Approach)
 
 #### Bước 1: Thu thập và chuẩn bị dữ liệu
 ```python
-# Lấy dữ liệu 3-6 tháng gần nhất
-history = get_transactions(user_id, months=6)
+# Lấy dữ liệu lịch sử giao dịch
+query = (
+    "SELECT t.amount, t.transaction_type AS type, t.transaction_date AS date, "
+    "COALESCE(c.name, 'Unknown') AS category "
+    "FROM transactions t "
+    "LEFT JOIN categories c ON c.id = t.category_id "
+    "WHERE t.user_id = %s AND t.transaction_date BETWEEN %s AND %s "
+    "ORDER BY t.transaction_date ASC"
+)
 
-# Nhóm theo tháng và category
-monthly_data = group_by_month_and_category(history)
-
-# Features:
-# - Month index (1, 2, 3, ...)
-# - Total expense
-# - Expense by category
-# - Number of transactions
-# - Average transaction amount
+# Yêu cầu tối thiểu 5 transactions để bắt đầu dự đoán
+if len(historical_data) < 5:
+    return error_response("Cần thêm dữ liệu giao dịch để đưa ra dự đoán")
 ```
 
-#### Bước 2: Phân tích xu hướng (Trend Analysis)
+#### Bước 2: Xây dựng Monthly Time Series
 ```python
-def calculate_trend(monthly_data):
+def _build_monthly_series(historical_data):
     """
-    Tính xu hướng chi tiêu (tăng/giảm/ổn định)
+    Tổng hợp giao dịch theo tháng và tính toán các features
     """
-    amounts = [month['total'] for month in monthly_data]
+    df = pd.DataFrame(historical_data)
+    df['date'] = pd.to_datetime(df['date'])
+    df = df[df['type'] == 'expense'].copy()  # Chỉ lấy chi tiêu
     
-    # Linear regression để tìm trend
-    from sklearn.linear_model import LinearRegression
+    # Nhóm theo tháng
+    df['year_month'] = df['date'].dt.to_period('M').astype(str)
+    monthly = df.groupby('year_month')['amount'].sum().reset_index()
+    monthly = monthly.sort_values('year_month')
+    monthly['total_expense'] = monthly['amount'].astype(float)
     
-    X = [[i] for i in range(len(amounts))]
-    y = amounts
+    # Tính toán temporal features
+    monthly['month'] = pd.to_datetime(monthly['year_month']).dt.month
+    monthly['year'] = pd.to_datetime(monthly['year_month']).dt.year
     
-    model = LinearRegression()
-    model.fit(X, y)
+    # Rolling statistics (moving averages)
+    monthly['roll_mean_3'] = monthly['total_expense'].rolling(window=3, min_periods=1).mean()
+    monthly['roll_mean_6'] = monthly['total_expense'].rolling(window=6, min_periods=1).mean()
+    monthly['roll_std_6'] = monthly['total_expense'].rolling(window=6, min_periods=1).std().fillna(0.0)
+    monthly['count_seen'] = np.arange(1, len(monthly) + 1)
     
-    slope = model.coef_[0]
-    
-    if slope > 0:
-        trend = "increasing"
-        trend_percentage = (slope / np.mean(amounts)) * 100
-    elif slope < 0:
-        trend = "decreasing"
-        trend_percentage = abs((slope / np.mean(amounts)) * 100)
-    else:
-        trend = "stable"
-        trend_percentage = 0
-    
-    return trend, trend_percentage, model
+    return monthly[['year_month', 'year', 'month', 'total_expense', 
+                    'roll_mean_3', 'roll_mean_6', 'roll_std_6', 'count_seen']]
 ```
 
-#### Bước 3: Dự đoán
+#### Bước 3: Chuẩn bị Training Data cho Random Forest
 ```python
-def predict_expense(user_id, next_month_index):
+def _prepare_monthly_training_data(monthly_df):
     """
-    Dự đoán chi tiêu tháng tới
+    Xây dựng features và target để train Random Forest
+    
+    Features:
+    - month: Tháng (1-12) - để capture seasonality
+    - rm3_prev: Rolling mean 3 tháng trước đó
+    - rm6_prev: Rolling mean 6 tháng trước đó
+    - rs6_prev: Rolling std 6 tháng trước đó
+    - count_prev: Số tháng đã quan sát
+    
+    Target: total_expense của tháng hiện tại
     """
-    history = get_transactions(user_id, months=6)
-    monthly_data = group_by_month_and_category(history)
+    df = monthly_df.copy().reset_index(drop=True)
     
-    # Dự đoán tổng chi tiêu
-    trend, trend_pct, model = calculate_trend(monthly_data)
+    # Shift rolling stats để tránh data leakage
+    df['rm3_prev'] = df['roll_mean_3'].shift(1)
+    df['rm6_prev'] = df['roll_mean_6'].shift(1)
+    df['rs6_prev'] = df['roll_std_6'].shift(1)
+    df['count_prev'] = (df['count_seen'] - 1).clip(lower=0)
     
-    predicted_total = model.predict([[next_month_index]])[0]
+    # Bỏ row đầu tiên do shift
+    df = df.iloc[1:].reset_index(drop=True)
     
-    # Dự đoán theo category
-    predictions_by_category = {}
-    for category_id in get_categories(user_id):
-        category_data = filter_by_category(monthly_data, category_id)
+    X = df[['month', 'rm3_prev', 'rm6_prev', 'rs6_prev', 'count_prev']].fillna(0.0).astype(float).values
+    y = df['total_expense'].astype(float).values
+    
+    return X, y
+```
+
+#### Bước 4: Train Random Forest Model (Per-User Caching)
+```python
+from sklearn.ensemble import RandomForestRegressor
+
+def _get_or_train_user_model(user_id, X, y, monthly_df):
+    """
+    Cache model cho mỗi user để tránh retrain không cần thiết
+    Sử dụng fingerprint của time series để detect changes
+    """
+    # Tính fingerprint của time series
+    fingerprint = _fingerprint_monthly_series(monthly_df)
+    
+    # Kiểm tra cache
+    cached_model = self._user_models.get(user_id)
+    cached_fp = self._user_series_fp.get(user_id)
+    
+    # Nếu model chưa có hoặc data đã thay đổi → train mới
+    if cached_model is None or cached_fp != fingerprint:
+        model = RandomForestRegressor(
+            n_estimators=200,      # Số cây quyết định
+            random_state=42,        # Reproducibility
+            max_depth=12           # Giới hạn độ sâu để tránh overfitting
+        )
+        model.fit(X, y)
         
-        if len(category_data) >= 3:
-            category_trend, _, category_model = calculate_trend(category_data)
-            predicted_amount = category_model.predict([[next_month_index]])[0]
-            
-            # Confidence dựa trên số lượng dữ liệu và variance
-            confidence = calculate_confidence(category_data)
-            
-            predictions_by_category[category_id] = {
-                "amount": max(0, predicted_amount),  # Không âm
-                "confidence": confidence,
-                "trend": category_trend
-            }
-        else:
-            # Không đủ dữ liệu, dùng trung bình
-            avg = np.mean([d['amount'] for d in category_data])
-            predictions_by_category[category_id] = {
-                "amount": avg,
-                "confidence": 0.5,
-                "trend": "insufficient_data"
-            }
+        # Cache model và fingerprint
+        self._user_models[user_id] = model
+        self._user_series_fp[user_id] = fingerprint
     
-    # Confidence tổng thể
-    overall_confidence = np.mean([p['confidence'] for p in predictions_by_category.values()])
+    return self._user_models[user_id]
+```
+
+#### Bước 5: Dự đoán với EMA (Exponential Moving Average)
+```python
+def _predict_with_ema(historical_data):
+    """
+    Dự đoán sử dụng Exponential Moving Average trên daily expenses
+    EMA phản ánh xu hướng gần đây tốt hơn simple moving average
+    """
+    df = pd.DataFrame(historical_data)
+    df['date'] = pd.to_datetime(df['date'])
+    df = df[df['type'] == 'expense']
+    
+    # Tổng hợp theo ngày
+    daily = df.groupby(df['date'].dt.date)['amount'].sum().astype(float)
+    
+    if len(daily) < 5:
+        return None
+    
+    # Tính EMA với span động (5-20 ngày tùy data)
+    span = max(5, min(20, len(daily) // 2))
+    ema = daily.ewm(span=span, adjust=False).mean()
+    
+    # Dự đoán tháng tới từ daily EMA
+    last_ema = float(ema.iloc[-1])
+    projected_monthly = last_ema * 30.0  # Scale lên monthly
+    
+    return max(0.0, projected_monthly)
+```
+
+#### Bước 6: Kết hợp Predictions (Ensemble)
+```python
+def predict_expenses(user_id, start_date, end_date):
+    """
+    Dự đoán chi tiêu tháng tới bằng cách kết hợp:
+    - Random Forest prediction (60% weight)
+    - EMA prediction (40% weight)
+    """
+    # Lấy dữ liệu lịch sử
+    historical_data = await _get_historical_data(user_id, start_date, end_date)
+    
+    # Xây dựng monthly series
+    monthly_df = _build_monthly_series(historical_data)
+    
+    if len(monthly_df) < 3:
+        return error_response("Dữ liệu không đủ để dự đoán theo tháng")
+    
+    # Train và predict với Random Forest
+    X, y = _prepare_monthly_training_data(monthly_df)
+    model = _get_or_train_user_model(user_id, X, y, monthly_df)
+    
+    # Chuẩn bị features cho tháng tới
+    next_features = _prepare_next_month_features(monthly_df)
+    ml_prediction = float(model.predict([next_features])[0])
+    
+    # Dự đoán với EMA
+    ema_prediction = _predict_with_ema(historical_data)
+    
+    # Kết hợp predictions (weighted ensemble)
+    if ema_prediction is not None:
+        final_prediction = max(0.0, 0.6 * ml_prediction + 0.4 * ema_prediction)
+        
+        # Confidence cao hơn nếu 2 predictions đồng thuận
+        agreement = 1.0 - min(1.0, abs(ml_prediction - ema_prediction) / 
+                             max(1.0, abs(ml_prediction) + abs(ema_prediction)))
+        confidence = min(0.99, base_confidence * (0.9 + 0.1 * agreement))
+    else:
+        final_prediction = max(0.0, ml_prediction)
+        confidence = base_confidence
     
     return {
-        "total_expense": predicted_total,
-        "by_category": predictions_by_category,
-        "confidence": overall_confidence,
-        "trend": trend,
-        "trend_percentage": trend_pct
+        "predicted_amount": final_prediction,
+        "confidence_score": confidence,
+        "category_breakdown": _generate_category_breakdown(historical_data),
+        "trends": _generate_trends(historical_data),
+        "recommendations": _generate_recommendations(historical_data, final_prediction)
     }
 ```
 
-#### Bước 4: Tính confidence
+#### Bước 7: Tính Confidence Score
 ```python
-def calculate_confidence(data):
+def calculate_confidence(monthly_df, ml_pred, ema_pred):
     """
     Tính độ tin cậy dựa trên:
-    - Số lượng dữ liệu
-    - Variance (độ biến thiên)
-    - R-squared của model
+    - Số lượng tháng dữ liệu (càng nhiều càng tốt)
+    - Sự đồng thuận giữa ML và EMA predictions
     """
-    n = len(data)
-    amounts = [d['amount'] for d in data]
+    base_confidence = min(0.95, len(monthly_df) / 36.0)  # Scale đến ~3 năm
     
-    # Variance
-    variance = np.var(amounts)
-    mean = np.mean(amounts)
-    cv = variance / mean if mean > 0 else 1  # Coefficient of Variation
+    if ema_pred is not None:
+        # Agreement factor: predictions càng gần nhau → confidence càng cao
+        denom = max(1.0, abs(ml_pred) + abs(ema_pred))
+        agreement = 1.0 - min(1.0, abs(ml_pred - ema_pred) / denom)
+        confidence = min(0.99, base_confidence * (0.9 + 0.1 * agreement))
+    else:
+        confidence = base_confidence
     
-    # Confidence formula
-    data_confidence = min(n / 6, 1.0)  # Càng nhiều dữ liệu càng tốt
-    variance_confidence = 1 / (1 + cv)  # Variance thấp = confidence cao
-    
-    confidence = (data_confidence * 0.6) + (variance_confidence * 0.4)
-    
-    return min(confidence, 1.0)
+    return confidence
 ```
 
 ### 3.3. Ví dụ minh họa
@@ -685,14 +839,67 @@ def invalidate_dashboard_cache(user_id):
 
 ## TÓM TẮT
 
-1. **NLU:** Gemini API + Category Matching
-2. **Anomaly Detection:** Z-Score + Isolation Forest
-3. **Prediction:** Linear Regression + Time Series
-4. **Budget Suggestions:** Statistical Analysis
-5. **Budget Alerts:** Real-time checking với rate limiting
-6. **Analytics:** Aggregation với caching
-7. **Cache:** Redis với TTL hợp lý
+### Các Thuật toán Thực tế Được Triển khai:
 
-Tất cả các thuật toán đều được tối ưu cho performance và độ chính xác.
+1. **NLU (Natural Language Understanding):**
+   - **Primary:** Google Gemini API (gemini-1.5-flash) với structured JSON response
+   - **Fallback:** Rule-based NLU với regex patterns và keyword matching
+   - **Features:** Intent classification, entity extraction, category resolution, auto-action execution
+
+2. **Anomaly Detection:**
+   - **Method:** Isolation Forest (scikit-learn)
+   - **Features:** log(amount), day_of_week, month, category_id
+   - **Parameters:** n_estimators=200, contamination=0.01-0.4 (adjustable)
+   - **Output:** Anomaly score và transaction details
+
+3. **Expense Prediction:**
+   - **Primary Method:** Random Forest Regressor (n_estimators=200, max_depth=12)
+   - **Secondary Method:** Exponential Moving Average (EMA) với dynamic span
+   - **Ensemble:** Weighted combination (60% RF + 40% EMA)
+   - **Features:** month, rolling_mean_3, rolling_mean_6, rolling_std_6, count_seen
+   - **Caching:** Per-user model caching với fingerprint-based invalidation
+
+4. **Budget Suggestions:**
+   - **Method:** Statistical Analysis (median of last 3 months) với 10% safety margin
+   - **Fallback:** 50/30/20 rule (Needs/Wants/Savings) nếu không có lịch sử
+   - **Scaling:** Đảm bảo tổng không vượt quá 90% monthly income
+
+5. **Budget Alerts:**
+   - **Method:** Real-time percentage-based checking
+   - **Triggers:** Usage >= alert_threshold (default 80%)
+   - **Rate Limiting:** 1 notification per 24 hours per budget
+   - **Types:** Warning (threshold reached), Error (budget exceeded)
+
+6. **Dashboard Analytics:**
+   - **Method:** SQL aggregation với Redis caching
+   - **Metrics:** Total income/expense, net savings, savings rate, category breakdown
+   - **Financial Health Score:** Based on savings rate (0-100 scale)
+   - **Cache TTL:** 1 hour for monthly summaries, 5 minutes for dashboard
+
+7. **Cache Strategy:**
+   - **Redis Keys:**
+     - `dashboard:{user_id}:{period}` - Dashboard analytics (TTL: 1 hour)
+     - `user:{user_id}` - User profile (TTL: 1 hour)
+     - `categories:{user_id}` - User categories (TTL: 1 hour)
+     - `session:{token_hash}` - Session data (TTL: theo expires_at)
+   - **Invalidation:** Automatic on transaction create/update/delete
+
+### Công nghệ và Thư viện:
+
+- **ML Libraries:** scikit-learn (RandomForestRegressor, IsolationForest), pandas, numpy
+- **AI API:** Google Gemini API (gemini-1.5-flash)
+- **Database:** MySQL 8.0 (primary), Redis 7.0 (cache)
+- **Backend:** Golang (Echo framework) + Python (FastAPI for AI service)
+- **Time Series:** pandas với rolling statistics và EMA
+
+### Tối ưu hóa Performance:
+
+1. **Model Caching:** Per-user Random Forest models với fingerprint-based invalidation
+2. **Query Optimization:** Indexed database queries, efficient aggregations
+3. **Cache Strategy:** Multi-level caching (Redis) với appropriate TTLs
+4. **Batch Processing:** Monthly aggregation thay vì real-time calculation
+5. **Fallback Mechanisms:** Rule-based fallbacks khi AI services unavailable
+
+Tất cả các thuật toán đều được tối ưu cho performance, accuracy và reliability.
 
 

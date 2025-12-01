@@ -122,8 +122,16 @@ export const budgetAPI = {
   createFromSuggestions: (payload) => api.post('/budgets/auto/create', payload),
 }
 
+// AI Service API - Use relative path for production, localhost for development
+const getAIServiceURL = () => {
+  const url = import.meta.env.VITE_AI_SERVICE_URL || '/ai-service'
+  // If it's already a full URL (starts with http), use it as is
+  // Otherwise, it's a relative path and axios will use current origin
+  return url.startsWith('http') ? url : url
+}
+
 const aiServiceApi = axios.create({
-  baseURL: import.meta.env.VITE_AI_SERVICE_URL || 'http://localhost:8001',
+  baseURL: getAIServiceURL(),
   timeout: 30000,
   headers: { 'Content-Type': 'application/json' },
 })

@@ -1,6 +1,10 @@
 # Build stage
 FROM node:18-alpine AS builder
 
+# Build arguments for Vite environment variables
+ARG VITE_API_BASE_URL=/api/v1
+ARG VITE_AI_SERVICE_URL=/ai-service
+
 # Set working directory
 WORKDIR /app
 
@@ -12,6 +16,10 @@ RUN npm install --legacy-peer-deps
 
 # Copy source code
 COPY . .
+
+# Set environment variables for build
+ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
+ENV VITE_AI_SERVICE_URL=${VITE_AI_SERVICE_URL}
 
 # Build the application
 RUN npm run build
