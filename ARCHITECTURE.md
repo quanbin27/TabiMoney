@@ -7,45 +7,44 @@ Hệ thống TabiMoney là một ứng dụng quản lý chi tiêu cá nhân th�
 ## Kiến trúc Tổng thể
 
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Web App       │    │  Telegram Bot   │    │   Mobile App    │
-│   (Vue.js +     │    │                 │    │   (Future)      │
-│   Vuetify)      │    │                 │    │                 │
-└─────────┬───────┘    └─────────┬───────┘    └─────────┬───────┘
-          │                      │                      │
-          └──────────────────────┼──────────────────────┘
-                                 │
-                    ┌─────────────┴─────────────┐
-                    │     API Gateway           │
-                    │   (Golang + Echo)         │
-                    └─────────────┬─────────────┘
-                                  │
-                    ┌─────────────┴─────────────┐
-                    │      AI Agent Layer       │
-                    │  - NLU Processing         │
-                    │  - Expense Prediction     │
-                    │  - Anomaly Detection      │
-                    │  - Smart Categorization   │
-                    └─────────────┬─────────────┘
-                                  │
-                    ┌─────────────┴─────────────┐
-                    │      Business Logic       │
-                    │  - User Management        │
-                    │  - Transaction Processing │
-                    │  - Financial Analytics    │
-                    │  - Goal Tracking          │
-                    └─────────────┬─────────────┘
-                                  │
-          ┌───────────────────────┼───────────────────────┐
-          │                       │                       │
-┌─────────┴─────────┐    ┌─────────┴─────────┐    ┌─────────┴─────────┐
-│   MySQL Database  │    │   Redis Cache     │    │   External APIs   │
-│   - Users         │    │   - Session       │    │   - Gemini API     │
-│   - Transactions  │    │   - Dashboard     │    │   - Email Service  │
-│   - Categories    │    │   - Real-time     │    │   - Notification   │
-│   - Goals         │    │   - AI Cache      │    │   - Analytics      │
-│   - Analytics     │    │                   │    │                   │
-└───────────────────┘    └───────────────────┘    └───────────────────┘
+┌─────────────────┐              ┌─────────────────┐
+│   Web App       │              │  Telegram Bot   │
+│   (Vue.js +     │              │   (Python)      │
+│   Vuetify)      │              │                 │
+└───┬─────────┬───┘              └───┬─────────┬───┘
+    │         │                     │         │
+    │         │                     │         │
+    │         └───────────┐         │         └───────────┐
+    │                     │         │                     │
+    │         ┌───────────┴─────────┴───────────┐         │
+    │         │      AI Service                │         │
+    │         │   (Python + FastAPI)            │         │
+    │         │  - NLU/Chat Processing          │         │
+    │         │  - Expense Prediction           │         │
+    │         │  - Anomaly Detection             │         │
+    │         └───────────┬─────────────────────┘         │
+    │                     │                               │
+    │         ┌───────────┴───────────────────────┐       │
+    │         │   Backend Service                  │       │
+    │         │  (Golang + Echo Framework)          │       │
+    │         │  - Authentication                   │       │
+    │         │  - Transaction Management           │       │
+    │         │  - Budget Management                │       │
+    │         │  - Goal Tracking                    │       │
+    │         │  - Analytics                        │       │
+    │         │  - Gọi AI Service cho Prediction     │       │
+    │         └──────┬───────────────────┬─────────┘
+    │                │                   │
+┌───┴────────┐       │        ┌─────────┴────────┐
+│   MySQL    │       │        │     Redis        │
+│  Database  │       │        │     Cache         │
+└────────────┘       │        └──────────────────┘
+                     │
+              ┌──────┴────────┐
+              │ External APIs │
+              │ - Gemini API  │
+              │ - Email       │
+              └───────────────┘
 ```
 
 ## Các Thành phần Chính
@@ -57,15 +56,17 @@ Hệ thống TabiMoney là một ứng dụng quản lý chi tiêu cá nhân th�
 - **PWA Support**: Offline capability
 
 ### 2. Backend Layer
-- **API Gateway**: Golang + Echo Framework
+- **Backend Service**: Golang + Echo Framework
 - **Authentication**: JWT + Refresh Token
 - **Rate Limiting**: Redis-based
 - **CORS & Security**: Comprehensive security headers
+- **Chức năng**: Quản lý transactions, budgets, goals, analytics, và gọi AI Service cho prediction/anomaly detection
 
-### 3. AI Agent Layer
+### 3. AI Service Layer
 - **NLU Engine**: Google Gemini for natural language processing
-- **Expense Prediction**: Machine Learning models
-- **Anomaly Detection**: Statistical analysis + ML
+- **Chat Service**: Xử lý chat (được gọi trực tiếp từ Frontend và Telegram Bot)
+- **Expense Prediction**: Machine Learning models (được gọi từ Backend)
+- **Anomaly Detection**: Statistical analysis + ML (được gọi từ Backend)
 - **Smart Categorization**: NLP + Classification algorithms
 
 ### 4. Data Layer
@@ -75,19 +76,22 @@ Hệ thống TabiMoney là một ứng dụng quản lý chi tiêu cá nhân th�
 
 ## Luồng Dữ liệu
 
-### 1. Nhập liệu Chi tiêu
+### 1. Chat với AI (Frontend/Telegram Bot)
 ```
-User Input → NLU Processing → AI Categorization → Database Storage → Cache Update → Real-time Notification
-```
-
-### 2. Phân tích Tài chính
-```
-Historical Data → AI Analysis → Pattern Recognition → Prediction → Dashboard Update → User Notification
+User Message → Frontend/Telegram Bot → AI Service (Chat Processing)
+  → Gemini API (NLU) → Tự động tạo Transaction hoặc Query Data
+  → Response về User
 ```
 
-### 3. Chatbot Interaction
+### 2. Nhập liệu Chi tiêu (Thủ công)
 ```
-User Message → NLU Processing → Intent Recognition → Database Query → AI Response → User Reply
+User Input (Form) → Frontend → Backend Service → Database Storage → Cache Update → Notification
+```
+
+### 3. Phân tích Tài chính
+```
+User Request → Frontend → Backend Service → AI Service (Prediction/Anomaly)
+  → ML Processing → Backend tổng hợp → Cache → Response về User
 ```
 
 ## Công nghệ Sử dụng

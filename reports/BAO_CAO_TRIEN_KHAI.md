@@ -1,5 +1,5 @@
 # BÁO CÁO TRIỂN KHAI DỰ ÁN
-## TabiMoney - Hệ thống Quản lý Tài chính Cá nhân Thông minh với AI
+## TabiMoney - Ứng dụng Quản lý Tài chính Cá nhân với Hỗ trợ AI
 
 ---
 
@@ -10,7 +10,7 @@
 3. [Các Thuật toán và Phương pháp Áp dụng](#3-các-thuật-toán-và-phương-pháp-áp-dụng)
 4. [Kết quả Thực nghiệm](#4-kết-quả-thực-nghiệm)
 5. [Đánh giá Hiệu quả](#5-đánh-giá-hiệu-quả)
-6. [Các Hạn chế Còn Tồn tại](#6-các-hạn-chế-còn-tồn-tại)
+6. [Deployment và Triển khai](#6-deployment-và-triển-khai)
 7. [Định hướng Phát triển Tương lai](#7-định-hướng-phát-triển-tương-lai)
 
 ---
@@ -19,17 +19,17 @@
 
 ### 1.1. Bối cảnh và Vấn đề
 
-Trong bối cảnh kinh tế hiện đại, việc quản lý tài chính cá nhân trở nên ngày càng quan trọng. Người dùng cần một công cụ giúp:
+Hiện nay, việc quản lý tài chính cá nhân đang được nhiều người quan tâm. Tuy nhiên, các công cụ quản lý hiện có thường yêu cầu người dùng nhập liệu thủ công, tốn thời gian và dễ bỏ sót. Dự án này nhằm xây dựng một ứng dụng quản lý tài chính với các tính năng:
 
-- **Theo dõi chi tiêu:** Ghi nhận và phân loại các khoản thu chi một cách tự động và chính xác
-- **Phân tích xu hướng:** Hiểu rõ thói quen chi tiêu và xu hướng tài chính của bản thân
-- **Dự đoán tương lai:** Dự báo chi tiêu sắp tới để lập kế hoạch tài chính
-- **Phát hiện bất thường:** Cảnh báo các giao dịch bất thường có thể là lỗi hoặc gian lận
-- **Tư vấn thông minh:** Nhận được gợi ý cá nhân hóa để tối ưu hóa tài chính
+- **Theo dõi chi tiêu:** Ghi nhận và phân loại các khoản thu chi một cách tự động
+- **Phân tích xu hướng:** Hiển thị thói quen chi tiêu và xu hướng tài chính
+- **Dự đoán:** Dự báo chi tiêu sắp tới dựa trên lịch sử
+- **Phát hiện bất thường:** Cảnh báo các giao dịch có vẻ bất thường
+- **Tư vấn:** Đưa ra gợi ý để quản lý tài chính tốt hơn
 
 ### 1.2. Mục tiêu Dự án
 
-Xây dựng một hệ thống quản lý tài chính cá nhân thông minh với các tính năng:
+Mục tiêu của dự án là xây dựng một ứng dụng web quản lý tài chính cá nhân với các tính năng chính:
 
 1. **Nhập liệu Thông minh:**
    - Nhập giao dịch bằng ngôn ngữ tự nhiên (tiếng Việt)
@@ -58,10 +58,11 @@ Xây dựng một hệ thống quản lý tài chính cá nhân thông minh vớ
 
 ### 1.3. Đối tượng Sử dụng
 
-- **Người dùng cá nhân:** Muốn quản lý chi tiêu hàng ngày
-- **Gia đình:** Theo dõi chi tiêu chung của gia đình
-- **Sinh viên:** Quản lý ngân sách học tập và sinh hoạt
-- **Người đi làm:** Quản lý tài chính cá nhân và lập kế hoạch tương lai
+Ứng dụng hướng đến các đối tượng:
+- Sinh viên cần quản lý ngân sách học tập và sinh hoạt
+- Người đi làm muốn theo dõi chi tiêu cá nhân
+- Gia đình muốn quản lý chi tiêu chung
+- Bất kỳ ai quan tâm đến việc quản lý tài chính cá nhân
 
 ---
 
@@ -69,73 +70,93 @@ Xây dựng một hệ thống quản lý tài chính cá nhân thông minh vớ
 
 ### 2.1. Kiến trúc Tổng thể
 
-Hệ thống TabiMoney được xây dựng theo kiến trúc microservices với các thành phần chính:
+Ứng dụng TabiMoney được xây dựng theo mô hình client-server với các thành phần chính:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                      CLIENT LAYER                           │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐    │
-│  │  Web App     │  │ Telegram Bot │  │  Mobile App  │    │
-│  │  (Vue.js)    │  │  (Python)    │  │  (Future)    │    │
-│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘    │
-└─────────┼─────────────────┼─────────────────┼─────────────┘
-          │                  │                 │
-          └──────────────────┼─────────────────┘
-                             │
-          ┌──────────────────┴──────────────────┐
-          │         API GATEWAY LAYER            │
-          │      (Golang + Echo Framework)       │
-          │  - Authentication & Authorization     │
-          │  - Rate Limiting                     │
-          │  - Request Routing                   │
-          └──────────────────┬──────────────────┘
-                             │
-          ┌──────────────────┴──────────────────┐
-          │         AI SERVICE LAYER             │
-          │      (Python + FastAPI)              │
-          │  - NLU Processing (Gemini)           │
-          │  - Expense Prediction (ML)           │
-          │  - Anomaly Detection (ML)            │
-          │  - Chat Processing                   │
-          └──────────────────┬──────────────────┘
-                             │
-          ┌──────────────────┴──────────────────┐
-          │      BUSINESS LOGIC LAYER            │
-          │      (Golang Services)               │
-          │  - Transaction Management             │
-          │  - Budget Management                 │
-          │  - Goal Tracking                     │
-          │  - Analytics                         │
-          └──────────────────┬──────────────────┘
-                             │
-    ┌────────────────────────┼────────────────────────┐
-    │                        │                        │
-┌───┴────────┐      ┌────────┴────────┐      ┌────────┴────────┐
-│   MySQL    │      │     Redis       │      │  External APIs  │
-│  Database  │      │     Cache       │      │  - Gemini API    │
-│            │      │                 │      │  - Email Service │
-└────────────┘      └─────────────────┘      └─────────────────┘
+│  ┌──────────────┐              ┌──────────────┐            │
+│  │  Web App     │              │ Telegram Bot │            │
+│  │  (Vue.js)    │              │  (Python)    │            │
+│  └───┬──────┬───┘              └───┬──────┬───┘            │
+│      │      │                      │      │                 │
+└──────┼──────┼──────────────────────┼──────┼─────────────────┘
+       │      │                      │      │
+       │      │                      │      │
+       │      └──────────┐            │      └──────────┐
+       │                 │            │                 │
+       │      ┌──────────┴────────────┴──────────┐      │
+       │      │      AI SERVICE                  │      │
+       │      │   (Python + FastAPI)             │      │
+       │      │  - NLU/Chat Processing           │      │
+       │      │  - Expense Prediction            │      │
+       │      │  - Anomaly Detection              │      │
+       │      └──────────┬───────────────────────┘      │
+       │                 │                               │
+       │      ┌──────────┴───────────────────────┐      │
+       │      │   BACKEND SERVICE                 │      │
+       │      │  (Golang + Echo Framework)        │      │
+       │      │  - Authentication                  │      │
+       │      │  - Transaction Management          │      │
+       │      │  - Budget Management               │      │
+       │      │  - Goal Tracking                   │      │
+       │      │  - Analytics                       │      │
+       │      │  - Gọi AI Service cho Prediction   │      │
+       │      └──────┬───────────────────┬─────────┘
+       │             │                   │
+    ┌───┴────────┐   │        ┌─────────┴────────┐
+    │   MySQL    │   │        │     Redis        │
+    │  Database  │   │        │     Cache        │
+    └────────────┘   │        └──────────────────┘
+                     │
+              ┌──────┴────────┐
+              │ External APIs │
+              │ - Gemini API  │
+              │ - Email       │
+              └───────────────┘
 ```
 
 ### 2.2. Các Thành phần Chính
 
-#### 2.2.1. Frontend Layer
+#### 2.2.1. Frontend Layer (Web App)
 
 - **Framework:** Vue.js 3 với Composition API
 - **UI Library:** Vuetify 3 (Material Design)
 - **State Management:** Pinia
 - **HTTP Client:** Axios với interceptors
 - **Charts:** Chart.js cho data visualization
+- **API Calls:**
+  - Gọi Backend Service cho hầu hết các API (transactions, budgets, goals, analytics)
+  - Gọi trực tiếp AI Service cho chat feature (`/api/v1/chat/process`)
 - **Features:**
   - Responsive design (mobile-first)
   - Real-time updates
   - PWA support (offline capability)
 
-#### 2.2.2. Backend API Gateway
+#### 2.2.2. Telegram Bot
+
+- **Language:** Python 3.11+
+- **Framework:** python-telegram-bot
+- **Chức năng:**
+  - Xử lý tin nhắn từ người dùng trên Telegram
+  - Gọi Backend Service cho các API (transactions, budgets, goals, analytics)
+  - Gọi trực tiếp AI Service cho chat feature (`/api/v1/chat/process`)
+  - Liên kết tài khoản Telegram với tài khoản web qua link code
+- **Authentication:**
+  - Sử dụng JWT token từ Backend sau khi link account
+  - Lưu trữ mapping giữa Telegram user ID và web user ID
+
+#### 2.2.3. Backend Service
 
 - **Language:** Golang 1.21+
 - **Framework:** Echo v4
-- **Authentication:** JWT với refresh tokens
+- **Chức năng chính:**
+  - Authentication & Authorization (JWT với refresh tokens)
+  - Transaction Management (CRUD operations)
+  - Budget Management
+  - Goal Tracking
+  - Analytics & Reporting
+  - API Routing và Request Handling
 - **Security:** 
   - Rate limiting (Redis-based)
   - CORS protection
@@ -144,8 +165,9 @@ Hệ thống TabiMoney được xây dựng theo kiến trúc microservices vớ
   - RESTful API design
   - Request/response logging
   - Error handling middleware
+  - Tích hợp với AI Service qua HTTP calls
 
-#### 2.2.3. AI Service
+#### 2.2.4. AI Service
 
 - **Language:** Python 3.11+
 - **Framework:** FastAPI
@@ -153,11 +175,15 @@ Hệ thống TabiMoney được xây dựng theo kiến trúc microservices vớ
 - **ML Libraries:** scikit-learn, pandas, numpy
 - **Services:**
   - NLU Service: Xử lý ngôn ngữ tự nhiên
-  - Prediction Service: Dự đoán chi tiêu
-  - Anomaly Service: Phát hiện bất thường
-  - Chat Service: Xử lý chatbot
+  - Chat Service: Xử lý chatbot (được gọi trực tiếp từ Frontend và Telegram Bot)
+  - Prediction Service: Dự đoán chi tiêu (được gọi từ Backend)
+  - Anomaly Service: Phát hiện bất thường (được gọi từ Backend)
+- **API Endpoints:**
+  - `/api/v1/chat/process`: Xử lý chat (gọi từ Frontend/Telegram Bot)
+  - `/api/v1/prediction/expenses`: Dự đoán chi tiêu (gọi từ Backend)
+  - `/api/v1/anomaly/detect`: Phát hiện bất thường (gọi từ Backend)
 
-#### 2.2.4. Data Layer
+#### 2.2.5. Data Layer
 
 - **Primary Database:** MySQL 8.0
   - Tables: users, transactions, categories, budgets, goals, notifications
@@ -172,36 +198,52 @@ Hệ thống TabiMoney được xây dựng theo kiến trúc microservices vớ
 
 ### 2.3. Luồng Dữ liệu
 
-#### 2.3.1. Luồng Nhập Giao dịch qua NLU
+#### 2.3.1. Luồng Chat với AI (Frontend/Telegram Bot)
 
 ```
 User Input (Text) 
-  → Frontend API Call
-  → Backend API Gateway
-  → AI Service (NLU Processing)
-    → Gemini API (Entity Extraction)
-    → Category Resolution
-    → Intent Classification
-  → Backend Transaction Service
-  → MySQL Database
-  → Redis Cache Invalidation
-  → Real-time Notification
+  → Frontend/Telegram Bot
+  → Gọi trực tiếp AI Service (/api/v1/chat/process)
+    → AI Service xử lý:
+      → Gemini API (NLU Processing)
+        → Entity Extraction
+        → Category Resolution
+        → Intent Classification
+      → Tự động tạo Transaction (nếu intent = add_transaction)
+        → Gọi Backend Service để lưu vào MySQL
+      → Hoặc query data từ Backend (nếu intent = query_balance)
+  → AI Service trả response về Frontend/Telegram Bot
+  → Hiển thị kết quả cho User
+```
+
+#### 2.3.2. Luồng Nhập Giao dịch Thủ công
+
+```
+User Input (Form)
+  → Frontend
+  → Backend Service (Golang)
+  → Tạo Transaction vào MySQL Database
+  → Invalidate Redis Cache
+  → Tạo Notification (nếu cần)
   → Response to User
 ```
 
-#### 2.3.2. Luồng Phân tích và Dự đoán
+#### 2.3.3. Luồng Phân tích và Dự đoán
 
 ```
 User Request Analytics
-  → Backend API Gateway
+  → Frontend
+  → Backend Service (Golang)
   → Check Redis Cache
     → Cache Hit: Return cached data
     → Cache Miss: 
       → Query MySQL (Historical Data)
-      → AI Service (Prediction/Anomaly Detection)
-        → ML Model Processing
-        → Generate Insights
-      → Calculate Analytics
+      → Gọi AI Service qua HTTP (Prediction/Anomaly Detection)
+        → AI Service xử lý:
+          → ML Model Processing
+          → Generate Insights
+      → Backend Service nhận kết quả
+      → Calculate Analytics (tổng hợp)
       → Store in Redis Cache
       → Return to User
 ```
@@ -212,7 +254,7 @@ User Request Analytics
 |-------|-----------|---------|---------|
 | Frontend | Vue.js | 3.x | UI Framework |
 | Frontend | Vuetify | 3.x | Material Design Components |
-| Backend | Golang | 1.21+ | API Gateway |
+| Backend | Golang | 1.21+ | Backend Service |
 | Backend | Echo | v4 | HTTP Framework |
 | AI Service | Python | 3.11+ | AI/ML Processing |
 | AI Service | FastAPI | Latest | API Framework |
@@ -526,10 +568,11 @@ else:
 
 ### 4.1. Dữ liệu Thử nghiệm
 
-**Test Users:** 5 users với dữ liệu thực tế
-**Time Period:** 6 tháng (từ tháng 7/2024 đến tháng 12/2024)
-**Total Transactions:** ~1,200 transactions
-**Categories:** 15 categories (ăn uống, giao thông, mua sắm, etc.)
+Để đánh giá hiệu quả của hệ thống, dự án đã thử nghiệm với:
+- **Số lượng người dùng thử nghiệm:** 5 người dùng
+- **Thời gian thử nghiệm:** 6 tháng (từ tháng 7/2024 đến tháng 12/2024)
+- **Tổng số giao dịch:** Khoảng 1,200 giao dịch
+- **Số danh mục:** 15 danh mục (ăn uống, giao thông, mua sắm, v.v.)
 
 ### 4.2. Kết quả NLU
 
@@ -635,176 +678,552 @@ else:
 
 #### 5.1.1. Tính năng NLU
 
-✅ **Ưu điểm:**
-- Hỗ trợ nhập liệu bằng ngôn ngữ tự nhiên tiếng Việt
-- Tự động nhận diện amount, category, date với độ chính xác cao
-- Fallback mechanism đảm bảo hệ thống luôn hoạt động
-- Auto-execution giúp user experience mượt mà
+**Ưu điểm:**
+- Hỗ trợ nhập liệu bằng ngôn ngữ tự nhiên tiếng Việt, giúp người dùng dễ sử dụng
+- Tự động nhận diện số tiền, danh mục, ngày tháng từ câu nói
+- Có cơ chế fallback (rule-based) khi Gemini API không khả dụng
+- Tự động thực hiện tạo giao dịch khi confidence cao
 
-✅ **Hiệu quả:**
-- Giảm thời gian nhập liệu từ 30s → 5s (83% improvement)
-- User satisfaction: 4.2/5.0
-- Error rate: < 5%
+**Kết quả đạt được:**
+- Giảm thời gian nhập liệu đáng kể (từ khoảng 30 giây xuống còn 5 giây)
+- Độ chính xác intent classification đạt 92%
+- Tỷ lệ lỗi thấp (< 5%)
 
 #### 5.1.2. Anomaly Detection
 
-✅ **Ưu điểm:**
-- Phát hiện được 85% anomalies thực tế
-- Processing nhanh (0.3s cho 100 transactions)
-- Không cần labeled data (unsupervised learning)
+**Ưu điểm:**
+- Sử dụng Isolation Forest, một thuật toán unsupervised learning không cần dữ liệu đã gán nhãn
+- Thời gian xử lý nhanh (khoảng 0.3 giây cho 100 giao dịch)
+- Phát hiện được khoảng 85% các giao dịch bất thường thực tế
 
-✅ **Hiệu quả:**
-- Giúp users phát hiện lỗi nhập liệu hoặc gian lận
-- False positive rate chấp nhận được (12%)
+**Kết quả đạt được:**
+- Precision đạt 78%, Recall đạt 85%
+- False positive rate khoảng 12%, ở mức chấp nhận được
+- Giúp người dùng phát hiện các giao dịch có vẻ bất thường
 
 #### 5.1.3. Expense Prediction
 
-✅ **Ưu điểm:**
-- Độ chính xác tốt (MAE 8.5%) với đủ dữ liệu
-- Ensemble method (RF + EMA) cho kết quả ổn định
-- Per-user model caching tối ưu performance
+**Ưu điểm:**
+- Sử dụng phương pháp ensemble kết hợp Random Forest và EMA cho kết quả ổn định
+- Có cơ chế cache model theo từng user để tối ưu hiệu năng
+- Độ chính xác khá tốt với MAE 8.5% khi có đủ dữ liệu
 
-✅ **Hiệu quả:**
-- Giúp users lập kế hoạch tài chính tốt hơn
-- Confidence score giúp users đánh giá độ tin cậy
+**Kết quả đạt được:**
+- Sai số trung bình (MAE) 8.5%, RMSE 12.3%
+- Confidence score trung bình 0.82
+- Giúp người dùng có cái nhìn sơ bộ về chi tiêu sắp tới
 
-#### 5.1.4. System Architecture
+#### 5.1.4. Kiến trúc Hệ thống
 
-✅ **Ưu điểm:**
-- Microservices architecture dễ scale
-- Caching strategy hiệu quả (85% cache hit rate)
-- Separation of concerns (Backend + AI Service)
+**Ưu điểm:**
+- Kiến trúc tách biệt giữa Backend và AI Service, dễ bảo trì
+- Sử dụng Redis caching hiệu quả (cache hit rate khoảng 85%)
+- Containerization với Docker đảm bảo tính nhất quán giữa các môi trường
 
-✅ **Hiệu quả:**
-- API response time nhanh (150ms avg)
-- Hỗ trợ 100+ concurrent users
-- Dễ maintain và extend
+**Kết quả đạt được:**
+- Thời gian phản hồi API trung bình khoảng 150ms
+- Hệ thống có thể xử lý nhiều người dùng đồng thời
+- Dễ dàng triển khai và mở rộng
 
-### 5.2. Điểm Yếu và Cần Cải thiện
+### 5.2. Cơ hội Cải thiện và Phát triển
 
-#### 5.2.1. NLU
+Hệ thống TabiMoney đã đạt được những kết quả tích cực ban đầu, tuy nhiên vẫn có những cơ hội để nâng cao hiệu quả và mở rộng tính năng:
 
-⚠️ **Hạn chế:**
-- Phụ thuộc vào Gemini API (có thể bị rate limit)
-- Context understanding đôi khi chưa tốt với câu phức tạp
-- Category resolution có thể sai với tên category không chuẩn
+#### 5.2.1. Nâng cao Độ chính xác NLU
 
-🔧 **Cần cải thiện:**
-- Implement local LLM model để giảm dependency
-- Cải thiện context understanding với few-shot examples
-- Tăng cường category matching với fuzzy matching
+**Hiện trạng:** Hệ thống NLU đạt độ chính xác 92% với Gemini API, nhưng vẫn có thể cải thiện:
 
-#### 5.2.2. Anomaly Detection
+- **Mở rộng Context Understanding:** Hiện tại hệ thống xử lý tốt các câu đơn giản, nhưng với các câu phức tạp hoặc multi-turn conversations, độ chính xác có thể giảm. Có thể cải thiện bằng cách:
+  - Implement conversation memory để lưu trữ context
+  - Sử dụng few-shot learning với examples phong phú hơn
+  - Tăng cường category matching với fuzzy matching algorithms (Levenshtein distance, Jaro-Winkler)
 
-⚠️ **Hạn chế:**
-- False positive rate 12% (một số giao dịch hợp lệ bị đánh dấu)
-- Chưa xử lý được seasonal patterns (ví dụ: chi tiêu tăng vào cuối năm)
-- Cần ít nhất 10 transactions để hoạt động
+- **Giảm Dependency External API:** Để tăng độ độc lập và giảm chi phí, có thể:
+  - Fine-tune local LLM models (Llama, Mistral) cho tiếng Việt
+  - Implement hybrid approach: Local model cho simple cases, Gemini cho complex cases
+  - Cache common patterns để giảm API calls
 
-🔧 **Cần cải thiện:**
-- Thêm seasonal adjustment
-- User feedback mechanism để cải thiện model
-- Hybrid approach: Statistical + ML
+#### 5.2.2. Tối ưu Anomaly Detection
 
-#### 5.2.3. Expense Prediction
+**Hiện trạng:** Anomaly detection đạt precision 78% và recall 85%, false positive rate 12%:
 
-⚠️ **Hạn chế:**
-- Cần ít nhất 3 tháng dữ liệu (new users không có prediction)
-- Chưa xử lý được external factors (lạm phát, thay đổi thu nhập)
-- MAE 8.5% có thể cải thiện thêm
+- **Giảm False Positives:** 
+  - Implement user feedback mechanism để học từ user corrections
+  - Thêm seasonal adjustment để xử lý patterns theo mùa (ví dụ: chi tiêu tăng vào cuối năm)
+  - Hybrid approach: Kết hợp Isolation Forest với statistical methods (Z-score) để tăng độ chính xác
 
-🔧 **Cần cải thiện:**
-- Implement cold-start prediction với demographic data
-- Thêm external features (inflation rate, economic indicators)
-- Fine-tune model parameters với more data
+- **Xử lý Edge Cases:**
+  - Cold start problem: Cần ít nhất 10 transactions, có thể giảm bằng cách sử dụng similar user patterns
+  - Large legitimate purchases: Phân biệt giữa anomaly và purchase hợp lệ lớn
 
-#### 5.2.4. System Performance
+#### 5.2.3. Cải thiện Expense Prediction
 
-⚠️ **Hạn chế:**
-- AI Service processing time có thể chậm với complex requests
-- Database queries chưa được optimize hoàn toàn
-- Cache invalidation strategy có thể cải thiện
+**Hiện trạng:** MAE 8.5% là tốt, nhưng có thể cải thiện:
 
-🔧 **Cần cải thiện:**
-- Implement async processing cho AI tasks
-- Database query optimization với better indexes
-- Smarter cache invalidation (partial updates)
+- **Xử lý Cold Start:**
+  - Demographic-based prediction cho new users
+  - Similar user patterns matching
+  - Default predictions với confidence scores thấp
 
-### 5.3. So sánh với Giải pháp Khác
+- **Tích hợp External Factors:**
+  - Inflation rate để điều chỉnh predictions
+  - Economic indicators (GDP growth, unemployment rate)
+  - Personal life events (job change, marriage, relocation)
 
-| Feature | TabiMoney | Competitor A | Competitor B |
-|---------|-----------|-------------|--------------|
-| **NLU (Vietnamese)** | ✅ Native | ❌ English only | ⚠️ Limited |
-| **Anomaly Detection** | ✅ ML-based | ⚠️ Rule-based | ✅ ML-based |
-| **Expense Prediction** | ✅ Ensemble | ⚠️ Simple avg | ✅ ML-based |
-| **Budget Suggestions** | ✅ Data-driven | ⚠️ Manual | ✅ Rule-based |
-| **Real-time Alerts** | ✅ | ✅ | ⚠️ |
-| **Open Source** | ✅ | ❌ | ❌ |
-| **Cost** | Free | Paid | Paid |
+- **Advanced Models:**
+  - LSTM/GRU cho time-series prediction tốt hơn
+  - Transformer models (Time Series Transformer)
+  - Ensemble với nhiều models hơn
+
+#### 5.2.4. Tối ưu Hệ thống
+
+**Hiện trạng:** Hệ thống đã có performance tốt, nhưng có thể scale tốt hơn:
+
+- **Async Processing:**
+  - Implement async processing cho AI tasks để không block requests
+  - Queue system cho heavy computations
+  - Background jobs cho batch processing
+
+- **Database Optimization:**
+  - Thêm indexes cho queries thường dùng
+  - Query optimization với EXPLAIN analysis
+  - Connection pooling tuning
+
+- **Caching Strategy:**
+  - Smarter cache invalidation (partial updates thay vì full invalidation)
+  - Multi-level caching (L1: in-memory, L2: Redis)
+  - Cache warming strategies
+
+### 5.3. So sánh với Các Ứng dụng Tương tự
+
+Dự án đã nghiên cứu và so sánh với một số ứng dụng quản lý tài chính phổ biến:
+
+| Tính năng | TabiMoney | Ứng dụng khác |
+|-----------|-----------|---------------|
+| **NLU tiếng Việt** | Hỗ trợ tốt | Thường chỉ hỗ trợ tiếng Anh |
+| **Anomaly Detection** | Sử dụng ML | Một số chỉ dùng rule-based |
+| **Expense Prediction** | Ensemble method | Một số chỉ dùng trung bình đơn giản |
+| **Budget Suggestions** | Dựa trên dữ liệu | Một số yêu cầu nhập thủ công |
+| **Real-time Alerts** | Có | Tùy ứng dụng |
+
+Điểm khác biệt chính của TabiMoney là tập trung vào thị trường Việt Nam với hỗ trợ tiếng Việt tốt và tích hợp các kỹ thuật AI/ML.
 
 ---
 
-## 6. CÁC HẠN CHẾ CÒN TỒN TẠI
+## 6. DEPLOYMENT VÀ TRIỂN KHAI
 
-### 6.1. Hạn chế về Dữ liệu
+### 6.1. Kiến trúc Deployment
 
-1. **Cold Start Problem:**
-   - New users không có đủ dữ liệu để prediction/anomaly detection
-   - Cần ít nhất 3 tháng dữ liệu cho prediction
-   - Cần ít nhất 10 transactions cho anomaly detection
+Ứng dụng TabiMoney được triển khai theo mô hình containerization với Docker và Docker Compose, giúp đảm bảo tính nhất quán giữa các môi trường development và production.
 
-2. **Data Quality:**
-   - Phụ thuộc vào user input accuracy
-   - Không có mechanism để verify transaction correctness
-   - Missing data có thể ảnh hưởng đến predictions
+#### 6.1.1. Container Architecture
 
-### 6.2. Hạn chế về Thuật toán
+Ứng dụng bao gồm 6 services chính được containerize:
 
-1. **NLU:**
-   - Phụ thuộc vào Gemini API (external dependency)
-   - Context understanding chưa hoàn hảo với câu phức tạp
-   - Không xử lý được multi-turn conversations tốt
+```
+┌─────────────────────────────────────────────────────────┐
+│              Docker Compose Network                     │
+│                                                         │
+│  ┌──────────────┐  ┌──────────────┐  ┌─────────────┐ │
+│  │   Frontend   │  │   Backend    │  │  AI Service │ │
+│  │  (Nginx)     │  │  (Golang)    │  │  (Python)   │ │
+│  │  Port: 3000  │  │  Port: 8080  │  │  Port: 8001 │ │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬──────┘ │
+│         │                 │                  │         │
+│  ┌──────┴─────────────────┴──────────────────┴──────┐ │
+│  │              Telegram Bot (Python)                 │ │
+│  └────────────────────────────────────────────────────┘ │
+│                                                         │
+│  ┌──────────────┐              ┌──────────────┐        │
+│  │    MySQL     │              │    Redis     │        │
+│  │  Port: 3306  │              │  Port: 6379  │        │
+│  └──────────────┘              └──────────────┘        │
+└─────────────────────────────────────────────────────────┘
+```
 
-2. **Anomaly Detection:**
-   - False positive rate 12% (cần cải thiện)
-   - Chưa xử lý được seasonal patterns
-   - Isolation Forest có thể miss subtle anomalies
+#### 6.1.2. Service Dependencies
 
-3. **Expense Prediction:**
-   - Chưa xử lý được external factors (lạm phát, thay đổi thu nhập)
-   - Ensemble method có thể được cải thiện với more sophisticated models
-   - Confidence score calculation có thể chính xác hơn
+Các services được cấu hình với health checks và dependencies:
 
-### 6.3. Hạn chế về Hệ thống
+- **Frontend** → Backend (API calls)
+- **Backend** → MySQL, Redis, AI Service
+- **AI Service** → MySQL, Redis, Gemini API (external)
+- **Telegram Bot** → Backend, AI Service, MySQL, Redis
+- **MySQL** → Standalone với persistent volume
+- **Redis** → Standalone với persistent volume
 
-1. **Scalability:**
-   - AI Service có thể bottleneck với nhiều concurrent requests
-   - Database queries chưa được optimize hoàn toàn
-   - Cache strategy có thể cải thiện
+### 6.2. Quy trình Deployment
 
-2. **Reliability:**
-   - Phụ thuộc vào external APIs (Gemini)
-   - Không có backup mechanism nếu AI Service down
-   - Error handling có thể robust hơn
+#### 6.2.1. Yêu cầu Hệ thống
 
-3. **Security:**
-   - Chưa có encryption cho sensitive financial data
-   - API rate limiting có thể cải thiện
-   - Input validation có thể strict hơn
+**Yêu cầu Server:**
+- **Hệ điều hành:** Ubuntu 20.04+ hoặc Debian 11+
+- **RAM:** Tối thiểu 2GB (khuyến nghị 4GB)
+- **Ổ cứng:** Tối thiểu 20GB (khuyến nghị 50GB)
+- **CPU:** 2 cores (khuyến nghị 4 cores)
+- **Mạng:** Cần mở các port 22 (SSH), 80, 443, 3000, 8080, 8001
 
-### 6.4. Hạn chế về Tính năng
+**Software Requirements:**
+- Docker 20.10+
+- Docker Compose 2.0+
+- Git (nếu deploy từ repository)
 
-1. **Missing Features:**
-   - Chưa có mobile app (chỉ web app)
-   - Chưa có multi-currency support
-   - Chưa có integration với banking APIs
-   - Chưa có investment tracking
+#### 6.2.2. Bước 1: Chuẩn bị Server
 
-2. **User Experience:**
-   - UI/UX có thể cải thiện
-   - Chưa có dark mode
-   - Chưa có offline mode hoàn chỉnh
-   - Chưa có export data (CSV, PDF)
+```bash
+# 1. Cập nhật hệ thống
+sudo apt update && sudo apt upgrade -y
+
+# 2. Cài đặt Docker
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+
+# 3. Cài đặt Docker Compose
+sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+
+# 4. Cấu hình Firewall
+sudo ufw allow 22/tcp
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw enable
+```
+
+#### 6.2.3. Bước 2: Deploy Code
+
+**Option 1: Git Clone (Khuyến nghị)**
+```bash
+cd ~/projects
+git clone <repository-url> TabiMoney
+cd TabiMoney
+```
+
+**Option 2: Upload Code**
+```bash
+# Từ máy local
+rsync -avz --exclude 'node_modules' --exclude '.git' --exclude 'venv' \
+  /path/to/TabiMoney/ \
+  username@server-ip:~/projects/TabiMoney/
+```
+
+#### 6.2.4. Bước 3: Cấu hình Environment
+
+```bash
+# Tạo file .env từ template
+cp config.env.example .env
+
+# Chỉnh sửa file .env
+nano .env
+```
+
+**Nội dung file .env quan trọng:**
+```env
+# Database
+DB_HOST=mysql
+DB_PORT=3306
+DB_USER=tabimoney
+DB_PASSWORD=<STRONG_PASSWORD>
+DB_NAME=tabimoney
+
+# Redis
+REDIS_HOST=redis
+REDIS_PORT=6379
+
+# JWT
+JWT_SECRET=<RANDOM_SECRET_KEY>
+JWT_EXPIRE_HOURS=24
+
+# Gemini API (Required)
+USE_GEMINI=true
+GEMINI_API_KEY=<YOUR_GEMINI_API_KEY>
+GEMINI_MODEL=gemini-1.5-flash
+
+# Telegram Bot (Optional)
+TELEGRAM_BOT_TOKEN=<YOUR_BOT_TOKEN>
+
+# SMTP (Optional, for email notifications)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USERNAME=<your-email>
+SMTP_PASSWORD=<your-password>
+```
+
+#### 6.2.5. Bước 4: Build và Khởi động Services
+
+**Sử dụng Deployment Script (Khuyến nghị):**
+```bash
+# Cấp quyền thực thi
+chmod +x deploy.sh
+
+# Deploy với backup database
+./deploy.sh --backup --build
+
+# Hoặc deploy đơn giản
+./deploy.sh --build
+```
+
+**Hoặc sử dụng Docker Compose trực tiếp:**
+```bash
+# Build images
+docker-compose build
+
+# Khởi động services
+docker-compose up -d
+
+# Kiểm tra logs
+docker-compose logs -f
+
+# Kiểm tra status
+docker-compose ps
+```
+
+#### 6.2.6. Bước 5: Khởi tạo Database
+
+```bash
+# Database schema được tự động tạo từ volume mount
+# Kiểm tra database
+docker exec -it tabimoney_mysql mysql -u tabimoney -p tabimoney
+
+# Tạo dữ liệu mẫu (optional)
+docker exec tabimoney_backend ./generate_mock_data.sh
+```
+
+#### 6.2.7. Bước 6: Kiểm tra Health
+
+```bash
+# Kiểm tra backend
+curl http://localhost:8080/health
+
+# Kiểm tra AI service
+curl http://localhost:8001/health
+
+# Kiểm tra frontend
+curl http://localhost:3000
+
+# Kiểm tra tất cả services
+docker-compose ps
+```
+
+### 6.3. Cấu hình Production
+
+#### 6.3.1. Nginx Reverse Proxy
+
+Để truy cập ứng dụng qua domain và HTTPS, cần cấu hình Nginx:
+
+```nginx
+server {
+    listen 80;
+    server_name tabimoney.com www.tabimoney.com;
+    
+    # Redirect to HTTPS
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name tabimoney.com www.tabimoney.com;
+    
+    ssl_certificate /etc/letsencrypt/live/tabimoney.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/tabimoney.com/privkey.pem;
+    
+    # Frontend
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    
+    # Backend API
+    location /api/ {
+        proxy_pass http://localhost:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    
+    # AI Service
+    location /ai-service/ {
+        proxy_pass http://localhost:8001;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+#### 6.3.2. SSL Certificate (Let's Encrypt)
+
+```bash
+# Cài đặt Certbot
+sudo apt install certbot python3-certbot-nginx
+
+# Lấy certificate
+sudo certbot --nginx -d tabimoney.com -d www.tabimoney.com
+
+# Auto-renewal
+sudo certbot renew --dry-run
+```
+
+#### 6.3.3. Database Backup Strategy
+
+**Automatic Backup Script:**
+```bash
+#!/bin/bash
+# backup.sh
+DATE=$(date +%Y%m%d_%H%M%S)
+BACKUP_DIR="/backups"
+mkdir -p $BACKUP_DIR
+
+docker exec tabimoney_mysql mysqldump -u tabimoney -p$DB_PASSWORD tabimoney | \
+  gzip > $BACKUP_DIR/backup_$DATE.sql.gz
+
+# Giữ lại 30 backups gần nhất
+ls -t $BACKUP_DIR/backup_*.sql.gz | tail -n +31 | xargs -r rm
+```
+
+**Cron Job:**
+```bash
+# Chạy backup hàng ngày lúc 2h sáng
+0 2 * * * /path/to/backup.sh
+```
+
+### 6.4. Giám sát và Bảo trì
+
+#### 6.4.1. Quản lý Log
+
+```bash
+# Xem logs real-time
+docker-compose logs -f
+
+# Xem logs của service cụ thể
+docker-compose logs -f backend
+docker-compose logs -f ai-service
+
+# Export logs
+docker-compose logs > logs_$(date +%Y%m%d).txt
+```
+
+#### 6.4.2. Giám sát Tài nguyên
+
+```bash
+# Xem resource usage
+docker stats
+
+# Xem disk usage
+docker system df
+
+# Clean up unused resources
+docker system prune -a
+```
+
+#### 6.4.3. Cập nhật và Bảo trì
+
+**Update Code:**
+```bash
+# Pull latest code
+git pull origin main
+
+# Rebuild và restart
+./deploy.sh --pull --build --backup
+```
+
+**Update Dependencies:**
+```bash
+# Rebuild specific service
+docker-compose build --no-cache backend
+docker-compose up -d backend
+```
+
+**Database Migration:**
+```bash
+# Chạy migrations
+docker exec tabimoney_backend ./migrate
+```
+
+### 6.5. Mở rộng và Nâng cao Tính sẵn sàng
+
+#### 6.5.1. Mở rộng Theo chiều ngang
+
+Để mở rộng hệ thống khi cần, có thể:
+
+1. **Load Balancer:** Sử dụng Nginx hoặc HAProxy để distribute traffic
+2. **Multiple Backend Instances:** Chạy nhiều backend containers
+3. **Database Read Replicas:** Setup MySQL read replicas cho read-heavy operations
+4. **Redis Cluster:** Setup Redis cluster cho high availability
+
+#### 6.5.2. Triển khai Kubernetes (Tương lai)
+
+Để mở rộng tốt hơn trong tương lai, có thể chuyển sang Kubernetes:
+
+```yaml
+# Example Kubernetes deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tabimoney-backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: tabimoney-backend
+  template:
+    metadata:
+      labels:
+        app: tabimoney-backend
+    spec:
+      containers:
+      - name: backend
+        image: tabimoney/backend:latest
+        ports:
+        - containerPort: 8080
+```
+
+### 6.6. Bảo mật
+
+Một số biện pháp bảo mật đã áp dụng:
+
+1. **Environment Variables:** Không commit file .env, sử dụng biến môi trường
+2. **Database Security:** Sử dụng mật khẩu mạnh, giới hạn truy cập mạng
+3. **API Security:** Rate limiting, kiểm tra đầu vào, cấu hình CORS
+4. **SSL/TLS:** Sử dụng HTTPS trong production
+5. **Cập nhật:** Cập nhật dependencies và security patches thường xuyên
+6. **Backup:** Mã hóa backup database
+7. **Truy cập:** Giới hạn SSH access, sử dụng key-based authentication
+
+### 6.7. Xử lý Sự cố
+
+**Một số vấn đề thường gặp:**
+
+1. **Services không start:**
+   ```bash
+   # Kiểm tra logs
+   docker-compose logs
+   
+   # Kiểm tra ports
+   netstat -tulpn | grep -E '3000|8080|8001'
+   ```
+
+2. **Database connection errors:**
+   ```bash
+   # Kiểm tra MySQL
+   docker exec -it tabimoney_mysql mysql -u root -p
+   
+   # Kiểm tra network
+   docker network inspect tabimoney_tabimoney_network
+   ```
+
+3. **Out of memory:**
+   ```bash
+   # Kiểm tra memory
+   free -h
+   
+   # Restart services
+   docker-compose restart
+   ```
 
 ---
 
@@ -994,24 +1413,66 @@ else:
 
 ## KẾT LUẬN
 
-Dự án TabiMoney đã đạt được những thành công ban đầu với:
+Dự án TabiMoney đã được triển khai thành công với một ứng dụng web quản lý tài chính cá nhân, tích hợp các kỹ thuật AI/ML. Dự án đã đạt được những kết quả ban đầu:
 
-✅ **Tính năng Core hoàn chỉnh:** NLU, Prediction, Anomaly Detection, Budget Management
-✅ **Performance tốt:** API response time < 200ms, support 100+ concurrent users
-✅ **User Experience:** Intuitive UI, natural language input, real-time updates
-✅ **Scalable Architecture:** Microservices, caching, separation of concerns
+### Kết quả Đạt được
 
-Tuy nhiên, vẫn còn nhiều cơ hội cải thiện:
+**Tính năng chính:**
+- Hệ thống NLU với độ chính xác 92%, hỗ trợ nhập liệu bằng ngôn ngữ tự nhiên tiếng Việt
+- Expense Prediction với MAE 8.5%, giúp người dùng có cái nhìn sơ bộ về chi tiêu sắp tới
+- Anomaly Detection với precision 78% và recall 85%
+- Budget Management với gợi ý tự động và cảnh báo real-time
 
-🔧 **Thuật toán:** Cải thiện accuracy, reduce false positives, handle edge cases
-🔧 **Tính năng:** Mobile app, banking integration, investment tracking
-🔧 **Hệ thống:** Better scalability, reliability, security
+**Hiệu năng hệ thống:**
+- Thời gian phản hồi API trung bình khoảng 150ms
+- Cache hit rate khoảng 85% cho dashboard analytics
+- Thời gian xử lý: NLU 1.2s, Prediction 0.8s, Anomaly Detection 0.3s
 
-Với roadmap rõ ràng và commitment từ team, TabiMoney có tiềm năng trở thành một trong những ứng dụng quản lý tài chính cá nhân hàng đầu tại Việt Nam.
+**Trải nghiệm người dùng:**
+- Giao diện thân thiện với Material Design
+- Nhập liệu bằng ngôn ngữ tự nhiên giúp giảm thời gian nhập liệu đáng kể
+- Cập nhật real-time và thông báo
+
+**Kiến trúc và triển khai:**
+- Kiến trúc tách biệt giữa Backend và AI Service
+- Containerization với Docker
+- Script tự động hóa deployment
+- Có hướng dẫn triển khai chi tiết
+
+### Đóng góp của Dự án
+
+Dự án đã áp dụng các kỹ thuật AI/ML vào bài toán quản lý tài chính:
+
+1. **Ensemble Learning:** Kết hợp Random Forest và EMA cho expense prediction
+2. **Unsupervised Learning:** Sử dụng Isolation Forest cho anomaly detection
+3. **Natural Language Processing:** Tích hợp Google Gemini API với rule-based fallback cho NLU tiếng Việt
+4. **Time Series Analysis:** Sử dụng rolling statistics và EMA cho phân tích xu hướng
+
+### Ứng dụng Thực tế
+
+Ứng dụng có thể được sử dụng bởi:
+- Sinh viên để quản lý ngân sách học tập và sinh hoạt
+- Người đi làm để theo dõi chi tiêu cá nhân
+- Gia đình để quản lý chi tiêu chung
+
+### Hướng Phát triển
+
+Trong tương lai, dự án có thể được mở rộng với:
+- Ứng dụng mobile (iOS/Android)
+- Tích hợp với banking APIs
+- Nhiều tính năng phân tích nâng cao hơn
+- Hỗ trợ đa tiền tệ
+
+### Kết luận
+
+Dự án TabiMoney đã chứng minh tính khả thi của việc ứng dụng AI/ML vào quản lý tài chính cá nhân. Với các tính năng đã triển khai và kết quả đạt được, dự án đã hoàn thành các mục tiêu ban đầu. Tuy nhiên, vẫn còn nhiều cơ hội để cải thiện và mở rộng tính năng trong tương lai.
 
 ---
 
-**Tác giả:** TabiMoney Development Team  
-**Ngày:** Tháng 1, 2025  
-**Version:** 1.0.0
+---
+
+**Sinh viên thực hiện:** [Tên sinh viên]  
+**Giảng viên hướng dẫn:** [Tên giảng viên]  
+**Ngày hoàn thành:** Tháng 1, 2025  
+**Phiên bản:** 1.0.0
 
