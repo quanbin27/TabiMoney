@@ -132,8 +132,8 @@
               <v-card v-if="linkCode" class="mt-4" color="primary" variant="outlined">
                 <v-card-text>
                   <h3 class="text-h6 mb-2">Mã liên kết của bạn:</h3>
-                  <v-text-field :value="linkCode" readonly variant="outlined" append-icon="mdi-content-copy"
-                    @click:append="copyToClipboard" class="mb-2" />
+                  <v-text-field :value="linkCode" readonly variant="outlined" append-inner-icon="mdi-content-copy"
+                    @click:append-inner="copyToClipboard" class="mb-2" hide-details />
                   <p class="text-caption">
                     ⏰ Mã này có hiệu lực trong {{ linkCodeExpiry }} phút
                   </p>
@@ -323,8 +323,32 @@ const disconnectTelegram = async () => {
 }
 
 const copyToClipboard = async () => {
+  if (!linkCode.value) {
+    showSnackbar('Chưa có mã liên kết để sao chép.', 'warning')
+    return
+  }
+
   try {
-    await navigator.clipboard.writeText(linkCode.value)
+    const canUseNavigatorClipboard = typeof navigator !== 'undefined'
+      && navigator.clipboard
+      && typeof navigator.clipboard.writeText === 'function'
+
+    if (canUseNavigatorClipboard) {
+      await navigator.clipboard.writeText(linkCode.value)
+    } else if (typeof document !== 'undefined') {
+      const textarea = document.createElement('textarea')
+      textarea.value = linkCode.value
+      textarea.setAttribute('readonly', '')
+      textarea.style.position = 'absolute'
+      textarea.style.left = '-9999px'
+      document.body.appendChild(textarea)
+      textarea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textarea)
+    } else {
+      throw new Error('Clipboard API is not available')
+    }
+
     showSnackbar('Đã sao chép mã liên kết!', 'success')
   } catch (error) {
     console.error('Error copying to clipboard:', error)

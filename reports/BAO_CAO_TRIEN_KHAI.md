@@ -265,6 +265,181 @@ User Request Analytics
 | Container | Docker | Latest | Containerization |
 | Orchestration | Docker Compose | Latest | Local Development |
 
+### 2.5. Triển khai Hệ thống
+
+#### 2.5.1. Docker và Docker Compose
+
+Hệ thống được triển khai hoàn toàn bằng Docker và Docker Compose, đảm bảo tính nhất quán giữa các môi trường development và production.
+
+**Cấu trúc Docker Compose:**
+
+Dự án sử dụng `docker-compose.yml` để quản lý 6 services chính:
+
+1. **MySQL Database** (port 3306)
+   - Image: `mysql:8.0`
+   - Persistent volume cho dữ liệu
+   - Health check với mysqladmin ping
+   - Tự động chạy schema migration khi khởi động
+
+2. **Redis Cache** (port 6379)
+   - Image: `redis:7-alpine`
+   - Persistent volume cho data
+   - Health check với redis-cli ping
+
+3. **Backend Service** (port 8080)
+   - Build từ `Dockerfile.backend`
+   - Multi-stage build: Golang builder → Alpine runtime
+   - Health check endpoint `/health`
+   - Phụ thuộc vào MySQL và Redis
+
+4. **AI Service** (port 8001)
+   - Build từ `ai-service/Dockerfile`
+   - Base image: Python 3.11-slim
+   - Health check endpoint `/health`
+   - Phụ thuộc vào MySQL và Redis
+
+5. **Frontend** (port 3000)
+   - Build từ `frontend/Dockerfile`
+   - Multi-stage build: Node.js builder → Nginx production
+   - Sử dụng Nginx để serve static files
+   - Phụ thuộc vào Backend
+
+6. **Telegram Bot**
+   - Build từ `telegram-bot/Dockerfile`
+   - Base image: Python 3.11-slim
+   - Phụ thuộc vào MySQL, Redis, Backend và AI Service
+
+**Docker Network:**
+
+Tất cả services được kết nối trong một Docker network (`tabimoney_network`) để có thể giao tiếp với nhau qua tên service (ví dụ: `http://backend:8080`, `http://ai-service:8001`).
+
+**Volumes:**
+
+- `mysql_data`: Persistent storage cho MySQL database
+- `redis_data`: Persistent storage cho Redis data
+- `ai_models`: Storage cho ML models cache
+
+#### 2.5.2. Quy trình Build và Deploy
+
+**Build Images:**
+
+```bash
+# Build tất cả images
+docker-compose build
+
+# Build image cụ thể
+docker-compose build backend
+docker-compose build frontend
+docker-compose build ai-service
+```
+
+**Khởi động Services:**
+
+```bash
+# Khởi động tất cả services
+docker-compose up -d
+
+# Khởi động với rebuild
+docker-compose up -d --build
+
+# Xem logs
+docker-compose logs -f
+```
+
+**Health Checks:**
+
+Mỗi service đều có health check để Docker tự động phát hiện khi service sẵn sàng:
+- Backend: `curl http://localhost:8080/health`
+- AI Service: `curl http://localhost:8001/health`
+- Frontend: `wget http://localhost:3000`
+
+#### 2.5.3. Environment Configuration
+
+Hệ thống sử dụng file `.env` để cấu hình các biến môi trường:
+
+**Database Configuration:**
+```env
+DB_HOST=mysql
+DB_PORT=3306
+DB_USER=tabimoney
+DB_PASSWORD=<strong_password>
+DB_NAME=tabimoney
+```
+
+**Redis Configuration:**
+```env
+REDIS_HOST=redis
+REDIS_PORT=6379
+```
+
+**JWT Configuration:**
+```env
+JWT_SECRET=<random_32_char_string>
+JWT_EXPIRE_HOURS=24
+```
+
+**AI Service Configuration:**
+```env
+USE_GEMINI=true
+GEMINI_API_KEY=<your_gemini_api_key>
+GEMINI_MODEL=gemini-1.5-flash
+```
+
+**Service URLs:**
+```env
+AI_SERVICE_URL=http://ai-service:8001  # Cho backend
+VITE_AI_SERVICE_URL=/ai-service        # Cho frontend (relative path)
+```
+
+#### 2.5.4. Deployment Script
+
+Dự án có script `deploy.sh` để tự động hóa quá trình deploy:
+
+**Tính năng:**
+- Kiểm tra Docker và Docker Compose
+- Backup database (optional)
+- Pull latest code từ Git (optional)
+- Build images
+- Start services
+- Health check sau khi deploy
+- Hiển thị status và logs
+
+**Sử dụng:**
+```bash
+# Deploy đơn giản
+./deploy.sh
+
+# Deploy với backup database
+./deploy.sh --backup
+
+# Deploy với pull code từ Git
+./deploy.sh --pull
+
+# Deploy với rebuild images
+./deploy.sh --build
+```
+
+#### 2.5.5. Nginx Reverse Proxy (Production)
+
+Trong môi trường production, có thể sử dụng Nginx làm reverse proxy:
+
+**Lợi ích:**
+- Truy cập qua domain/IP mà không cần port
+- Dễ dàng thêm SSL/HTTPS với Let's Encrypt
+- Load balancing (nếu scale)
+- Caching static assets
+
+**Cấu hình Nginx:**
+- Frontend: `location /` → proxy to `localhost:3000`
+- Backend API: `location /api/` → proxy to `localhost:8080/api/`
+- AI Service: `location /ai-service/` → proxy to `localhost:8001/`
+
+#### 2.5.6. Database Migration
+
+Database schema được tự động tạo khi MySQL container khởi động lần đầu:
+- File `database/schema.sql` được mount vào `/docker-entrypoint-initdb.d/`
+- MySQL tự động chạy các file SQL trong thư mục này khi khởi tạo database
+
 ---
 
 ## 3. CÁC THUẬT TOÁN VÀ PHƯƠNG PHÁP ÁP DỤNG
@@ -725,7 +900,278 @@ else:
 - Hệ thống có thể xử lý nhiều người dùng đồng thời
 - Dễ dàng triển khai và mở rộng
 
-### 5.2. Cơ hội Cải thiện và Phát triển
+### 5.2. Triển khai
+
+Hệ thống được triển khai theo mô hình containerization với Docker và Docker Compose, giúp đảm bảo tính nhất quán giữa các môi trường development và production.
+
+#### 5.2.1. Triển khai Frontend
+
+**Build Process:**
+
+Frontend sử dụng multi-stage Docker build:
+
+1. **Build Stage:**
+   - Base image: `node:18-alpine`
+   - Cài đặt dependencies với `npm install --legacy-peer-deps`
+   - Build ứng dụng với `npm run build`
+   - Environment variables được embed vào code tại build time:
+     - `VITE_API_BASE_URL=/api/v1`
+     - `VITE_AI_SERVICE_URL=/ai-service`
+
+2. **Production Stage:**
+   - Base image: `nginx:alpine`
+   - Copy built assets từ build stage
+   - Copy nginx configuration
+   - Expose port 3000
+
+**Nginx Configuration:**
+
+Frontend sử dụng Nginx để serve static files với cấu hình:
+- Serve files từ `/usr/share/nginx/html`
+- SPA routing: tất cả requests đều trả về `index.html`
+- Proxy API calls đến Backend và AI Service (nếu cần)
+
+**Deployment:**
+
+```bash
+# Build frontend image
+docker-compose build frontend
+
+# Start frontend service
+docker-compose up -d frontend
+
+# Rebuild khi thay đổi environment variables
+docker-compose up -d --build frontend
+```
+
+**Lưu ý:** Vì Vite embed environment variables vào code khi build, cần rebuild image khi thay đổi `VITE_API_BASE_URL` hoặc `VITE_AI_SERVICE_URL`.
+
+#### 5.2.2. Triển khai Backend
+
+**Build Process:**
+
+Backend sử dụng multi-stage Docker build:
+
+1. **Build Stage:**
+   - Base image: `golang:1.21-alpine`
+   - Download dependencies với `go mod download`
+   - Build binary với `go build`
+   - Output: `main` binary
+
+2. **Production Stage:**
+   - Base image: `alpine:latest`
+   - Copy binary từ build stage
+   - Install ca-certificates và curl (cho HTTPS requests và health check)
+   - Expose port 8080
+
+**Configuration:**
+
+Backend đọc configuration từ environment variables:
+- Database connection: `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`
+- Redis connection: `REDIS_HOST`, `REDIS_PORT`
+- JWT: `JWT_SECRET`, `JWT_EXPIRE_HOURS`
+- AI Service URL: `AI_SERVICE_URL`
+- Server: `SERVER_PORT`, `SERVER_HOST`
+
+**Deployment:**
+
+```bash
+# Build backend image
+docker-compose build backend
+
+# Start backend service
+docker-compose up -d backend
+
+# Xem logs
+docker-compose logs -f backend
+```
+
+**Health Check:**
+
+Backend có health check endpoint tại `/health` để kiểm tra:
+- Database connection
+- Redis connection
+- Trả về status "healthy" hoặc "degraded"
+
+#### 5.2.3. Triển khai AI Service
+
+**Build Process:**
+
+AI Service sử dụng single-stage Docker build:
+
+1. **Base Image:** `python:3.11-slim`
+2. **System Dependencies:**
+   - gcc, g++ (cho một số Python packages cần compile)
+   - curl (cho health check)
+3. **Python Dependencies:**
+   - Install từ `requirements.txt`
+   - Packages chính: FastAPI, scikit-learn, pandas, numpy, aiohttp
+4. **Application:**
+   - Copy source code
+   - Tạo models directory
+   - Chạy với non-root user (security best practice)
+
+**Configuration:**
+
+AI Service đọc configuration từ environment variables:
+- Database: `DATABASE_URL` (MySQL connection string)
+- Redis: `REDIS_URL`
+- Gemini API: `USE_GEMINI`, `GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_TEMPERATURE`
+- Server: `HOST`, `PORT`
+
+**Deployment:**
+
+```bash
+# Build AI service image
+docker-compose build ai-service
+
+# Start AI service
+docker-compose up -d ai-service
+
+# Xem logs
+docker-compose logs -f ai-service
+```
+
+**Health Check:**
+
+AI Service có health check endpoint tại `/health` để kiểm tra:
+- Service đang chạy
+- Gemini API connection (nếu enabled)
+
+**Model Caching:**
+
+AI Service cache ML models trong volume `ai_models` để:
+- Tránh retrain model mỗi lần restart
+- Tăng tốc độ prediction
+- Per-user model caching với fingerprint-based invalidation
+
+#### 5.2.4. Triển khai Telegram Bot
+
+**Build Process:**
+
+Telegram Bot sử dụng single-stage Docker build:
+
+1. **Base Image:** `python:3.11-slim`
+2. **System Dependencies:**
+   - gcc (cho một số Python packages)
+3. **Python Dependencies:**
+   - Install từ `requirements.txt`
+   - Packages chính: python-telegram-bot, aiohttp, aiomysql
+4. **Application:**
+   - Copy source code
+   - Tạo logs directory
+   - Set `PYTHONUNBUFFERED=1` để logs real-time
+
+**Configuration:**
+
+Telegram Bot đọc configuration từ environment variables:
+- Telegram: `TELEGRAM_BOT_TOKEN`
+- Backend URL: `BACKEND_URL`
+- AI Service URL: `AI_SERVICE_URL`
+- Database: `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`
+- Redis: `REDIS_HOST`, `REDIS_PORT`
+- JWT: `JWT_SECRET` (để verify tokens từ Backend)
+
+**Deployment:**
+
+```bash
+# Build telegram bot image
+docker-compose build telegram-bot
+
+# Start telegram bot
+docker-compose up -d telegram-bot
+
+# Xem logs
+docker-compose logs -f telegram-bot
+```
+
+**Authentication Flow:**
+
+1. User gửi `/link` command trên Telegram
+2. Bot tạo link code và gửi cho user
+3. User đăng nhập vào web app và nhập link code
+4. Web app gọi Backend API để link Telegram account
+5. Bot lưu mapping giữa Telegram user ID và web user ID
+6. Bot sử dụng JWT token từ Backend để authenticate các API calls
+
+**Features:**
+
+- Chat với AI: Gọi trực tiếp AI Service `/api/v1/chat/process`
+- Dashboard: Gọi Backend API `/api/v1/analytics/dashboard`
+- Transactions: Gọi Backend API `/api/v1/transactions`
+- Rate limiting: Giới hạn số lượng messages per minute
+
+#### 5.2.5. Triển khai Database và Cache
+
+**MySQL Database:**
+
+- Image: `mysql:8.0`
+- Persistent volume: `mysql_data`
+- Auto-initialization: Schema được tạo tự động từ `database/schema.sql`
+- Health check: `mysqladmin ping`
+- Port: 3306 (có thể đóng trong production, chỉ accessible trong Docker network)
+
+**Redis Cache:**
+
+- Image: `redis:7-alpine`
+- Persistent volume: `redis_data`
+- Health check: `redis-cli ping`
+- Port: 6379 (có thể đóng trong production)
+
+**Backup Strategy:**
+
+```bash
+# Backup MySQL
+docker exec tabimoney_mysql mysqldump -u tabimoney -p$DB_PASSWORD tabimoney > backup.sql
+
+# Restore MySQL
+docker exec -i tabimoney_mysql mysql -u tabimoney -p$DB_PASSWORD tabimoney < backup.sql
+```
+
+#### 5.2.6. Monitoring và Maintenance
+
+**Logs Management:**
+
+```bash
+# Xem logs tất cả services
+docker-compose logs -f
+
+# Xem logs service cụ thể
+docker-compose logs -f backend
+docker-compose logs -f ai-service
+
+# Export logs
+docker-compose logs > logs_$(date +%Y%m%d).txt
+```
+
+**Resource Monitoring:**
+
+```bash
+# Xem resource usage
+docker stats
+
+# Xem disk usage
+docker system df
+```
+
+**Update và Maintenance:**
+
+```bash
+# Update code và rebuild
+git pull origin main
+docker-compose up -d --build
+
+# Restart service cụ thể
+docker-compose restart backend
+
+# Stop tất cả
+docker-compose down
+
+# Stop và xóa volumes (xóa dữ liệu)
+docker-compose down -v
+```
+
+### 5.3. Cơ hội Cải thiện và Phát triển
 
 Hệ thống TabiMoney đã đạt được những kết quả tích cực ban đầu, tuy nhiên vẫn có những cơ hội để nâng cao hiệu quả và mở rộng tính năng:
 

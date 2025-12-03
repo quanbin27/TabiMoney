@@ -17,23 +17,56 @@
             <v-icon v-else>mdi-bell</v-icon>
           </v-btn>
         </template>
-        <v-list style="min-width: 320px; max-width: 420px;">
+        <v-list style="min-width: 320px; max-width: 420px; max-height: 420px; overflow-y: auto;">
           <v-list-subheader>Notifications</v-list-subheader>
           <v-list-item v-if="notifications.length === 0">
             <v-list-item-title>No notifications</v-list-item-title>
           </v-list-item>
-          <v-list-item v-for="n in notifications" :key="n.id" :class="{ 'opacity-70': n.is_read }">
-            <v-list-item-title class="d-flex align-center justify-space-between">
-              <span>{{ n.title }}</span>
-              <v-chip size="x-small" :color="chipColor(n.notification_type)">{{ n.notification_type }}</v-chip>
-            </v-list-item-title>
-            <v-list-item-subtitle>{{ n.message }}</v-list-item-subtitle>
+          <v-list-item v-for="n in notifications" :key="n.id" :class="['notification-item', { 'opacity-70': n.is_read }]">
+            <div class="d-flex align-center justify-space-between w-100">
+              <div class="text-subtitle-2">{{ n.title }}</div>
+              <v-chip size="x-small" :color="chipColor(n.notification_type)" class="ml-2 text-uppercase">
+                {{ n.notification_type }}
+              </v-chip>
+            </div>
+            <v-list-item-subtitle class="notification-message">
+              {{ n.message }}
+            </v-list-item-subtitle>
             <template v-slot:append>
-              <v-btn v-if="!n.is_read" size="x-small" variant="text" @click.stop="markRead(n.id)">Mark read</v-btn>
+              <div class="notification-actions">
+                <v-btn size="x-small" variant="text" @click.stop="openNotification(n)">Xem</v-btn>
+                <v-btn v-if="!n.is_read" size="x-small" variant="text" @click.stop="markRead(n.id)">Mark read</v-btn>
+              </div>
             </template>
           </v-list-item>
         </v-list>
       </v-menu>
+
+      <v-dialog v-model="notificationDialog" max-width="520">
+        <v-card v-if="selectedNotification">
+          <v-card-title class="d-flex align-center justify-space-between">
+            <div>
+              <div class="text-subtitle-1">{{ selectedNotification.title }}</div>
+              <div class="text-caption opacity-70">
+                {{ formatNotificationTime(selectedNotification.created_at) }}
+              </div>
+            </div>
+            <v-chip size="small" :color="chipColor(selectedNotification.notification_type)" class="text-uppercase">
+              {{ selectedNotification.notification_type }}
+            </v-chip>
+          </v-card-title>
+          <v-divider />
+          <v-card-text>
+            <div class="notification-dialog-message">
+              {{ selectedNotification.message }}
+            </div>
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer />
+            <v-btn variant="text" @click="notificationDialog = false">Đóng</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
 
       <!-- User Menu -->
       <v-menu v-if="authStore.isAuthenticated" offset-y>
@@ -102,6 +135,8 @@ const drawer = ref(false)
 const loading = computed(() => appStore.loading)
 const notifications = ref([])
 const unreadCount = ref(0)
+const notificationDialog = ref(false)
+const selectedNotification = ref(null)
 
 // Navigation items
 const navigationItems = [
@@ -127,14 +162,14 @@ watch(route, () => {
   drawer.value = false
 })
 
-// Listen for notification refresh event
-window.addEventListener('notification:refresh', () => {
+const handleNotificationRefresh = () => {
   loadNotifications()
-})
+}
 
 // Auto-refresh notifications every 30 seconds when authenticated
 let notificationInterval = null
 onMounted(() => {
+  window.addEventListener('notification:refresh', handleNotificationRefresh)
   // Load notifications when component mounts
   if (authStore.isAuthenticated) {
     loadNotifications()
@@ -148,6 +183,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  window.removeEventListener('notification:refresh', handleNotificationRefresh)
   // Clear interval when component unmounts
   if (notificationInterval) {
     clearInterval(notificationInterval)
@@ -189,6 +225,15 @@ const logout = async () => {
   router.push('/auth/login')
 }
 
+const openNotification = (notification) => {
+  selectedNotification.value = notification
+  notificationDialog.value = true
+
+  if (!notification.is_read) {
+    markRead(notification.id)
+  }
+}
+
 const loadNotifications = async () => {
   try {
     const [allRes, unreadRes] = await Promise.all([
@@ -222,6 +267,18 @@ const chipColor = (type) => {
   return colors[type] || 'grey'
 }
 
+const formatNotificationTime = (dateString) => {
+  if (!dateString) return ''
+  return new Date(dateString).toLocaleString('vi-VN', {
+    hour12: false,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
 </script>
 
 <style scoped>
@@ -231,6 +288,30 @@ const chipColor = (type) => {
 
 .v-app-bar {
   border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.notification-item {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  padding-block: 12px;
+}
+
+.notification-item:last-of-type {
+  border-bottom: none;
+}
+
+.notification-message {
+  white-space: pre-line;
+  line-height: 1.4;
+}
+
+.notification-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.notification-dialog-message {
+  white-space: pre-line;
+  line-height: 1.5;
 }
 
 </style>
