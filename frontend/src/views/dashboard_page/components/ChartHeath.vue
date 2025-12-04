@@ -5,14 +5,14 @@
             <v-card>
                 <v-card-title>
                     <v-icon left>mdi-chart-pie</v-icon>
-                    Spending by Category
+                    Chi tiêu theo danh mục
                 </v-card-title>
                 <v-card-text>
                     <div v-if="categoryChartData" class="text-center pa-8">
                         <DoughnutChart :data="categoryChartData" :options="chartOptions" />
                     </div>
                     <div v-else class="text-center pa-8 text-medium-emphasis">
-                        No data available
+                        Chưa có dữ liệu
                     </div>
                 </v-card-text>
             </v-card>
@@ -23,7 +23,7 @@
             <v-card>
                 <v-card-title>
                     <v-icon left>mdi-heart-pulse</v-icon>
-                    Financial Health
+                    Sức khỏe tài chính
                 </v-card-title>
                 <v-card-text class="">
                     <div v-if="analytics?.financial_health" class="text-center ">
@@ -39,7 +39,7 @@
                         </div>
 
                         <div class="text-body-2 text-medium-emphasis mb-4">
-                            Savings Rate: {{ analytics.financial_health.savings_rate.toFixed(1) }}%
+                            Tỷ lệ tiết kiệm: {{ analytics.financial_health.savings_rate.toFixed(1) }}%
                         </div>
 
                         <v-list density="compact">
@@ -55,7 +55,7 @@
                         </v-list>
                     </div>
                     <div v-else class="text-center pa-4 text-medium-emphasis">
-                        No health data available
+                        Chưa có dữ liệu sức khỏe tài chính
                     </div>
                 </v-card-text>
             </v-card>

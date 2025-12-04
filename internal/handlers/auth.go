@@ -357,3 +357,37 @@ func (h *AuthHandler) SetMonthlyIncome(c echo.Context) error {
     }
     return c.JSON(http.StatusOK, SuccessResponse{Message: "Monthly income updated"})
 }
+
+// SetLargeTransactionThreshold godoc
+// @Summary Set large transaction threshold
+// @Description Update user's large transaction threshold for alerts
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body map[string]interface{} true "Threshold value (null to use system default)"
+// @Success 200 {object} SuccessResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /auth/large-transaction-threshold [put]
+func (h *AuthHandler) SetLargeTransactionThreshold(c echo.Context) error {
+    userID := c.Get("user_id").(uint64)
+    var req struct {
+        Threshold *float64 `json:"threshold"`
+    }
+    if err := c.Bind(&req); err != nil {
+        return c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid request body", Message: err.Error()})
+    }
+    if req.Threshold != nil && *req.Threshold < 0 {
+        return c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Validation failed", Message: "threshold must be >= 0"})
+    }
+    if err := h.authService.SetLargeTransactionThreshold(userID, req.Threshold); err != nil {
+        return c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to set threshold", Message: err.Error()})
+    }
+    message := "Large transaction threshold updated"
+    if req.Threshold == nil {
+        message = "Large transaction threshold reset to system default"
+    }
+    return c.JSON(http.StatusOK, SuccessResponse{Message: message})
+}

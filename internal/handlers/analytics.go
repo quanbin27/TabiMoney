@@ -19,7 +19,7 @@ type AnalyticsHandler struct {
 
 func NewAnalyticsHandler(cfg *config.Config) *AnalyticsHandler {
 	return &AnalyticsHandler{
-		transactionService: services.NewTransactionService(),
+		transactionService: services.NewTransactionService(cfg),
 		aiService:         services.NewAIService(cfg),
 	}
 }

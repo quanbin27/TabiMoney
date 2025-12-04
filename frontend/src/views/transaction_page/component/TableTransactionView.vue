@@ -1,9 +1,9 @@
 <template>
     <v-container>
-        <v-text-field class="mb-4" v-model="search" label="Search" prepend-inner-icon="mdi-magnify" variant="outlined"
+        <v-text-field class="mb-4" v-model="search" label="Tìm kiếm" prepend-inner-icon="mdi-magnify" variant="outlined"
             hide-details single-line></v-text-field>
         <v-data-table :headers="headers" :items="props.items" :loading="props.loading" :items-per-page="10"
-            :search="search" loading-text="Loading transactions...">
+            :search="search" loading-text="Đang tải danh sách giao dịch...">
             <template #item.amount="{ item }">
                 {{ formatCurrency(item.amount) }}
             </template>
@@ -48,12 +48,12 @@ const search = ref(null)
 const appStore = useAppStore()
 
 const headers = [
-    { title: 'Date', key: 'transaction_date', sortable: true },
-    { title: 'Type', key: 'transaction_type' },
-    { title: 'Category', key: 'category.name' },
-    { title: 'Description', key: 'description' },
-    { title: 'Amount', key: 'amount' },
-    { title: 'Actions', key: 'actions' },
+    { title: 'Ngày', key: 'transaction_date', sortable: true },
+    { title: 'Loại', key: 'transaction_type' },
+    { title: 'Danh mục', key: 'category.name' },
+    { title: 'Mô tả', key: 'description' },
+    { title: 'Số tiền', key: 'amount' },
+    { title: 'Thao tác', key: 'actions' },
 ]
 
 const editTransaction = (transaction) => {
@@ -72,10 +72,10 @@ const deleteTransaction = async (id) => {
     if (confirmed) {
         try {
             await transactionAPI.deleteTransaction(id)
-            appStore.showSuccess('Transaction deleted successfully')
+            appStore.showSuccess('Xoá giao dịch thành công')
             props.load()
         } catch (error) {
-            appStore.showError('Failed to delete transaction')
+            appStore.showError('Không thể xoá giao dịch')
         }
     }
 }

@@ -328,6 +328,23 @@ func (s *AuthService) SetMonthlyIncome(userID uint64, amount float64) error {
 	return s.db.Save(&profile).Error
 }
 
+// SetLargeTransactionThreshold sets the large transaction threshold for a user
+func (s *AuthService) SetLargeTransactionThreshold(userID uint64, threshold *float64) error {
+    if threshold != nil && *threshold < 0 {
+        return errors.New("large transaction threshold must be non-negative")
+    }
+    var profile models.UserProfile
+    if err := s.db.Where("user_id = ?", userID).First(&profile).Error; err != nil {
+        if errors.Is(err, gorm.ErrRecordNotFound) {
+            profile = models.UserProfile{UserID: userID, LargeTransactionThreshold: threshold}
+            return s.db.Create(&profile).Error
+        }
+        return fmt.Errorf("failed to get profile: %w", err)
+    }
+    profile.LargeTransactionThreshold = threshold
+	return s.db.Save(&profile).Error
+}
+
 // Telegram Integration Methods
 
 // GenerateTelegramLinkCode generates a link code for Telegram integration

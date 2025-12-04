@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"tabimoney/internal/config"
 	"tabimoney/internal/database"
 	"tabimoney/internal/models"
 
@@ -14,6 +15,7 @@ import (
 
 type NotificationDispatcher struct {
 	db              *gorm.DB
+	config          *config.Config
 	notificationSvc *NotificationService
 	emailSvc        *EmailService
 	telegramSvc     *TelegramService
@@ -28,9 +30,10 @@ type NotificationTrigger struct {
 	Metadata         map[string]interface{}
 }
 
-func NewNotificationDispatcher() *NotificationDispatcher {
+func NewNotificationDispatcher(cfg *config.Config) *NotificationDispatcher {
 	return &NotificationDispatcher{
 		db:              database.GetDB(),
+		config:          cfg,
 		notificationSvc: NewNotificationService(),
 		emailSvc:        NewEmailService(),
 		telegramSvc:     NewTelegramService(),
@@ -473,7 +476,7 @@ func (d *NotificationDispatcher) checkBudgetAlerts() error {
 
 	for _, budget := range budgets {
 		// Calculate current metrics
-		bs := NewBudgetService()
+		bs := NewBudgetService(d.config)
 		bs.calculateBudgetMetrics(&budget)
 
 		// Check if budget needs alert
@@ -580,7 +583,7 @@ func (d *NotificationDispatcher) checkMonthlyReports() error {
 
 		if err == gorm.ErrRecordNotFound {
 			// Generate and send monthly report
-			ts := NewTransactionService()
+			ts := NewTransactionService(d.config)
 			analytics, err := ts.GetMonthlySummary(user.ID, now.Year(), int(now.Month()-1))
 			if err == nil {
 				d.TriggerMonthlyReportAlert(user.ID, analytics)

@@ -5,10 +5,10 @@
         <v-card>
           <v-card-title class="d-flex align-center">
             <v-icon class="mr-2">mdi-chart-line</v-icon>
-            Financial Analytics Dashboard
+            Bảng phân tích tài chính
           </v-card-title>
           <v-card-subtitle>
-            AI-powered insights and spending analysis
+            Phân tích chi tiêu và gợi ý từ AI
           </v-card-subtitle>
         </v-card>
       </v-col>
@@ -20,14 +20,14 @@
         <v-card variant="outlined">
           <v-card-title>
             <v-icon class="mr-2">mdi-currency-usd</v-icon>
-            Monthly Income
+            Thu nhập hàng tháng
           </v-card-title>
           <v-card-text class="d-flex align-center gap-2">
-            <v-text-field v-model.number="monthlyIncome" type="number" label="Monthly income" prefix="₫"
+            <v-text-field v-model.number="monthlyIncome" type="number" label="Thu nhập hàng tháng" prefix="₫"
               density="comfortable" hide-details class="mr-2" />
-            <v-btn color="primary" :loading="incomeSaving" @click="saveIncome">Save</v-btn>
+            <v-btn color="primary" :loading="incomeSaving" @click="saveIncome">Lưu</v-btn>
             <div class="ml-4 text-caption" v-if="dashboardData">
-              Spent this month: <strong>{{ percentOfIncome.toFixed(1) }}%</strong>
+              Đã chi tháng này: <strong>{{ percentOfIncome.toFixed(1) }}%</strong>
             </div>
           </v-card-text>
         </v-card>
@@ -36,31 +36,31 @@
         <v-card variant="outlined">
           <v-card-title>
             <v-icon class="mr-2">mdi-compare</v-icon>
-            Month over Month
+            So sánh tháng với tháng trước
           </v-card-title>
           <v-card-text>
             <div v-if="mom">
               <div class="d-flex justify-space-between">
                 <div>
-                  <div class="text-caption">Current</div>
-                  <div class="text-body-2">Income: {{ formatCurrency(mom.current.income) }}</div>
-                  <div class="text-body-2">Expense: {{ formatCurrency(mom.current.expense) }}</div>
+                  <div class="text-caption">Tháng hiện tại</div>
+                  <div class="text-body-2">Thu nhập: {{ formatCurrency(mom.current.income) }}</div>
+                  <div class="text-body-2">Chi tiêu: {{ formatCurrency(mom.current.expense) }}</div>
                 </div>
                 <div class="text-right">
-                  <div class="text-caption">Previous</div>
-                  <div class="text-body-2">Income: {{ formatCurrency(mom.prev.income) }}</div>
-                  <div class="text-body-2">Expense: {{ formatCurrency(mom.prev.expense) }}</div>
+                  <div class="text-caption">Tháng trước</div>
+                  <div class="text-body-2">Thu nhập: {{ formatCurrency(mom.prev.income) }}</div>
+                  <div class="text-body-2">Chi tiêu: {{ formatCurrency(mom.prev.expense) }}</div>
                 </div>
               </div>
               <v-divider class="my-2" />
               <div>
-                <div>Income change: <strong :class="mom.incomeChange >= 0 ? 'text-success' : 'text-error'">{{
+                <div>Thay đổi thu nhập: <strong :class="mom.incomeChange >= 0 ? 'text-success' : 'text-error'">{{
                   mom.incomeChange.toFixed(1) }}%</strong></div>
-                <div>Expense change: <strong :class="mom.expenseChange >= 0 ? 'text-error' : 'text-success'">{{
+                <div>Thay đổi chi tiêu: <strong :class="mom.expenseChange >= 0 ? 'text-error' : 'text-success'">{{
                   mom.expenseChange.toFixed(1) }}%</strong></div>
               </div>
             </div>
-            <div v-else class="text-caption">Select a month to compare.</div>
+            <div v-else class="text-caption">Chọn tháng để so sánh.</div>
           </v-card-text>
         </v-card>
       </v-col>
@@ -69,19 +69,19 @@
     <!-- Date Range Filter -->
     <v-row>
       <v-col cols="12" md="3">
-        <v-select v-model="selectedPeriod" :items="periodOptions" label="Time Period"
+        <v-select v-model="selectedPeriod" :items="periodOptions" label="Khoảng thời gian"
           @update:model-value="loadAnalytics" />
       </v-col>
       <v-col cols="12" md="3">
-        <v-text-field v-model="startDate" type="date" label="Start Date" @update:model-value="loadAnalytics" />
+        <v-text-field v-model="startDate" type="date" label="Từ ngày" @update:model-value="loadAnalytics" />
       </v-col>
       <v-col cols="12" md="3">
-        <v-text-field v-model="endDate" type="date" label="End Date" @update:model-value="loadAnalytics" />
+        <v-text-field v-model="endDate" type="date" label="Đến ngày" @update:model-value="loadAnalytics" />
       </v-col>
       <v-col cols="12" md="3" class="d-flex align-center">
         <v-btn color="primary" @click="loadAnalytics" :loading="loading">
           <v-icon class="mr-2">mdi-refresh</v-icon>
-          Refresh
+          Làm mới
         </v-btn>
       </v-col>
     </v-row>
@@ -89,19 +89,19 @@
     <!-- Transaction Filters (Interactive) -->
     <v-row class="mt-1">
       <v-col cols="12" md="2">
-        <v-select :items="txTypeOptions" v-model="txType" label="Type" clearable />
+        <v-select :items="txTypeOptions" v-model="txType" label="Loại giao dịch" clearable />
       </v-col>
       <v-col cols="12" md="2">
-        <v-text-field v-model.number="minAmount" type="number" label="Min Amount" />
+        <v-text-field v-model.number="minAmount" type="number" label="Số tiền tối thiểu" />
       </v-col>
       <v-col cols="12" md="2">
-        <v-text-field v-model.number="maxAmount" type="number" label="Max Amount" />
+        <v-text-field v-model.number="maxAmount" type="number" label="Số tiền tối đa" />
       </v-col>
       <v-col cols="12" md="4">
-        <v-text-field v-model="search" label="Search description/location" clearable />
+        <v-text-field v-model="search" label="Tìm theo mô tả/địa điểm" clearable />
       </v-col>
       <v-col cols="12" md="2" class="d-flex align-center">
-        <v-btn color="secondary" :loading="txLoading" @click="loadFilteredTransactions">Apply</v-btn>
+        <v-btn color="secondary" :loading="txLoading" @click="loadFilteredTransactions">Lọc</v-btn>
       </v-col>
     </v-row>
 
@@ -110,18 +110,18 @@
       <v-col cols="12" md="3">
         <v-card color="success" variant="tonal">
           <v-card-text>
-            <div class="text-h6 text-success">Total Income</div>
+            <div class="text-h6 text-success">Tổng thu nhập</div>
             <div class="text-h4">{{ formatCurrency(dashboardData.total_income) }}</div>
-            <div class="text-caption">{{ dashboardData.transaction_count }} transactions</div>
+            <div class="text-caption">{{ dashboardData.transaction_count }} giao dịch</div>
           </v-card-text>
         </v-card>
       </v-col>
       <v-col cols="12" md="3">
         <v-card color="error" variant="tonal">
           <v-card-text>
-            <div class="text-h6 text-error">Total Expenses</div>
+            <div class="text-h6 text-error">Tổng chi tiêu</div>
             <div class="text-h4">{{ formatCurrency(dashboardData.total_expense) }}</div>
-            <div class="text-caption">{{ dashboardData.transaction_count }} transactions</div>
+            <div class="text-caption">{{ dashboardData.transaction_count }} giao dịch</div>
           </v-card-text>
         </v-card>
       </v-col>
@@ -129,19 +129,19 @@
         <v-card :color="dashboardData.net_amount >= 0 ? 'success' : 'error'" variant="tonal">
           <v-card-text>
             <div class="text-h6" :class="dashboardData.net_amount >= 0 ? 'text-success' : 'text-error'">
-              Net Amount
+              Số dư ròng
             </div>
             <div class="text-h4">{{ formatCurrency(dashboardData.net_amount) }}</div>
-            <div class="text-caption">Income - Expenses</div>
+            <div class="text-caption">Thu nhập - Chi tiêu</div>
           </v-card-text>
         </v-card>
       </v-col>
       <v-col cols="12" md="3">
         <v-card color="info" variant="tonal">
           <v-card-text>
-            <div class="text-h6 text-info">Savings Rate</div>
+            <div class="text-h6 text-info">Tỷ lệ tiết kiệm</div>
             <div class="text-h4">{{ dashboardData.financial_health?.savings_rate?.toFixed(1) || '0.0' }}%</div>
-            <div class="text-caption">Financial Health</div>
+            <div class="text-caption">Sức khỏe tài chính</div>
           </v-card-text>
         </v-card>
       </v-col>
@@ -153,25 +153,25 @@
         <v-card>
           <v-card-title>
             <v-icon class="mr-2">mdi-filter</v-icon>
-            Filtered Transactions
+            Giao dịch sau khi lọc
           </v-card-title>
           <v-card-text class="d-flex align-center justify-space-between">
             <div>
-              <div class="text-body-2">Results: <strong>{{ filteredTotal }}</strong></div>
-              <div class="text-caption">Showing latest {{ Math.min(10, filteredItems.length) }} of {{ filteredTotal }}
-              </div>
+              <div class="text-body-2">Kết quả: <strong>{{ filteredTotal }}</strong></div>
+              <div class="text-caption">Hiển thị {{ Math.min(10, filteredItems.length) }} dòng mới nhất trên tổng số
+                {{ filteredTotal }}</div>
             </div>
-            <div class="text-caption" v-if="filteredItems.length">
-              Sum: <strong>{{formatCurrency(filteredItems.reduce((a, t) => a + Number(t.amount || 0), 0))}}</strong>
+              <div class="text-caption" v-if="filteredItems.length">
+              Tổng: <strong>{{formatCurrency(filteredItems.reduce((a, t) => a + Number(t.amount || 0), 0))}}</strong>
             </div>
           </v-card-text>
           <v-divider />
           <v-card-text>
             <v-list density="compact">
-              <v-list-item v-for="t in filteredItems.slice(0, 10)" :key="t.id">
-                <v-list-item-title>{{ t.description || '(no description)' }}</v-list-item-title>
+            <v-list-item v-for="t in filteredItems.slice(0, 10)" :key="t.id">
+                <v-list-item-title>{{ t.description || '(không có mô tả)' }}</v-list-item-title>
                 <v-list-item-subtitle>
-                  {{ t.transaction_type }} · {{ t.category?.name || 'Uncategorized' }} · {{ formatCurrency(t.amount) }}
+                  {{ t.transaction_type }} · {{ t.category?.name || 'Chưa phân loại' }} · {{ formatCurrency(t.amount) }}
                   · {{ new Date(t.transaction_date).toLocaleDateString() }}
                 </v-list-item-subtitle>
               </v-list-item>
@@ -188,7 +188,7 @@
         <v-card>
           <v-card-title>
             <v-icon class="mr-2">mdi-chart-donut</v-icon>
-            Spending by Category
+            Chi tiêu theo danh mục
           </v-card-title>
           <v-card-text>
             <div v-if="categorySpendingChartData" style="height: 300px;">
@@ -196,8 +196,8 @@
             </div>
             <div v-else class="text-center pa-8">
               <v-icon size="48" color="grey">mdi-chart-donut</v-icon>
-              <div class="text-h6 mt-2">No spending data</div>
-              <div class="text-caption">Add some transactions to see analytics</div>
+              <div class="text-h6 mt-2">Chưa có dữ liệu chi tiêu</div>
+              <div class="text-caption">Thêm một vài giao dịch để xem phân tích</div>
             </div>
           </v-card-text>
         </v-card>
@@ -208,12 +208,12 @@
         <v-card>
           <v-card-title>
             <v-icon class="mr-2">mdi-chart-line</v-icon>
-            Spending Trends
+            Xu hướng chi tiêu
           </v-card-title>
           <v-card-text>
             <div v-if="spendingPatterns && spendingPatterns.insights && spendingPatterns.insights.length > 0"
               style="height: 300px;">
-              <div class="text-h6 mb-4">AI Insights</div>
+              <div class="text-h6 mb-4">Nhận định từ AI</div>
               <v-alert v-for="(insight, index) in spendingPatterns.insights" :key="index" :type="insight.type"
                 variant="tonal" class="mb-2">
                 {{ insight.description }}
@@ -221,8 +221,8 @@
             </div>
             <div v-else class="text-center pa-8">
               <v-icon size="48" color="grey">mdi-chart-line</v-icon>
-              <div class="text-h6 mt-2">No trend data</div>
-              <div class="text-caption">AI is analyzing your spending patterns</div>
+              <div class="text-h6 mt-2">Chưa có dữ liệu xu hướng</div>
+              <div class="text-caption">AI đang phân tích thói quen chi tiêu của bạn</div>
             </div>
           </v-card-text>
         </v-card>
@@ -236,7 +236,7 @@
         <v-card>
           <v-card-title>
             <v-icon class="mr-2">mdi-robot</v-icon>
-            AI Recommendations
+            Gợi ý từ AI
           </v-card-title>
           <v-card-text>
             <div
@@ -251,7 +251,7 @@
             </div>
             <div v-else class="text-center pa-4">
               <v-icon size="32" color="grey">mdi-robot</v-icon>
-              <div class="text-body-2 mt-2">AI is learning your patterns...</div>
+              <div class="text-body-2 mt-2">AI đang học thói quen chi tiêu của bạn...</div>
             </div>
           </v-card-text>
         </v-card>
@@ -262,7 +262,7 @@
         <v-card>
           <v-card-title>
             <v-icon class="mr-2">mdi-alert-circle</v-icon>
-            Spending Anomalies
+            Chi tiêu bất thường
           </v-card-title>
           <v-card-text>
             <div v-if="anomalies && anomalies.anomalies && anomalies.anomalies.length > 0">
@@ -270,15 +270,15 @@
                 class="mb-2">
                 <div class="text-subtitle-2">{{ anomaly.description }}</div>
                 <div class="text-caption">
-                  Amount: {{ formatCurrency(anomaly.amount) }} |
-                  Date: {{ formatDate(anomaly.date) }}
+                  Số tiền: {{ formatCurrency(anomaly.amount) }} |
+                  Ngày: {{ formatDate(anomaly.date) }}
                 </div>
               </v-alert>
             </div>
             <div v-else class="text-center pa-4">
               <v-icon size="32" color="success">mdi-check-circle</v-icon>
-              <div class="text-body-2 mt-2">No anomalies detected</div>
-              <div class="text-caption">Your spending looks normal</div>
+              <div class="text-body-2 mt-2">Không phát hiện bất thường</div>
+              <div class="text-caption">Chi tiêu của bạn đang khá ổn định</div>
             </div>
           </v-card-text>
         </v-card>
@@ -291,34 +291,34 @@
         <v-card>
           <v-card-title>
             <v-icon class="mr-2">mdi-crystal-ball</v-icon>
-            AI Predictions
+            Dự đoán từ AI
           </v-card-title>
           <v-card-text>
             <v-row>
               <v-col cols="12" md="4">
                 <v-card variant="outlined">
                   <v-card-text>
-                    <div class="text-h6 text-primary">Next Month Prediction</div>
+                    <div class="text-h6 text-primary">Dự đoán tháng tới</div>
                     <div class="text-h4">{{ formatCurrency(Number(predictions.predicted_amount ?? 0)) }}</div>
-                    <div class="text-caption">Expected expenses</div>
+                    <div class="text-caption">Chi tiêu dự kiến</div>
                   </v-card-text>
                 </v-card>
               </v-col>
               <v-col cols="12" md="4">
                 <v-card variant="outlined">
                   <v-card-text>
-                    <div class="text-h6 text-info">Confidence Score</div>
+                    <div class="text-h6 text-info">Mức độ tin cậy</div>
                     <div class="text-h4">{{ (Number(predictions.confidence_score ?? 0) * 100).toFixed(1) }}%</div>
-                    <div class="text-caption">Prediction accuracy</div>
+                    <div class="text-caption">Độ chính xác ước tính</div>
                   </v-card-text>
                 </v-card>
               </v-col>
               <v-col cols="12" md="4">
                 <v-card variant="outlined">
                   <v-card-text>
-                    <div class="text-h6 text-warning">Trend Direction</div>
-                    <div class="text-h4">{{ predictions.trends?.[0]?.trend || 'stable' }}</div>
-                    <div class="text-caption">Spending trend</div>
+                    <div class="text-h6 text-warning">Xu hướng</div>
+                    <div class="text-h4">{{ predictions.trends?.[0]?.trend || 'ổn định' }}</div>
+                    <div class="text-caption">Xu hướng chi tiêu</div>
                   </v-card-text>
                 </v-card>
               </v-col>
@@ -334,14 +334,14 @@
         <v-card>
           <v-card-title>
             <v-icon class="mr-2">mdi-robot</v-icon>
-            AI Service Status
+            Trạng thái dịch vụ AI
           </v-card-title>
           <v-card-text>
             <v-alert type="info" variant="tonal">
-              <div class="text-subtitle-2">AI Service Initializing</div>
+              <div class="text-subtitle-2">Dịch vụ AI đang khởi động</div>
               <div class="text-caption">
-                The AI service is starting up. Predictions and advanced analytics will be available shortly.
-                This may take a few minutes on first startup.
+                Dịch vụ AI đang được khởi chạy. Các tính năng dự đoán và phân tích nâng cao sẽ sẵn sàng sau ít phút,
+                đặc biệt là lần khởi động đầu tiên.
               </div>
             </v-alert>
           </v-card-text>
@@ -374,18 +374,18 @@ const startDate = ref('')
 const endDate = ref('')
 
 const periodOptions = [
-  { title: 'Last Month', value: 'last_month' },
-  { title: 'Last 3 Months', value: 'last_3_months' },
-  { title: 'Last 6 Months', value: 'last_6_months' },
-  { title: 'Last Year', value: 'last_year' },
-  { title: 'Custom Range', value: 'custom' }
+  { title: 'Tháng trước', value: 'last_month' },
+  { title: '3 tháng gần đây', value: 'last_3_months' },
+  { title: '6 tháng gần đây', value: 'last_6_months' },
+  { title: 'Năm qua', value: 'last_year' },
+  { title: 'Khoảng tuỳ chọn', value: 'custom' }
 ]
 
 // Tx filters
 const txTypeOptions = [
-  { title: 'Income', value: 'income' },
-  { title: 'Expense', value: 'expense' },
-  { title: 'Transfer', value: 'transfer' },
+  { title: 'Thu nhập', value: 'income' },
+  { title: 'Chi tiêu', value: 'expense' },
+  { title: 'Chuyển khoản', value: 'transfer' },
 ]
 const txType = ref(null)
 const minAmount = ref(null)

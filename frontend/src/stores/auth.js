@@ -52,7 +52,7 @@ export const useAuthStore = defineStore('auth', () => {
       api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
       router.push('/dashboard')
     } catch (error) {
-      const message = error?.response?.data?.message || 'Login failed'
+      const message = error?.response?.data?.message || 'Đăng nhập thất bại'
       throw new Error(message)
     } finally {
       loading.value = false
@@ -72,7 +72,7 @@ export const useAuthStore = defineStore('auth', () => {
       api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
       router.push('/dashboard')
     } catch (error) {
-      const message = error?.response?.data?.message || 'Registration failed'
+      const message = error?.response?.data?.message || 'Đăng ký thất bại'
       throw new Error(message)
     } finally {
       loading.value = false
@@ -109,12 +109,24 @@ export const useAuthStore = defineStore('auth', () => {
       api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
     } catch (error) {
       await logout()
-      throw new Error('Session expired. Please login again.')
+      throw new Error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.')
     }
   }
 
   const updateProfile = async (profileData) => {
-    const response = await api.put('/auth/profile', profileData)
+    // Backend requires a valid URL for AvatarURL, so always send a proper avatar_url
+    let avatarUrl = user.value?.avatar_url || ''
+    if (!avatarUrl) {
+      const baseName = user.value?.email || user.value?.username || 'User'
+      avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(baseName)}&background=random`
+    }
+
+    const payload = {
+      ...profileData,
+      avatar_url: avatarUrl,
+    }
+
+    const response = await api.put('/auth/profile', payload)
     user.value = response.data
   }
 

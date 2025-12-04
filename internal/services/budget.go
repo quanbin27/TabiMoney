@@ -1,29 +1,51 @@
 package services
 
 import (
-    "fmt"
-    "log"
-    "math"
-    "time"
+	"fmt"
+	"log"
+	"math"
+	"time"
 
-    "tabimoney/internal/database"
-    "tabimoney/internal/models"
+	"tabimoney/internal/config"
+	"tabimoney/internal/database"
+	"tabimoney/internal/models"
 
-    "gorm.io/gorm"
+	"gorm.io/gorm"
 )
 
 type BudgetService struct {
-	db *gorm.DB
+	db     *gorm.DB
+	config *config.Config
 }
 
-func NewBudgetService() *BudgetService {
+func NewBudgetService(cfg *config.Config) *BudgetService {
 	return &BudgetService{
-		db: database.GetDB(),
+		db:     database.GetDB(),
+		config: cfg,
 	}
 }
 
 // CreateBudget creates a new budget
 func (s *BudgetService) CreateBudget(userID uint64, req *models.BudgetCreateRequest) (*models.Budget, error) {
+	// Validate basic date range
+	if req.StartDate.After(req.EndDate) {
+		return nil, fmt.Errorf("start_date must be before or equal to end_date")
+	}
+
+	// Prevent multiple active budgets for same category & overlapping time
+	if req.CategoryID != nil {
+		var count int64
+		if err := s.db.Model(&models.Budget{}).
+			Where("user_id = ? AND is_active = ? AND category_id = ?", userID, true, *req.CategoryID).
+			Where("NOT (end_date < ? OR start_date > ?)", req.StartDate, req.EndDate).
+			Count(&count).Error; err != nil {
+			return nil, fmt.Errorf("failed to check existing budgets: %w", err)
+		}
+		if count > 0 {
+			return nil, fmt.Errorf("there is already an active budget for this category in the selected period")
+		}
+	}
+
 	budget := &models.Budget{
 		UserID:         userID,
 		CategoryID:     req.CategoryID,
@@ -66,6 +88,25 @@ func (s *BudgetService) UpdateBudget(userID uint64, budgetID uint64, req *models
 	var budget models.Budget
 	if err := s.db.Where("id = ? AND user_id = ?", budgetID, userID).Preload("Category").First(&budget).Error; err != nil {
 		return nil, fmt.Errorf("budget not found: %w", err)
+	}
+
+	// Validate basic date range
+	if req.StartDate.After(req.EndDate) {
+		return nil, fmt.Errorf("start_date must be before or equal to end_date")
+	}
+
+	// Prevent overlapping active budgets for same category (excluding current budget)
+	if req.CategoryID != nil && req.IsActive {
+		var count int64
+		if err := s.db.Model(&models.Budget{}).
+			Where("user_id = ? AND is_active = ? AND category_id = ? AND id <> ?", userID, true, *req.CategoryID, budgetID).
+			Where("NOT (end_date < ? OR start_date > ?)", req.StartDate, req.EndDate).
+			Count(&count).Error; err != nil {
+			return nil, fmt.Errorf("failed to check existing budgets: %w", err)
+		}
+		if count > 0 {
+			return nil, fmt.Errorf("another active budget for this category already exists in the selected period")
+		}
 	}
 
 	// Update fields
@@ -126,24 +167,36 @@ func (s *BudgetService) calculateBudgetMetrics(budget *models.Budget) {
 
 // CheckBudgetNotifications checks and triggers budget notifications
 func (s *BudgetService) CheckBudgetNotifications(userID uint64) error {
-	dispatcher := NewNotificationDispatcher()
-	budgets, err := s.GetBudgets(userID)
-	if err != nil {
-		return err
+	dispatcher := NewNotificationDispatcher(s.config)
+
+	// Chỉ kiểm tra các budget đang hoạt động
+	var budgets []models.Budget
+	if err := s.db.Where("user_id = ? AND is_active = ?", userID, true).Find(&budgets).Error; err != nil {
+		return fmt.Errorf("failed to load budgets for notifications: %w", err)
 	}
 
-	for _, budget := range budgets {
+	now := time.Now()
+
+	for i := range budgets {
+		// Bỏ qua ngân sách không nằm trong khoảng thời gian hiện tại
+		if now.Before(budgets[i].StartDate) || now.After(budgets[i].EndDate) {
+			continue
+		}
+
+		// Tính lại metrics để đảm bảo số liệu mới nhất
+		s.calculateBudgetMetrics(&budgets[i])
+
 		// Check if budget needs notification
-		if budget.UsagePercentage >= budget.AlertThreshold {
+		if budgets[i].UsagePercentage >= budgets[i].AlertThreshold {
 			// Check if budget is exceeded
-			if budget.UsagePercentage >= 100 {
+			if budgets[i].UsagePercentage >= 100 {
 				// Budget exceeded
-				if err := dispatcher.TriggerBudgetExceededAlert(userID, &budget); err != nil {
+				if err := dispatcher.TriggerBudgetExceededAlert(userID, &budgets[i]); err != nil {
 					log.Printf("Failed to trigger budget exceeded alert: %v", err)
 				}
 			} else {
 				// Budget threshold reached
-				if err := dispatcher.TriggerBudgetThresholdAlert(userID, &budget); err != nil {
+				if err := dispatcher.TriggerBudgetThresholdAlert(userID, &budgets[i]); err != nil {
 					log.Printf("Failed to trigger budget threshold alert: %v", err)
 				}
 			}
@@ -325,28 +378,68 @@ func (s *BudgetService) CreateBudgetsFromSuggestions(userID uint64, req *models.
     if req == nil || len(req.Budgets) == 0 {
         return nil, fmt.Errorf("no budgets provided")
     }
-    var created []models.Budget
-    for _, b := range req.Budgets {
-        name := b.Name
-        if name == "" {
-            name = "Budget"
-        }
-        budget := models.Budget{
-            UserID:         userID,
-            CategoryID:     b.CategoryID,
-            Name:           name,
-            Amount:         b.SuggestedAmt,
-            Period:         req.Period,
-            StartDate:      req.StartDate,
-            EndDate:        req.EndDate,
-            IsActive:       true,
-            AlertThreshold: req.AlertThreshold,
-        }
-        if err := s.db.Create(&budget).Error; err != nil {
-            return nil, fmt.Errorf("failed to create budget: %w", err)
-        }
-        s.calculateBudgetMetrics(&budget)
-        created = append(created, budget)
-    }
-    return created, nil
+
+	// Validate basic period and date range
+	if req.StartDate.After(req.EndDate) {
+		return nil, fmt.Errorf("start_date must be before or equal to end_date")
+	}
+	if req.Period == "" {
+		req.Period = "monthly"
+	}
+
+	var created []models.Budget
+	err := s.db.Transaction(func(tx *gorm.DB) error {
+		for _, b := range req.Budgets {
+			if b.SuggestedAmt <= 0 {
+				continue // bỏ qua các đề xuất 0 hoặc âm
+			}
+
+			// Nếu có category thì tránh tạo budget trùng khoảng thời gian với budget đang active
+			if b.CategoryID != nil {
+				var count int64
+				if err := tx.Model(&models.Budget{}).
+					Where("user_id = ? AND is_active = ? AND category_id = ?", userID, true, *b.CategoryID).
+					Where("NOT (end_date < ? OR start_date > ?)", req.StartDate, req.EndDate).
+					Count(&count).Error; err != nil {
+					return fmt.Errorf("failed to check existing budgets: %w", err)
+				}
+				if count > 0 {
+					// Bỏ qua đề xuất này, vì đã có ngân sách active cùng category & thời gian
+					continue
+				}
+			}
+
+			name := b.Name
+			if name == "" {
+				name = "Budget"
+			}
+			budget := models.Budget{
+				UserID:         userID,
+				CategoryID:     b.CategoryID,
+				Name:           name,
+				Amount:         b.SuggestedAmt,
+				Period:         req.Period,
+				StartDate:      req.StartDate,
+				EndDate:        req.EndDate,
+				IsActive:       true,
+				AlertThreshold: req.AlertThreshold,
+			}
+			if err := tx.Create(&budget).Error; err != nil {
+				return fmt.Errorf("failed to create budget: %w", err)
+			}
+			// Tính metrics sau khi tạo để trả về cho FE, không cần transaction
+			s.calculateBudgetMetrics(&budget)
+			created = append(created, budget)
+		}
+		if len(created) == 0 {
+			return fmt.Errorf("no valid budgets created from suggestions")
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return created, nil
 }

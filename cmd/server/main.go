@@ -50,7 +50,7 @@ func main() {
 	// Initialize services
 	authService := services.NewAuthService(cfg)
 	// Initialize optional services later
-	txHandler := handlers.NewTransactionHandler()
+	txHandler := handlers.NewTransactionHandler(cfg)
 	categoryHandler := handlers.NewCategoryHandler()
 	aiService := services.NewAIService(cfg)
 	aiHandler := handlers.NewAIHandler(aiService)
@@ -115,6 +115,7 @@ func main() {
 	auth.PUT("/profile", authHandler.UpdateProfile, appmw.AuthMiddleware(authService))
 	auth.GET("/income", authHandler.GetMonthlyIncome, appmw.AuthMiddleware(authService))
 	auth.PUT("/income", authHandler.SetMonthlyIncome, appmw.AuthMiddleware(authService))
+	auth.PUT("/large-transaction-threshold", authHandler.SetLargeTransactionThreshold, appmw.AuthMiddleware(authService))
 
 	// Telegram integration routes
 	auth.POST("/telegram/generate-link-code", authHandler.GenerateTelegramLinkCode, appmw.AuthMiddleware(authService))
@@ -137,7 +138,7 @@ func main() {
 	cat.DELETE("/:id", categoryHandler.Delete)
 
 	// Goals routes
-	goalHandler := handlers.NewGoalHandler()
+	goalHandler := handlers.NewGoalHandler(cfg)
 	goals := api.Group("/goals", appmw.AuthMiddleware(authService))
 	goals.GET("", goalHandler.GetGoals)
 	goals.POST("", goalHandler.CreateGoal)
@@ -146,7 +147,7 @@ func main() {
 	goals.POST("/:id/contribute", goalHandler.AddContribution)
 
 	// Budgets routes
-	budgetHandler := handlers.NewBudgetHandler()
+	budgetHandler := handlers.NewBudgetHandler(cfg)
 	// Notifications routes
 	notificationHandler := handlers.NewNotificationHandler()
 	notifications := api.Group("/notifications", appmw.AuthMiddleware(authService))
@@ -154,7 +155,7 @@ func main() {
 	notifications.POST("/:id/read", notificationHandler.MarkRead)
 
 	// Notification preferences routes
-	notificationPrefsHandler := handlers.NewNotificationPreferencesHandler()
+	notificationPrefsHandler := handlers.NewNotificationPreferencesHandler(cfg)
 	notificationPrefs := api.Group("/notification-preferences", appmw.AuthMiddleware(authService))
 	notificationPrefs.GET("", notificationPrefsHandler.GetPreferences)
 	notificationPrefs.PUT("", notificationPrefsHandler.UpdatePreferences)
@@ -203,7 +204,7 @@ func main() {
 
 	// Start scheduled notification service
 	ctx := context.Background()
-	scheduledService := services.NewScheduledNotificationService()
+	scheduledService := services.NewScheduledNotificationService(cfg)
 	go scheduledService.StartScheduler(ctx)
 	logrus.Info("Scheduled notification service started")
 

@@ -8,6 +8,7 @@ import (
     "log"
     "time"
 
+    "tabimoney/internal/config"
     "tabimoney/internal/database"
     "tabimoney/internal/models"
 
@@ -15,12 +16,14 @@ import (
 )
 
 type TransactionService struct {
-	db *gorm.DB
+	db     *gorm.DB
+	config *config.Config
 }
 
-func NewTransactionService() *TransactionService {
+func NewTransactionService(cfg *config.Config) *TransactionService {
 	return &TransactionService{
-		db: database.GetDB(),
+		db:     database.GetDB(),
+		config: cfg,
 	}
 }
 
@@ -78,16 +81,19 @@ func (s *TransactionService) CreateTransaction(userID uint64, req *models.Transa
 	}
 
 	// Trigger budget threshold notifications synchronously (best-effort)
-	bs := NewBudgetService()
+	bs := NewBudgetService(s.config)
 	if err := bs.CheckBudgetNotifications(userID); err != nil {
 		log.Printf("Failed to check budget notifications: %v", err)
 	}
 
-	// Check for large transaction alert
-	dispatcher := NewNotificationDispatcher()
-	if transaction.Amount > 1000000 { // 1M VND threshold
-		if err := dispatcher.TriggerLargeTransactionAlert(userID, transaction, 1000000); err != nil {
-			log.Printf("Failed to trigger large transaction alert: %v", err)
+	// Check for large transaction alert (only for expense transactions)
+	if transaction.TransactionType == "expense" {
+		dispatcher := NewNotificationDispatcher(s.config)
+		threshold := s.getLargeTransactionThreshold(userID)
+		if transaction.Amount > threshold {
+			if err := dispatcher.TriggerLargeTransactionAlert(userID, transaction, threshold); err != nil {
+				log.Printf("Failed to trigger large transaction alert: %v", err)
+			}
 		}
 	}
 
@@ -246,7 +252,7 @@ func (s *TransactionService) DeleteTransaction(userID, transactionID uint64) err
 	}
 
     // Trigger budget threshold notifications synchronously (best-effort)
-    bs := NewBudgetService()
+    bs := NewBudgetService(s.config)
     if err := bs.CheckBudgetNotifications(userID); err != nil {
         log.Printf("Failed to check budget notifications: %v", err)
     }
@@ -335,6 +341,19 @@ func (s *TransactionService) GetCategorySpending(userID uint64, startDate, endDa
 }
 
 // Helper methods
+
+// getLargeTransactionThreshold gets the large transaction threshold for a user
+// Returns user's custom threshold if set, otherwise returns system default (1,000,000 VND)
+func (s *TransactionService) getLargeTransactionThreshold(userID uint64) float64 {
+	var profile models.UserProfile
+	if err := s.db.Where("user_id = ?", userID).First(&profile).Error; err == nil {
+		if profile.LargeTransactionThreshold != nil && *profile.LargeTransactionThreshold > 0 {
+			return *profile.LargeTransactionThreshold
+		}
+	}
+	// Default threshold: 1,000,000 VND (1 million)
+	return 1000000
+}
 
 func (s *TransactionService) transactionToResponse(t *models.Transaction) *models.TransactionResponse {
 	response := &models.TransactionResponse{

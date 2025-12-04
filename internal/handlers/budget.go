@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"tabimoney/internal/config"
 	"tabimoney/internal/models"
 	"tabimoney/internal/services"
 
@@ -14,9 +15,9 @@ type BudgetHandler struct {
 	budgetService *services.BudgetService
 }
 
-func NewBudgetHandler() *BudgetHandler {
+func NewBudgetHandler(cfg *config.Config) *BudgetHandler {
 	return &BudgetHandler{
-		budgetService: services.NewBudgetService(),
+		budgetService: services.NewBudgetService(cfg),
 	}
 }
 

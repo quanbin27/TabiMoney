@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"tabimoney/internal/config"
 	"tabimoney/internal/models"
 	"tabimoney/internal/services"
 
@@ -14,9 +15,9 @@ type GoalHandler struct {
 	goalService *services.GoalService
 }
 
-func NewGoalHandler() *GoalHandler {
+func NewGoalHandler(cfg *config.Config) *GoalHandler {
 	return &GoalHandler{
-		goalService: services.NewGoalService(),
+		goalService: services.NewGoalService(cfg),
 	}
 }
 

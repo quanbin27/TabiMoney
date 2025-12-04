@@ -5,10 +5,10 @@
                 <v-row align="center">
                     <v-col cols="12" md="8">
                         <h1 class="text-h4 font-weight-bold mb-2">
-                            Welcome back, {{ authStore.user?.first_name || authStore.user?.username }}!
+                            Chào mừng trở lại, {{ authStore.user?.first_name || authStore.user?.username }}!
                         </h1>
                         <p class="text-h6 opacity-90">
-                            Here's your financial overview for {{ currentMonth }}
+                            Tổng quan tài chính của bạn trong {{ currentMonth }}
                         </p>
                     </v-col>
                     <v-col cols="12" md="4" class="text-right">
@@ -40,7 +40,7 @@ const openAddTransactionDialog = () => {
 }
 
 const currentMonth = computed(() => {
-    return new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+    return new Date().toLocaleDateString('vi-VN', { month: 'long', year: 'numeric' })
 })
 </script>
 

@@ -8,14 +8,14 @@
             <div class="d-flex align-center">
               <v-icon class="mr-3" size="large">mdi-wallet</v-icon>
               <div>
-                <h2 class="text-h5">Budget Management</h2>
+                <h2 class="text-h5">Quản lý ngân sách</h2>
                 <p class="text-subtitle-1 mb-0 opacity-90">
-                  Track and manage your monthly budgets
+                  Theo dõi và quản lý ngân sách hàng tháng của bạn
                 </p>
               </div>
             </div>
             <v-btn color="white" variant="outlined" @click="openCreateDialog" prepend-icon="mdi-plus">
-              New Budget
+              Ngân sách mới
             </v-btn>
           </v-card-title>
         </v-card>
@@ -44,7 +44,7 @@
       <v-col cols="12" md="3">
         <v-card color="success" variant="tonal">
           <v-card-text>
-            <div class="text-h6 text-success">Total Budget</div>
+            <div class="text-h6 text-success">Tổng ngân sách</div>
             <div class="text-h4">{{ formatCurrency(totalBudget) }}</div>
           </v-card-text>
         </v-card>
@@ -52,7 +52,7 @@
       <v-col cols="12" md="3">
         <v-card color="error" variant="tonal">
           <v-card-text>
-            <div class="text-h6 text-error">Total Spent</div>
+            <div class="text-h6 text-error">Tổng đã chi</div>
             <div class="text-h4">{{ formatCurrency(totalSpent) }}</div>
           </v-card-text>
         </v-card>
@@ -60,7 +60,7 @@
       <v-col cols="12" md="3">
         <v-card color="primary" variant="tonal">
           <v-card-text>
-            <div class="text-h6 text-primary">Remaining</div>
+            <div class="text-h6 text-primary">Còn lại</div>
             <div class="text-h4">{{ formatCurrency(totalRemaining) }}</div>
           </v-card-text>
         </v-card>
@@ -68,7 +68,7 @@
       <v-col cols="12" md="3">
         <v-card :color="budgetHealthColor" variant="tonal">
           <v-card-text>
-            <div class="text-h6">Budget Health</div>
+            <div class="text-h6">Sức khỏe ngân sách</div>
             <div class="text-h4">{{ budgetHealthPercentage }}%</div>
           </v-card-text>
         </v-card>
@@ -97,7 +97,7 @@
         <v-card>
           <v-card-title>
             <v-icon class="mr-2">mdi-chart-pie</v-icon>
-            Monthly Budgets
+            Ngân sách hàng tháng
           </v-card-title>
           <v-card-text>
             <v-data-table :headers="headers" :items="budgets" :loading="loading" class="elevation-1">
@@ -154,12 +154,12 @@
       <v-col cols="12">
         <v-card class="text-center pa-8">
           <v-icon size="64" color="grey-lighten-1">mdi-wallet</v-icon>
-          <h3 class="text-h6 mt-4 text-grey">No Budgets Set</h3>
+          <h3 class="text-h6 mt-4 text-grey">Chưa có ngân sách nào</h3>
           <p class="text-body-2 text-grey mb-4">
-            Create your first budget to start tracking your spending
+            Tạo ngân sách đầu tiên để bắt đầu theo dõi chi tiêu
           </p>
           <v-btn color="primary" @click="openCreateDialog" prepend-icon="mdi-plus">
-            Create Your First Budget
+            Tạo ngân sách đầu tiên
           </v-btn>
         </v-card>
       </v-col>
@@ -169,37 +169,41 @@
     <v-dialog v-model="dialog" max-width="600">
       <v-card>
         <v-card-title>
-          {{ isEditing ? 'Edit Budget' : 'Create New Budget' }}
+          {{ isEditing ? 'Chỉnh sửa ngân sách' : 'Tạo ngân sách mới' }}
         </v-card-title>
         <v-card-text>
           <v-form ref="formRef" validate-on="submit">
-            <v-select v-model="form.category_id" label="Category" :items="categories" item-title="name" item-value="id"
+            <v-select v-model="form.category_id" label="Danh mục" :items="categories" item-title="name" item-value="id"
               :rules="[rules.required]" required></v-select>
 
-            <v-text-field v-model="form.name" label="Budget Name" :rules="[rules.required]" required
+            <v-text-field v-model="form.name" label="Tên ngân sách" :rules="[rules.required]" required
               clearable></v-text-field>
 
-            <v-text-field v-model="form.amount" label="Budget Amount" type="number"
-              :rules="[rules.required, rules.positive]" prefix="₫" required clearable></v-text-field>
+            <v-text-field
+              v-model="form.amount"
+              label="Số tiền ngân sách"
+              type="number"
+              :rules="[rules.required, rules.positive]"
+              prefix="₫"
+              required
+              clearable
+            ></v-text-field>
 
-            <v-select v-model="form.period" label="Period" :items="budgetTypes" item-title="title" item-value="value"
-              :rules="[rules.required]" required></v-select>
-
-            <v-text-field v-model="form.start_date" label="Start Date" type="date" :rules="[rules.required]"
+            <v-text-field v-model="form.start_date" label="Từ ngày" type="date" :rules="[rules.required]"
               required></v-text-field>
 
-            <v-text-field v-model="form.end_date" label="End Date" type="date" :rules="[rules.required]"
+            <v-text-field v-model="form.end_date" label="Đến ngày" type="date" :rules="[rules.required]"
               required></v-text-field>
 
-            <v-text-field v-model="form.alert_threshold" label="Alert Threshold (%)" type="number"
+            <v-text-field v-model="form.alert_threshold" label="Ngưỡng cảnh báo (%)" type="number"
               :rules="[rules.required, rules.positive]" suffix="%" min="0" max="100"></v-text-field>
           </v-form>
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn @click="closeDialog">Cancel</v-btn>
+          <v-btn @click="closeDialog">Hủy</v-btn>
           <v-btn type="submit" color="primary" @click="saveBudget" :loading="saving">
-            {{ isEditing ? 'Update' : 'Create' }}
+            {{ isEditing ? 'Cập nhật' : 'Tạo mới' }}
           </v-btn>
         </v-card-actions>
       </v-card>
@@ -260,7 +264,7 @@
         <v-card>
           <v-card-title>
             <v-icon class="mr-2">mdi-chart-donut</v-icon>
-            Budget vs Spent
+            Ngân sách vs Đã chi
           </v-card-title>
           <v-card-text>
             <canvas ref="budgetChart" height="300"></canvas>
@@ -271,7 +275,7 @@
         <v-card>
           <v-card-title>
             <v-icon class="mr-2">mdi-chart-bar</v-icon>
-            Category Spending
+            Chi tiêu theo danh mục
           </v-card-title>
           <v-card-text>
             <canvas ref="categoryChart" height="300"></canvas>
@@ -322,34 +326,27 @@ const form = ref({
 
 // Table headers
 const headers = [
-  { title: 'Name', key: 'name', sortable: true },
-  { title: 'Category', key: 'category_name', sortable: true },
-  { title: 'Budget Amount', key: 'amount', sortable: true },
-  { title: 'Spent Amount', key: 'spent_amount', sortable: true },
-  { title: 'Remaining', key: 'remaining_amount', sortable: true },
-  { title: 'Progress', key: 'progress', sortable: false },
-  { title: 'Status', key: 'status', sortable: true },
-  { title: 'Actions', key: 'actions', sortable: false }
-]
-
-// Options
-const budgetTypes = [
-  { title: 'Weekly', value: 'weekly' },
-  { title: 'Monthly', value: 'monthly' },
-  { title: 'Yearly', value: 'yearly' }
+  { title: 'Tên', key: 'name', sortable: true },
+  { title: 'Danh mục', key: 'category_name', sortable: true },
+  { title: 'Ngân sách', key: 'amount', sortable: true },
+  { title: 'Đã chi', key: 'spent_amount', sortable: true },
+  { title: 'Còn lại', key: 'remaining_amount', sortable: true },
+  { title: 'Tiến độ', key: 'progress', sortable: false },
+  { title: 'Trạng thái', key: 'status', sortable: true },
+  { title: 'Thao tác', key: 'actions', sortable: false }
 ]
 
 // Validation rules
 const rules = {
   required: (value) => {
-    if (value === null || value === undefined) return 'This field is required'
+    if (value === null || value === undefined) return 'Trường này là bắt buộc'
     if (typeof value === 'number') return true // allow 0 as valid
-    if (typeof value === 'string') return value.trim().length > 0 || 'This field is required'
-    return !!value || 'This field is required'
+    if (typeof value === 'string') return value.trim().length > 0 || 'Trường này là bắt buộc'
+    return !!value || 'Trường này là bắt buộc'
   },
   positive: (value) => {
     if (value === null || value === undefined) return true
-    return Number(value) > 0 || 'Value must be positive'
+    return Number(value) > 0 || 'Giá trị phải lớn hơn 0'
   }
 }
 
@@ -387,7 +384,7 @@ const loadBudgets = async () => {
     budgets.value = response.data.data || []
   } catch (error) {
     console.error('Failed to load budgets:', error)
-    useAppStore().showError('Failed to load budgets')
+    useAppStore().showError('Không thể tải danh sách ngân sách')
   } finally {
     loading.value = false
   }
@@ -416,7 +413,7 @@ const openSuggestDialog = async () => {
     suggestDialog.value = true
   } catch (e) {
     console.error('Failed to get suggestions', e)
-    useAppStore().showError('Failed to load suggestions')
+    useAppStore().showError('Không thể tải gợi ý ngân sách')
   }
 }
 
@@ -445,10 +442,10 @@ const createFromSuggestions = async () => {
     suggestBannerVisible.value = false
     await loadBudgets()
     await loadInsights()
-    useAppStore().showSuccess('Created budgets from suggestions')
+    useAppStore().showSuccess('Đã tạo ngân sách từ gợi ý')
   } catch (e) {
     console.error('Create from suggestions failed', e)
-    useAppStore().showError('Failed to create budgets')
+    useAppStore().showError('Không thể tạo ngân sách từ gợi ý')
   } finally {
     creatingFromSuggest.value = false
   }
@@ -510,12 +507,27 @@ const saveBudget = async () => {
   }
   saving.value = true
   try {
+    // Tự động suy ra chu kỳ từ độ dài khoảng thời gian để tránh phải bắt user chọn thêm một field
+    let period = 'monthly'
+    if (form.value.start_date && form.value.end_date) {
+      const start = new Date(form.value.start_date)
+      const end = new Date(form.value.end_date)
+      const diffDays = Math.max(1, Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1)
+      if (diffDays <= 10) {
+        period = 'weekly'
+      } else if (diffDays >= 330) {
+        period = 'yearly'
+      } else {
+        period = 'monthly'
+      }
+    }
+
     // Normalize payload for backend (RFC3339 dates, numeric fields)
     const payload = {
       category_id: form.value.category_id,
       name: (form.value.name || '').trim(),
       amount: form.value.amount != null ? Number(form.value.amount) : null,
-      period: form.value.period,
+      period,
       start_date: form.value.start_date ? `${form.value.start_date}T00:00:00Z` : null,
       end_date: form.value.end_date ? `${form.value.end_date}T23:59:59Z` : null,
       alert_threshold: form.value.alert_threshold != null ? Number(form.value.alert_threshold) : 80,
@@ -529,25 +541,39 @@ const saveBudget = async () => {
     await loadBudgets()
     closeDialog()
     useAppStore().showSuccess(
-      isEditing.value ? 'Budget updated successfully' : 'Budget created successfully'
+      isEditing.value ? 'Cập nhật ngân sách thành công' : 'Tạo ngân sách thành công'
     )
   } catch (error) {
     console.error('Failed to save budget:', error)
-    useAppStore().showError('Failed to save budget')
+    const backendMessage = error?.response?.data?.message || ''
+
+    // Hiển thị message rõ ràng hơn khi trùng ngân sách active cùng danh mục & khoảng thời gian
+    if (
+      backendMessage.includes('already an active budget for this category') ||
+      backendMessage.includes('another active budget for this category')
+    ) {
+      useAppStore().showError(
+        'Đã tồn tại ngân sách đang hoạt động cho danh mục này trong khoảng thời gian bạn chọn. Vui lòng chỉnh lại thời gian hoặc tắt ngân sách cũ trước khi tạo mới.'
+      )
+    } else if (backendMessage) {
+      useAppStore().showError(backendMessage)
+    } else {
+      useAppStore().showError('Không thể lưu ngân sách')
+    }
   } finally {
     saving.value = false
   }
 }
 
 const deleteBudget = async (budgetId) => {
-  if (confirm('Are you sure you want to delete this budget?')) {
+  if (confirm('Bạn có chắc chắn muốn xoá ngân sách này?')) {
     try {
       await budgetAPI.deleteBudget(budgetId)
       await loadBudgets()
-      useAppStore().showSuccess('Budget deleted successfully')
+      useAppStore().showSuccess('Đã xoá ngân sách thành công')
     } catch (error) {
       console.error('Failed to delete budget:', error)
-      useAppStore().showError('Failed to delete budget')
+      useAppStore().showError('Không thể xoá ngân sách')
     }
   }
 }
@@ -605,7 +631,7 @@ const createCharts = async () => {
     new Chart(budgetChart.value, {
       type: 'doughnut',
       data: {
-        labels: ['Budget', 'Spent'],
+        labels: ['Ngân sách', 'Đã chi'],
         datasets: [{
           data: [totalBudget.value, totalSpent.value],
           backgroundColor: ['#4CAF50', '#F44336'],
@@ -631,11 +657,11 @@ const createCharts = async () => {
       data: {
         labels: budgets.value.map(b => b.name),
         datasets: [{
-          label: 'Budget',
+          label: 'Ngân sách',
           data: budgets.value.map(b => b.amount),
           backgroundColor: '#2196F3'
         }, {
-          label: 'Spent',
+          label: 'Đã chi',
           data: budgets.value.map(b => b.spent_amount),
           backgroundColor: '#F44336'
         }]

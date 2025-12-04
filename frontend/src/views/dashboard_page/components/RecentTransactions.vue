@@ -4,7 +4,7 @@
             <v-card>
                 <v-card-title>
                     <v-icon left>mdi-receipt</v-icon>
-                    Recent Transactions
+                    Giao dịch gần đây
                 </v-card-title>
                 <v-card-text>
                     <v-data-table :headers="transactionHeaders" :items="recentTransactions" class=" elevation-0"
@@ -58,11 +58,11 @@ const props = defineProps({
 const emit = defineEmits(['openEdit'])
 
 const transactionHeaders = [
-    { title: 'Date', key: 'transaction_date', sortable: true },
-    { title: 'Description', key: 'description', sortable: true },
-    { title: 'Category', key: 'category', sortable: false },
-    { title: 'Amount', key: 'amount', sortable: true },
-    { title: 'Actions', key: 'actions', sortable: false },
+    { title: 'Ngày', key: 'transaction_date', sortable: true },
+    { title: 'Mô tả', key: 'description', sortable: true },
+    { title: 'Danh mục', key: 'category', sortable: false },
+    { title: 'Số tiền', key: 'amount', sortable: true },
+    { title: 'Thao tác', key: 'actions', sortable: false },
 ]
 
 const getAmountClass = (type) => {
@@ -85,10 +85,10 @@ const deleteTransaction = async (id) => {
     if (confirmed) {
         try {
             await transactionAPI.deleteTransaction(id)
-            appStore.showSuccess('Transaction deleted successfully')
+            appStore.showSuccess('Xoá giao dịch thành công')
             props.loadRecentTransactions()
         } catch (error) {
-            appStore.showError('Failed to delete transaction')
+            appStore.showError('Không thể xoá giao dịch')
         }
     }
 }

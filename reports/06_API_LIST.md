@@ -128,7 +128,8 @@ Authorization: Bearer <access_token>
     "monthly_income": 10000000,
     "currency": "VND",
     "timezone": "Asia/Ho_Chi_Minh",
-    "language": "vi"
+    "language": "vi",
+    "large_transaction_threshold": 2000000
   }
 }
 ```
@@ -175,6 +176,41 @@ Authorization: Bearer <access_token>
 }
 ```
 - **Response (200):** Tương tự như GET income
+
+### 1.10. Thiết lập ngưỡng giao dịch lớn
+- **Method:** `PUT`
+- **Endpoint:** `/auth/large-transaction-threshold`
+- **Mô tả:** Thiết lập ngưỡng giao dịch lớn để nhận cảnh báo. Ngưỡng này chỉ áp dụng cho các giao dịch **chi tiêu (expense)**, không áp dụng cho thu nhập (income). Gửi `null` để khôi phục về giá trị mặc định (1,000,000 VND).
+- **Headers:** `Authorization: Bearer <token>`
+- **Request Body:**
+```json
+{
+  "threshold": 2000000
+}
+```
+Hoặc để reset về mặc định:
+```json
+{
+  "threshold": null
+}
+```
+- **Response (200):**
+```json
+{
+  "message": "Large transaction threshold updated"
+}
+```
+Hoặc khi reset:
+```json
+{
+  "message": "Large transaction threshold reset to system default"
+}
+```
+- **Lưu ý:**
+  - Ngưỡng mặc định: 1,000,000 VND (1 triệu VND)
+  - Chỉ áp dụng cho giao dịch chi tiêu (expense)
+  - Khi có giao dịch chi tiêu vượt quá ngưỡng, hệ thống sẽ gửi thông báo cảnh báo
+  - Ngưỡng được lưu trong user profile, mỗi user có thể cấu hình riêng
 
 ---
 
@@ -458,11 +494,20 @@ Authorization: Bearer <access_token>
 ```json
 {
   "title": "Mua xe máy mới",
+  "description": "Tiết kiệm để mua xe máy mới",
   "target_amount": 60000000,
-  "current_amount": 15000000
+  "current_amount": 15000000,
+  "target_date": "2024-12-31",
+  "goal_type": "purchase",
+  "priority": "high"
 }
 ```
 - **Response (200):** Goal object đã cập nhật
+- **Ràng buộc:**
+  - `target_amount` phải **lớn hơn 0**
+  - `current_amount` phải **>= 0**
+  - Nếu sau khi cập nhật `current_amount >= target_amount` thì goal sẽ được đánh dấu `is_achieved = true`
+  - Nếu đang `is_achieved = true` nhưng cập nhật lại `current_amount < target_amount` (hoặc tăng `target_amount`), goal sẽ được bỏ trạng thái đạt (`is_achieved = false`)
 
 ### 5.4. Xóa mục tiêu
 - **Method:** `DELETE`
@@ -493,6 +538,9 @@ Authorization: Bearer <access_token>
 }
 ```
 - **Response (200):** Goal object đã cập nhật (với current_amount mới)
+- **Ràng buộc & lưu ý:**
+  - `amount` phải **lớn hơn 0**
+  - Không thể góp thêm vào mục tiêu đã đạt (`is_achieved = true`); backend sẽ trả lỗi 400 trong trường hợp này
 
 ---
 
@@ -547,6 +595,12 @@ Authorization: Bearer <access_token>
 }
 ```
 - **Response (201):** Budget object
+- **Ràng buộc:**
+  - `amount` phải **lớn hơn 0**
+  - `start_date` phải **nhỏ hơn hoặc bằng** `end_date`
+  - `alert_threshold` nằm trong khoảng **0–100**
+  - Với mỗi `category_id`, **chỉ được có tối đa 1 ngân sách đang hoạt động** trong một khoảng thời gian;  
+    nếu tạo mới trùng khoảng thời gian với ngân sách active khác cùng category, backend sẽ trả lỗi 400
 
 ### 6.3. Cập nhật ngân sách
 - **Method:** `PUT`
@@ -669,6 +723,11 @@ Authorization: Bearer <access_token>
   ]
 }
 ```
+- **Ràng buộc & hành vi:**
+  - Backend sẽ **bỏ qua** các đề xuất có `suggested_amount <= 0`
+  - Nếu một đề xuất có `category_id` trùng với ngân sách **đang active** khác trong cùng khoảng thời gian, đề xuất đó sẽ bị **bỏ qua** (không tạo ngân sách trùng)
+  - Nếu **tất cả** đề xuất đều không hợp lệ (<= 0), backend trả lỗi 400 với thông báo tương ứng
+  - Việc tạo nhiều ngân sách diễn ra trong **một transaction**: nếu một ngân sách bị lỗi, toàn bộ batch sẽ không được tạo
 
 ---
 

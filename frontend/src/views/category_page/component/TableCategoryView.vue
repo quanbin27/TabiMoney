@@ -4,17 +4,17 @@
             :total-items="props.totalCategories" class="elevation-1">
             <template v-slot:top>
                 <v-toolbar flat>
-                    <v-toolbar-title>Manage Categories</v-toolbar-title>
+                    <v-toolbar-title>Quản lý danh mục</v-toolbar-title>
                     <v-divider class="mx-4" inset vertical></v-divider>
                     <v-spacer></v-spacer>
-                    <v-text-field v-model="search" append-icon="mdi-magnify" label="Search categories" single-line
+                    <v-text-field v-model="search" append-icon="mdi-magnify" label="Tìm kiếm danh mục" single-line
                         hide-details @input="filterCategories"></v-text-field>
                 </v-toolbar>
             </template>
 
             <template v-slot:item.is_system="{ item }">
                 <v-chip :color="item.is_system ? 'success' : 'primary'" size="small">
-                    {{ item.is_system ? 'System' : 'Custom' }}
+                    {{ item.is_system ? 'Hệ thống' : 'Tự tạo' }}
                 </v-chip>
             </template>
 
@@ -23,12 +23,12 @@
                     @click="onEdit(item)"></v-btn>
                 <v-btn v-if="!item.is_system" icon="mdi-delete" size="small" variant="text" color="error"
                     @click="deleteCategory(item)"></v-btn>
-                <span v-if="item.is_system" class="text-caption text-grey">System</span>
+                <span v-if="item.is_system" class="text-caption text-grey">Hệ thống</span>
             </template>
 
             <template v-slot:no-data>
                 <v-alert :value="true" color="info" icon="mdi-information">
-                    No categories found. Create your first category!
+                    Chưa có danh mục nào. Hãy tạo danh mục đầu tiên!
                 </v-alert>
             </template>
         </v-data-table>
@@ -66,11 +66,11 @@ const pagination = ref({
 const search = ref('')
 
 const headers = [
-    { title: 'Name', key: 'name', sortable: true },
-    { title: 'English Name', key: 'name_en', sortable: true },
-    { title: 'Description', key: 'description', sortable: false },
-    { title: 'Type', key: 'is_system', sortable: true },
-    { title: 'Actions', key: 'actions', sortable: false },
+    { title: 'Tên', key: 'name', sortable: true },
+    { title: 'Tên tiếng Anh', key: 'name_en', sortable: true },
+    { title: 'Mô tả', key: 'description', sortable: false },
+    { title: 'Loại', key: 'is_system', sortable: true },
+    { title: 'Thao tác', key: 'actions', sortable: false },
 ]
 
 const onEdit = (item) => {
@@ -93,7 +93,7 @@ function filterCategories() {
 
 async function deleteCategory(category) {
     if (category.is_system) {
-        app.showWarning('Cannot delete system categories')
+        app.showWarning('Không thể xoá danh mục hệ thống')
         return
     }
     const confirmed = await app.confirm({
@@ -107,10 +107,10 @@ async function deleteCategory(category) {
     if (confirmed) {
         try {
             await categoryAPI.deleteCategory(category.id)
-            app.showSuccess('Category deleted')
+            app.showSuccess('Đã xoá danh mục')
             await props.load()
         } catch (e) {
-            app.showError(e?.message || 'Failed to delete category')
+            app.showError(e?.message || 'Không thể xoá danh mục')
         }
     }
 }

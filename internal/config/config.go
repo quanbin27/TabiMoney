@@ -152,6 +152,15 @@ func getEnvAsInt64(key string, defaultValue int64) int64 {
 	return defaultValue
 }
 
+func getEnvAsFloat64(key string, defaultValue float64) float64 {
+	if value := os.Getenv(key); value != "" {
+		if floatValue, err := strconv.ParseFloat(value, 64); err == nil {
+			return floatValue
+		}
+	}
+	return defaultValue
+}
+
 func (c *Config) GetJWTExpiration() time.Duration {
 	return time.Duration(c.JWT.ExpireHours) * time.Hour
 }

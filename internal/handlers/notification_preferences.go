@@ -4,16 +4,19 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
+	"tabimoney/internal/config"
 	"tabimoney/internal/services"
 )
 
 type NotificationPreferencesHandler struct {
-	svc *services.NotificationPreferencesService
+	svc    *services.NotificationPreferencesService
+	config *config.Config
 }
 
-func NewNotificationPreferencesHandler() *NotificationPreferencesHandler {
+func NewNotificationPreferencesHandler(cfg *config.Config) *NotificationPreferencesHandler {
 	return &NotificationPreferencesHandler{
-		svc: services.NewNotificationPreferencesService(),
+		svc:    services.NewNotificationPreferencesService(),
+		config: cfg,
 	}
 }
 
@@ -121,7 +124,7 @@ func (h *NotificationPreferencesHandler) TestNotification(c echo.Context) error 
 	}
 
 	// Create test notification
-	dispatcher := services.NewNotificationDispatcher()
+	dispatcher := services.NewNotificationDispatcher(h.config)
 
 	trigger := services.NotificationTrigger{
 		UserID:           userID,

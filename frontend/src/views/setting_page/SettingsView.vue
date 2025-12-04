@@ -1,157 +1,196 @@
 <template>
-  <v-container class="py-8">
+  <v-container class="py-4" fluid>
     <v-row>
       <v-col cols="12">
-        <h1 class="text-h4 mb-6">Cài đặt</h1>
+        <h1 class="text-h4 mb-4">Cài đặt</h1>
       </v-col>
     </v-row>
 
     <v-row>
       <v-col cols="12" md="8">
         <!-- Notification Preferences -->
-        <v-card class="mb-4">
-          <v-card-title>
-            <v-icon left>mdi-bell-outline</v-icon>
+        <v-card class="mb-3">
+          <v-card-title class="text-h6 py-3">
+            <v-icon left size="small">mdi-bell-outline</v-icon>
             Cài đặt thông báo
           </v-card-title>
 
-          <v-card-text>
-            <v-expansion-panels variant="accordion">
+          <v-card-text class="pt-2 pb-3">
+            <v-expansion-panels variant="accordion" density="compact">
               <!-- Channel Preferences -->
               <v-expansion-panel title="Kênh thông báo">
-                <v-expansion-panel-text>
+                <v-expansion-panel-text class="py-2">
                   <v-switch v-model="notificationPrefs.email_enabled" label="Email" color="primary"
-                    hide-details></v-switch>
+                    hide-details density="compact"></v-switch>
                   <v-switch v-model="notificationPrefs.telegram_enabled" label="Telegram" color="primary" hide-details
-                    :disabled="telegramStatus !== 'connected'"></v-switch>
+                    density="compact" :disabled="telegramStatus !== 'connected'"></v-switch>
                   <v-switch v-model="notificationPrefs.in_app_enabled" label="Trong ứng dụng" color="primary"
-                    hide-details></v-switch>
+                    hide-details density="compact"></v-switch>
                   <v-alert v-if="telegramStatus !== 'connected'" type="info" variant="tonal" density="compact"
-                    class="mt-2">
-                    Kích hoạt Telegram ở phần dưới để nhận thông báo qua Telegram
+                    class="mt-2 text-caption">
+                    Kích hoạt Telegram ở phần dưới
                   </v-alert>
                 </v-expansion-panel-text>
               </v-expansion-panel>
 
               <!-- Feature Preferences -->
               <v-expansion-panel title="Loại thông báo">
-                <v-expansion-panel-text>
+                <v-expansion-panel-text class="py-2">
                   <v-switch v-model="notificationPrefs.budget_alerts" label="Cảnh báo ngân sách" color="primary"
-                    hide-details></v-switch>
+                    hide-details density="compact"></v-switch>
                   <v-switch v-model="notificationPrefs.goal_alerts" label="Cảnh báo mục tiêu" color="primary"
-                    hide-details></v-switch>
+                    hide-details density="compact"></v-switch>
                   <v-switch v-model="notificationPrefs.ai_alerts" label="Cảnh báo AI" color="primary"
-                    hide-details></v-switch>
+                    hide-details density="compact"></v-switch>
                   <v-switch v-model="notificationPrefs.transaction_alerts" label="Cảnh báo giao dịch" color="primary"
-                    hide-details></v-switch>
+                    hide-details density="compact"></v-switch>
                   <v-switch v-model="notificationPrefs.analytics_alerts" label="Báo cáo phân tích" color="primary"
-                    hide-details></v-switch>
+                    hide-details density="compact"></v-switch>
                 </v-expansion-panel-text>
               </v-expansion-panel>
 
               <!-- Priority Preferences -->
               <v-expansion-panel title="Mức độ ưu tiên">
-                <v-expansion-panel-text>
+                <v-expansion-panel-text class="py-2">
                   <v-switch v-model="notificationPrefs.urgent_notifications" label="Khẩn cấp" color="red"
-                    hide-details></v-switch>
+                    hide-details density="compact"></v-switch>
                   <v-switch v-model="notificationPrefs.high_notifications" label="Cao" color="orange"
-                    hide-details></v-switch>
+                    hide-details density="compact"></v-switch>
                   <v-switch v-model="notificationPrefs.medium_notifications" label="Trung bình" color="yellow"
-                    hide-details></v-switch>
+                    hide-details density="compact"></v-switch>
                   <v-switch v-model="notificationPrefs.low_notifications" label="Thấp" color="grey"
-                    hide-details></v-switch>
+                    hide-details density="compact"></v-switch>
                 </v-expansion-panel-text>
               </v-expansion-panel>
 
               <!-- Frequency Preferences -->
               <v-expansion-panel title="Tần suất">
-                <v-expansion-panel-text>
+                <v-expansion-panel-text class="py-2">
                   <v-switch v-model="notificationPrefs.daily_digest" label="Báo cáo hàng ngày" color="primary"
-                    hide-details></v-switch>
+                    hide-details density="compact"></v-switch>
                   <v-switch v-model="notificationPrefs.weekly_digest" label="Báo cáo hàng tuần" color="primary"
-                    hide-details></v-switch>
+                    hide-details density="compact"></v-switch>
                   <v-switch v-model="notificationPrefs.monthly_digest" label="Báo cáo hàng tháng" color="primary"
-                    hide-details></v-switch>
+                    hide-details density="compact"></v-switch>
                   <v-switch v-model="notificationPrefs.real_time_alerts" label="Cảnh báo thời gian thực" color="primary"
-                    hide-details></v-switch>
+                    hide-details density="compact"></v-switch>
                 </v-expansion-panel-text>
               </v-expansion-panel>
             </v-expansion-panels>
 
-            <v-divider class="my-4"></v-divider>
+            <v-divider class="my-3"></v-divider>
 
-            <div class="d-flex justify-space-between align-center">
-              <v-btn color="success" @click="testNotification" :loading="testingNotification">
-                <v-icon left>mdi-bell-ring</v-icon>
-                Gửi thông báo test
+            <div class="d-flex justify-end ga-2">
+              <v-btn color="secondary" size="small" @click="resetPreferences" :loading="resetting">
+                Mặc định
               </v-btn>
-              <div>
-                <v-btn color="secondary" @click="resetPreferences" :loading="resetting">
-                  Khôi phục mặc định
-                </v-btn>
-                <v-btn color="primary" @click="savePreferences" :loading="saving" class="ml-2">
-                  Lưu cài đặt
-                </v-btn>
-              </div>
+              <v-btn color="primary" size="small" @click="savePreferences" :loading="saving">
+                Lưu
+              </v-btn>
+            </div>
+          </v-card-text>
+        </v-card>
+
+        <!-- Transaction Settings -->
+        <v-card class="mb-3">
+          <v-card-title class="text-h6 py-3">
+            <v-icon left size="small">mdi-cash-multiple</v-icon>
+            Cài đặt giao dịch
+          </v-card-title>
+
+          <v-card-text class="pt-2 pb-3">
+            <v-text-field
+              v-model.number="largeTransactionThreshold"
+              label="Ngưỡng giao dịch lớn (VND)"
+              type="number"
+              hint="Cảnh báo khi giao dịch chi tiêu vượt ngưỡng"
+              persistent-hint
+              variant="outlined"
+              density="compact"
+              prepend-inner-icon="mdi-alert-circle"
+              :rules="[rules.required, rules.min]"
+              class="mb-3"
+            >
+              <template v-slot:append>
+                <v-btn
+                  icon="mdi-refresh"
+                  variant="text"
+                  size="small"
+                  @click="resetThreshold"
+                  :disabled="savingThreshold"
+                  title="Mặc định: 1,000,000 VND"
+                ></v-btn>
+              </template>
+            </v-text-field>
+
+            <v-alert type="info" variant="tonal" density="compact" class="mb-3 text-caption">
+              <strong>Lưu ý:</strong> Chỉ áp dụng cho giao dịch <strong>chi tiêu</strong>, không áp dụng cho thu nhập.
+            </v-alert>
+
+            <div class="d-flex justify-end">
+              <v-btn
+                color="primary"
+                size="small"
+                @click="saveThreshold"
+                :loading="savingThreshold"
+              >
+                <v-icon left size="small">mdi-content-save</v-icon>
+                Lưu
+              </v-btn>
             </div>
           </v-card-text>
         </v-card>
 
         <!-- Telegram Integration -->
         <v-card>
-          <v-card-title>
-            <v-icon size="36" color="blue">
-              <svg viewBox="0 0 24 24">
+          <v-card-title class="text-h6 py-3">
+            <v-icon size="24" color="blue" class="mr-2">
+              <svg viewBox="0 0 24 24" width="24" height="24">
                 <path fill="currentColor"
                   d="M9.04 16.54L9.25 12.97L17.77 5.52C18.12 5.22 17.73 5.09 17.26 5.33L6.75 10.57L3.26 9.47C2.5 9.24 2.49 8.71 3.42 8.35L20.42 1.7C21.09 1.45 21.67 1.9 21.45 2.84L18.6 16.27C18.44 17.01 17.98 17.21 17.36 16.87L13.83 14.29L12.13 15.92C11.98 16.07 11.86 16.19 11.6 16.19L9.04 16.54Z" />
               </svg>
             </v-icon>
-
             Tích hợp Telegram Bot
           </v-card-title>
 
-          <v-card-text>
-            <p class="text-body-1 mb-4">
-              Liên kết tài khoản TabiMoney với Telegram Bot để sử dụng các tính năng AI và dashboard trên Telegram.
+          <v-card-text class="pt-2 pb-3">
+            <p class="text-body-2 mb-3 text-medium-emphasis">
+              Liên kết tài khoản với Telegram Bot để sử dụng AI và dashboard.
             </p>
 
-            <v-alert v-if="telegramStatus === 'connected'" type="success" class="mb-4">
-              Tài khoản đã được liên kết với Telegram Bot
+            <v-alert v-if="telegramStatus === 'connected'" type="success" density="compact" class="mb-3">
+              Đã liên kết với Telegram Bot
             </v-alert>
 
-            <v-alert v-else-if="telegramStatus === 'disconnected'" type="info" class="mb-4">
-              Tài khoản chưa được liên kết với Telegram Bot
+            <v-alert v-else-if="telegramStatus === 'disconnected'" type="info" density="compact" class="mb-3">
+              Chưa liên kết với Telegram Bot
             </v-alert>
 
             <div v-if="telegramStatus === 'disconnected'">
-              <v-btn color="primary" @click="generateLinkCode" :loading="generatingCode" class="mb-4">
-                <v-icon left>mdi-link</v-icon>
+              <v-btn color="primary" size="small" @click="generateLinkCode" :loading="generatingCode" class="mb-3">
+                <v-icon left size="small">mdi-link</v-icon>
                 Tạo mã liên kết
               </v-btn>
 
-              <v-card v-if="linkCode" class="mt-4" color="primary" variant="outlined">
-                <v-card-text>
-                  <h3 class="text-h6 mb-2">Mã liên kết của bạn:</h3>
-                  <v-text-field :value="linkCode" readonly variant="outlined" append-inner-icon="mdi-content-copy"
+              <v-card v-if="linkCode" class="mt-3" color="primary" variant="outlined" density="compact">
+                <v-card-text class="py-3">
+                  <h3 class="text-subtitle-1 mb-2">Mã liên kết:</h3>
+                  <v-text-field :value="linkCode" readonly variant="outlined" density="compact" 
+                    append-inner-icon="mdi-content-copy"
                     @click:append-inner="copyToClipboard" class="mb-2" hide-details />
-                  <p class="text-caption">
-                    ⏰ Mã này có hiệu lực trong {{ linkCodeExpiry }} phút
+                  <p class="text-caption mb-2">
+                    ⏰ Hiệu lực: {{ linkCodeExpiry }} phút
                   </p>
-                  <p class="text-body-2">
-                    <strong>Hướng dẫn:</strong><br>
-                    1. Sao chép mã liên kết ở trên<br>
-                    2. Mở Telegram và tìm bot @TabiMoneyBot<br>
-                    3. Gửi lệnh /link<br>
-                    4. Dán mã liên kết vào bot<br>
-                    5. Hoàn tất liên kết!
+                  <p class="text-caption">
+                    <strong>Hướng dẫn:</strong> Sao chép mã → Mở Telegram → Tìm @TabiMoneyBot → Gửi /link → Dán mã
                   </p>
                 </v-card-text>
               </v-card>
             </div>
 
             <div v-else-if="telegramStatus === 'connected'">
-              <v-btn color="error" @click="disconnectTelegram" :loading="disconnecting">
-                <v-icon left>mdi-link-off</v-icon>
+              <v-btn color="error" size="small" @click="disconnectTelegram" :loading="disconnecting">
+                <v-icon left size="small">mdi-link-off</v-icon>
                 Hủy liên kết
               </v-btn>
             </div>
@@ -160,36 +199,36 @@
       </v-col>
 
       <v-col cols="12" md="4">
-        <v-card class="h-100">
-          <v-card-title>
-            <v-icon left>mdi-robot</v-icon>
+        <v-card>
+          <v-card-title class="text-h6 py-3">
+            <v-icon left size="small">mdi-robot</v-icon>
             Tính năng Telegram Bot
           </v-card-title>
 
-          <v-card-text>
-            <v-list>
+          <v-card-text class="pt-2 pb-3">
+            <v-list density="compact">
               <v-list-item>
                 <template v-slot:prepend>
-                  <v-icon>mdi-chart-line</v-icon>
+                  <v-icon size="small">mdi-chart-line</v-icon>
                 </template>
-                <v-list-item-title>Dashboard tài chính</v-list-item-title>
-                <v-list-item-subtitle>Xem tổng quan chi tiêu</v-list-item-subtitle>
+                <v-list-item-title class="text-body-2">Dashboard tài chính</v-list-item-title>
+                <v-list-item-subtitle class="text-caption">Xem tổng quan chi tiêu</v-list-item-subtitle>
               </v-list-item>
 
               <v-list-item>
                 <template v-slot:prepend>
-                  <v-icon>mdi-chat</v-icon>
+                  <v-icon size="small">mdi-chat</v-icon>
                 </template>
-                <v-list-item-title>Chat với AI</v-list-item-title>
-                <v-list-item-subtitle>Phân tích và tư vấn tài chính</v-list-item-subtitle>
+                <v-list-item-title class="text-body-2">Chat với AI</v-list-item-title>
+                <v-list-item-subtitle class="text-caption">Phân tích và tư vấn</v-list-item-subtitle>
               </v-list-item>
 
               <v-list-item>
                 <template v-slot:prepend>
-                  <v-icon>mdi-bell</v-icon>
+                  <v-icon size="small">mdi-bell</v-icon>
                 </template>
-                <v-list-item-title>Thông báo</v-list-item-title>
-                <v-list-item-subtitle>Nhận cảnh báo chi tiêu</v-list-item-subtitle>
+                <v-list-item-title class="text-body-2">Thông báo</v-list-item-title>
+                <v-list-item-subtitle class="text-caption">Nhận cảnh báo chi tiêu</v-list-item-subtitle>
               </v-list-item>
             </v-list>
           </v-card-text>
@@ -211,7 +250,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { api } from '@/services/api'
+import { api, authAPI } from '@/services/api'
 import { notificationPreferencesAPI } from '@/services/api'
 import { useAuthStore } from '../../stores/auth'
 const authStore = useAuthStore()
@@ -222,6 +261,14 @@ const linkCode = ref('')
 const generatingCode = ref(false)
 const disconnecting = ref(false)
 const linkCodeExpiry = ref(10)
+
+// Transaction settings
+const largeTransactionThreshold = ref(null) // null means use default
+const savingThreshold = ref(false)
+const rules = {
+  required: (v) => v !== null && v !== undefined && v !== '' || 'Vui lòng nhập ngưỡng',
+  min: (v) => v === null || v === undefined || v >= 0 || 'Ngưỡng phải lớn hơn hoặc bằng 0'
+}
 
 // Notification preferences
 const notificationPrefs = ref({
@@ -248,7 +295,6 @@ const notificationPrefs = ref({
 })
 const saving = ref(false)
 const resetting = ref(false)
-const testingNotification = ref(false)
 
 const snackbar = ref({
   show: false,
@@ -404,27 +450,51 @@ const resetPreferences = async () => {
   }
 }
 
-const testNotification = async () => {
+// Transaction threshold methods
+const loadThreshold = async () => {
   try {
-    testingNotification.value = true
-    await notificationPreferencesAPI.testNotification('in_app')
-    showSnackbar('Thông báo test đã được gửi! Kiểm tra hộp thông báo ở góc trên.', 'success')
-    // Reload notifications after a short delay to see the new notification
-    setTimeout(() => {
-      // Trigger notification reload in App.vue by dispatching event or window reload notifications
-      window.dispatchEvent(new Event('notification:refresh'))
-    }, 500)
+    const response = await api.get('/auth/profile')
+    if (response.data?.profile?.large_transaction_threshold) {
+      largeTransactionThreshold.value = response.data.profile.large_transaction_threshold
+    } else {
+      largeTransactionThreshold.value = null
+    }
   } catch (error) {
-    console.error('Error sending test notification:', error)
-    showSnackbar('Không thể gửi thông báo test. Vui lòng thử lại.', 'error')
-  } finally {
-    testingNotification.value = false
+    console.error('Error loading threshold:', error)
   }
+}
+
+const saveThreshold = async () => {
+  try {
+    savingThreshold.value = true
+    const threshold = largeTransactionThreshold.value === null || largeTransactionThreshold.value === '' 
+      ? null 
+      : parseFloat(largeTransactionThreshold.value)
+    
+    await authAPI.setLargeTransactionThreshold(threshold)
+    showSnackbar(
+      threshold === null 
+        ? 'Đã khôi phục ngưỡng về mặc định (1,000,000 VND)' 
+        : `Đã lưu ngưỡng giao dịch lớn: ${threshold.toLocaleString('vi-VN')} VND`,
+      'success'
+    )
+  } catch (error) {
+    console.error('Error saving threshold:', error)
+    showSnackbar('Không thể lưu ngưỡng. Vui lòng thử lại.', 'error')
+  } finally {
+    savingThreshold.value = false
+  }
+}
+
+const resetThreshold = () => {
+  largeTransactionThreshold.value = null
+  saveThreshold()
 }
 
 // Lifecycle
 onMounted(() => {
   checkTelegramStatus()
   loadNotificationPreferences()
+  loadThreshold()
 })
 </script>

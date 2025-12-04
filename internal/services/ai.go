@@ -207,7 +207,7 @@ func (s *AIService) DetectAnomalies(req *models.AnomalyDetectionRequest) (*model
 			filtered = filtered[:3]
 		}
 		// 3) Best-effort dedupe: skip if a recent notification exists for same transaction
-		dispatcher := NewNotificationDispatcher()
+		dispatcher := NewNotificationDispatcher(s.config)
 		oneWeekAgo := time.Now().AddDate(0, 0, -7)
 		for _, anomaly := range filtered {
 			var recent models.Notification
@@ -401,8 +401,8 @@ func (s *AIService) AnalyzeSpendingPattern(req *models.SpendingPatternRequest) (
 
 	patterns := s.analyzeSpendingPatterns(transactions, req.Granularity)
 	// Immediate rule-based insights as fallback
-	rbInsights := s.generateSpendingInsights(patterns)
-	rbRecs := s.generateSpendingRecommendations(patterns)
+	rbInsights := s.generateSpendingInsights(req.UserID, patterns)
+	rbRecs := s.generateSpendingRecommendations(req.UserID, patterns)
 	immediate := &models.SpendingPatternResponse{
 		UserID:          req.UserID,
 		Patterns:        patterns,
@@ -464,12 +464,12 @@ func (s *AIService) fetchDynamicSpendingInsights(userID uint64, patterns []model
 	b, _ := json.Marshal(payload)
 	req, err := http.NewRequest("POST", s.aiServiceURL+"/analysis/spending", bytes.NewBuffer(b))
 	if err != nil {
-		return s.generateSpendingInsights(patterns), s.generateSpendingRecommendations(patterns)
+		return s.generateSpendingInsights(userID, patterns), s.generateSpendingRecommendations(userID, patterns)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := s.httpClient.Do(req)
 	if err != nil || resp.StatusCode != http.StatusOK {
-		return s.generateSpendingInsights(patterns), s.generateSpendingRecommendations(patterns)
+		return s.generateSpendingInsights(userID, patterns), s.generateSpendingRecommendations(userID, patterns)
 	}
 	defer resp.Body.Close()
 	var out struct {
@@ -477,7 +477,7 @@ func (s *AIService) fetchDynamicSpendingInsights(userID uint64, patterns []model
 		Recommendations []string `json:"recommendations"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
-		return s.generateSpendingInsights(patterns), s.generateSpendingRecommendations(patterns)
+		return s.generateSpendingInsights(userID, patterns), s.generateSpendingRecommendations(userID, patterns)
 	}
 	if out.Insights == nil {
 		out.Insights = []string{}
@@ -784,7 +784,7 @@ func (s *AIService) analyzeSpendingPatterns(transactions []models.Transaction, g
 	return patterns
 }
 
-func (s *AIService) generateSpendingInsights(patterns []models.SpendingPattern) []string {
+func (s *AIService) generateSpendingInsights(userID uint64, patterns []models.SpendingPattern) []string {
 	insights := []string{}
 	if len(patterns) == 0 {
 		return insights
@@ -813,8 +813,9 @@ func (s *AIService) generateSpendingInsights(patterns []models.SpendingPattern) 
 
 	// Insight 2: High average ticket categories
 	hiAvg := []string{}
+	threshold := s.getLargeTransactionThreshold(userID)
 	for _, p := range top {
-		if p.AverageAmount >= 1000000 && p.TransactionCount >= 3 { // ~1,000,000 VND
+		if p.AverageAmount >= threshold && p.TransactionCount >= 3 {
 			hiAvg = append(hiAvg, p.CategoryName)
 		}
 		if len(hiAvg) >= 3 {
@@ -846,7 +847,7 @@ func (s *AIService) generateSpendingInsights(patterns []models.SpendingPattern) 
 	return insights
 }
 
-func (s *AIService) generateSpendingRecommendations(patterns []models.SpendingPattern) []string {
+func (s *AIService) generateSpendingRecommendations(userID uint64, patterns []models.SpendingPattern) []string {
 	recs := []string{}
 	if len(patterns) == 0 {
 		return []string{"Chưa đủ dữ liệu để gợi ý chi tiêu."}
@@ -874,8 +875,9 @@ func (s *AIService) generateSpendingRecommendations(patterns []models.SpendingPa
 		}
 	}
 	// Recommend review high average categories
+	threshold := s.getLargeTransactionThreshold(userID)
 	for _, p := range sorted {
-		if p.AverageAmount >= 1000000 && p.TransactionCount >= 3 {
+		if p.AverageAmount >= threshold && p.TransactionCount >= 3 {
 			recs = append(recs, fmt.Sprintf("Xem lại các khoản lớn ở %s, cân nhắc giảm tần suất/giá trị.", p.CategoryName))
 		}
 	}
@@ -883,6 +885,19 @@ func (s *AIService) generateSpendingRecommendations(patterns []models.SpendingPa
 		recs = append(recs, "Theo dõi chi tiêu hàng tuần và đặt hạn mức cho 1-2 danh mục lớn nhất.")
 	}
 	return recs
+}
+
+// getLargeTransactionThreshold gets the large transaction threshold for a user
+// Returns user's custom threshold if set, otherwise returns system default (1,000,000 VND)
+func (s *AIService) getLargeTransactionThreshold(userID uint64) float64 {
+	var profile models.UserProfile
+	if err := s.db.Where("user_id = ?", userID).First(&profile).Error; err == nil {
+		if profile.LargeTransactionThreshold != nil && *profile.LargeTransactionThreshold > 0 {
+			return *profile.LargeTransactionThreshold
+		}
+	}
+	// Default threshold: 1,000,000 VND (1 million)
+	return 1000000
 }
 
 func (s *AIService) calculateGoalProgress(goal models.FinancialGoal, transactions []models.Transaction) float64 {

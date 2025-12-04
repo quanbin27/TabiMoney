@@ -36,16 +36,17 @@ type User struct {
 }
 
 type UserProfile struct {
-	ID                   uint64    `json:"id" gorm:"primaryKey"`
-	UserID               uint64    `json:"user_id" gorm:"uniqueIndex;not null"`
-	MonthlyIncome        float64   `json:"monthly_income" gorm:"default:0"`
-	Currency             string    `json:"currency" gorm:"default:'VND'"`
-	Timezone             string    `json:"timezone" gorm:"default:'Asia/Ho_Chi_Minh'"`
-	Language             string    `json:"language" gorm:"default:'vi'"`
-	NotificationSettings string    `json:"notification_settings" gorm:"type:json"`
-	AISettings           string    `json:"ai_settings" gorm:"type:json"`
-	CreatedAt            time.Time `json:"created_at"`
-	UpdatedAt            time.Time `json:"updated_at"`
+	ID                        uint64    `json:"id" gorm:"primaryKey"`
+	UserID                    uint64    `json:"user_id" gorm:"uniqueIndex;not null"`
+	MonthlyIncome             float64   `json:"monthly_income" gorm:"default:0"`
+	Currency                  string    `json:"currency" gorm:"default:'VND'"`
+	Timezone                  string    `json:"timezone" gorm:"default:'Asia/Ho_Chi_Minh'"`
+	Language                  string    `json:"language" gorm:"default:'vi'"`
+	NotificationSettings      string    `json:"notification_settings" gorm:"type:json"`
+	AISettings                string    `json:"ai_settings" gorm:"type:json"`
+	LargeTransactionThreshold *float64  `json:"large_transaction_threshold" gorm:"default:NULL"` // NULL means use system default
+	CreatedAt                 time.Time `json:"created_at"`
+	UpdatedAt                 time.Time `json:"updated_at"`
 
 	// Relations
 	User *User `json:"user,omitempty" gorm:"foreignKey:UserID"`
@@ -93,12 +94,13 @@ type UserUpdateRequest struct {
 
 // UserProfileUpdateRequest represents the request payload for updating user profile settings
 type UserProfileUpdateRequest struct {
-	MonthlyIncome        float64 `json:"monthly_income" validate:"min=0"`
-	Currency             string  `json:"currency" validate:"len=3"`
-	Timezone             string  `json:"timezone"`
-	Language             string  `json:"language" validate:"len=2"`
-	NotificationSettings string  `json:"notification_settings"`
-	AISettings           string  `json:"ai_settings"`
+	MonthlyIncome             float64  `json:"monthly_income" validate:"min=0"`
+	Currency                  string   `json:"currency" validate:"len=3"`
+	Timezone                  string   `json:"timezone"`
+	Language                  string   `json:"language" validate:"len=2"`
+	NotificationSettings      string   `json:"notification_settings"`
+	AISettings                string   `json:"ai_settings"`
+	LargeTransactionThreshold *float64 `json:"large_transaction_threshold" validate:"min=0"`
 }
 
 // UserResponse represents the response payload for user data
@@ -119,16 +121,17 @@ type UserResponse struct {
 
 // UserProfileResponse represents the response payload for user profile data
 type UserProfileResponse struct {
-	ID                   uint64    `json:"id"`
-	UserID               uint64    `json:"user_id"`
-	MonthlyIncome        float64   `json:"monthly_income"`
-	Currency             string    `json:"currency"`
-	Timezone             string    `json:"timezone"`
-	Language             string    `json:"language"`
-	NotificationSettings string    `json:"notification_settings"`
-	AISettings           string    `json:"ai_settings"`
-	CreatedAt            time.Time `json:"created_at"`
-	UpdatedAt            time.Time `json:"updated_at"`
+	ID                        uint64     `json:"id"`
+	UserID                    uint64     `json:"user_id"`
+	MonthlyIncome             float64    `json:"monthly_income"`
+	Currency                  string     `json:"currency"`
+	Timezone                  string     `json:"timezone"`
+	Language                  string     `json:"language"`
+	NotificationSettings      string     `json:"notification_settings"`
+	AISettings                string     `json:"ai_settings"`
+	LargeTransactionThreshold *float64   `json:"large_transaction_threshold"`
+	CreatedAt                 time.Time  `json:"created_at"`
+	UpdatedAt                 time.Time  `json:"updated_at"`
 }
 
 // AuthResponse represents the response payload for authentication

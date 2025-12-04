@@ -8,14 +8,14 @@
             <div class="d-flex align-center">
               <v-icon class="mr-3" size="large">mdi-target</v-icon>
               <div>
-                <h2 class="text-h5">Financial Goals</h2>
+                <h2 class="text-h5">Mục tiêu tài chính</h2>
                 <p class="text-subtitle-1 mb-0 opacity-90">
-                  Set and track your financial objectives
+                  Đặt và theo dõi các mục tiêu tài chính của bạn
                 </p>
               </div>
             </div>
             <v-btn color="white" variant="outlined" @click="openCreateDialog" prepend-icon="mdi-plus">
-              New Goal
+              Mục tiêu mới
             </v-btn>
           </v-card-title>
         </v-card>
@@ -32,12 +32,12 @@
       <v-col cols="12">
         <v-card class="text-center pa-8">
           <v-icon size="64" color="grey-lighten-1">mdi-target</v-icon>
-          <h3 class="text-h6 mt-4 text-grey">No Goals Yet</h3>
+          <h3 class="text-h6 mt-4 text-grey">Chưa có mục tiêu nào</h3>
           <p class="text-body-2 text-grey mb-4">
-            Start by creating your first financial goal
+            Bắt đầu bằng cách tạo mục tiêu tài chính đầu tiên của bạn
           </p>
           <v-btn color="primary" @click="openCreateDialog" prepend-icon="mdi-plus">
-            Create Your First Goal
+            Tạo mục tiêu đầu tiên
           </v-btn>
         </v-card>
       </v-col>
@@ -47,36 +47,36 @@
     <v-dialog v-model="dialog" max-width="600">
       <v-card>
         <v-card-title>
-          {{ isEditing ? 'Edit Goal' : 'Create New Goal' }}
+          {{ isEditing ? 'Chỉnh sửa mục tiêu' : 'Tạo mục tiêu mới' }}
         </v-card-title>
         <v-card-text>
           <v-form ref="formRef" validate-on="submit">
-            <v-text-field v-model="form.title" label="Goal Title" :rules="[rules.required]" required
+            <v-text-field v-model="form.title" label="Tên mục tiêu" :rules="[rules.required]" required
               clearable></v-text-field>
 
-            <v-textarea v-model="form.description" label="Description" rows="3"></v-textarea>
+            <v-textarea v-model="form.description" label="Mô tả" rows="3"></v-textarea>
 
-            <v-text-field v-model="form.target_amount" label="Target Amount" type="number"
+            <v-text-field v-model="form.target_amount" label="Số tiền mục tiêu" type="number"
               :rules="[rules.required, rules.positive]" prefix="₫" required clearable></v-text-field>
 
-            <v-text-field v-model="form.current_amount" label="Current Amount" type="number" :rules="[rules.positive]"
+            <v-text-field v-model="form.current_amount" label="Số tiền hiện tại" type="number" :rules="[rules.positive]"
               prefix="₫" clearable></v-text-field>
 
-            <v-text-field v-model.lazy="form.target_date" label="Target Date" type="date"
+            <v-text-field v-model.lazy="form.target_date" label="Ngày hoàn thành dự kiến" type="date"
               :rules="[rules.required, rules.futureDate]" required></v-text-field>
 
-            <v-select v-model="form.goal_type" label="Goal Type" :items="goalTypes" item-title="title"
+            <v-select v-model="form.goal_type" label="Loại mục tiêu" :items="goalTypes" item-title="title"
               item-value="value" :rules="[rules.required]" required></v-select>
 
-            <v-select v-model="form.priority" label="Priority" :items="priorities" item-title="title" item-value="value"
+            <v-select v-model="form.priority" label="Mức độ ưu tiên" :items="priorities" item-title="title" item-value="value"
               :rules="[rules.required]" required></v-select>
           </v-form>
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn @click="closeDialog">Cancel</v-btn>
+          <v-btn @click="closeDialog">Hủy</v-btn>
           <v-btn type="submit" color="primary" @click="saveGoal" :loading="saving">
-            {{ isEditing ? 'Update' : 'Create' }}
+            {{ isEditing ? 'Cập nhật' : 'Tạo mới' }}
           </v-btn>
         </v-card-actions>
       </v-card>
@@ -120,37 +120,37 @@ const form = ref({
 
 // Options
 const goalTypes = [
-  { title: 'Savings', value: 'savings' },
-  { title: 'Debt Payment', value: 'debt_payment' },
-  { title: 'Investment', value: 'investment' },
-  { title: 'Purchase', value: 'purchase' },
-  { title: 'Other', value: 'other' }
+  { title: 'Tiết kiệm', value: 'savings' },
+  { title: 'Trả nợ', value: 'debt_payment' },
+  { title: 'Đầu tư', value: 'investment' },
+  { title: 'Mua sắm', value: 'purchase' },
+  { title: 'Khác', value: 'other' }
 ]
 
 const priorities = [
-  { title: 'Low', value: 'low' },
-  { title: 'Medium', value: 'medium' },
-  { title: 'High', value: 'high' },
-  { title: 'Urgent', value: 'urgent' }
+  { title: 'Thấp', value: 'low' },
+  { title: 'Trung bình', value: 'medium' },
+  { title: 'Cao', value: 'high' },
+  { title: 'Khẩn cấp', value: 'urgent' }
 ]
 
 // Validation rules
 const rules = {
   required: (value) => {
-    if (value === null || value === undefined) return 'This field is required'
+    if (value === null || value === undefined) return 'Trường này là bắt buộc'
     if (typeof value === 'number') return true // allow 0 as valid
-    if (typeof value === 'string') return value.trim().length > 0 || 'This field is required'
-    return !!value || 'This field is required'
+    if (typeof value === 'string') return value.trim().length > 0 || 'Trường này là bắt buộc'
+    return !!value || 'Trường này là bắt buộc'
   },
   positive: (value) => {
     if (value === null || value === undefined) return true
-    return value >= 0 || 'Value must be positive'
+    return value >= 0 || 'Giá trị phải lớn hơn hoặc bằng 0'
   },
   futureDate: (value) => {
     if (!value) return true
     const today = new Date()
     today.setHours(0, 0, 0, 0)
-    return new Date(value) > today || 'Date must be in the future'
+    return new Date(value) > today || 'Ngày phải nằm trong tương lai'
   }
 }
 
@@ -161,7 +161,7 @@ const loadGoals = async () => {
     goals.value = response.data.data || []
   } catch (error) {
     console.error('Failed to load goals:', error)
-    useAppStore().showError('Failed to load goals')
+    useAppStore().showError('Không thể tải danh sách mục tiêu')
   }
 }
 
@@ -232,25 +232,25 @@ const saveGoal = async () => {
     await loadGoals()
     closeDialog()
     useAppStore().showSuccess(
-      isEditing.value ? 'Goal updated successfully' : 'Goal created successfully'
+      isEditing.value ? 'Cập nhật mục tiêu thành công' : 'Tạo mục tiêu thành công'
     )
   } catch (error) {
     console.error('Failed to save goal:', error)
-    useAppStore().showError('Failed to save goal')
+    useAppStore().showError('Không thể lưu mục tiêu')
   } finally {
     saving.value = false
   }
 }
 
 const deleteGoal = async (goalId) => {
-  if (confirm('Are you sure you want to delete this goal?')) {
+  if (confirm('Bạn có chắc chắn muốn xoá mục tiêu này?')) {
     try {
       await goalAPI.deleteGoal(goalId)
       await loadGoals()
-      useAppStore().showSuccess('Goal deleted successfully')
+      useAppStore().showSuccess('Đã xoá mục tiêu thành công')
     } catch (error) {
       console.error('Failed to delete goal:', error)
-      useAppStore().showError('Failed to delete goal')
+      useAppStore().showError('Không thể xoá mục tiêu')
     }
   }
 }

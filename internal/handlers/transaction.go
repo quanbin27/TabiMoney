@@ -5,6 +5,7 @@ import (
     "strconv"
     "time"
 
+    "tabimoney/internal/config"
     "tabimoney/internal/models"
     "tabimoney/internal/services"
 
@@ -15,8 +16,8 @@ type TransactionHandler struct {
     svc *services.TransactionService
 }
 
-func NewTransactionHandler() *TransactionHandler {
-    return &TransactionHandler{svc: services.NewTransactionService()}
+func NewTransactionHandler(cfg *config.Config) *TransactionHandler {
+    return &TransactionHandler{svc: services.NewTransactionService(cfg)}
 }
 
 func (h *TransactionHandler) List(c echo.Context) error {

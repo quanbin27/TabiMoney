@@ -1,9 +1,9 @@
 <template>
   <v-container class="py-8">
     <div class="d-flex justify-space-between align-center mb-6">
-      <h1 class="text-h4">Categories</h1>
+      <h1 class="text-h4">Danh mục</h1>
       <v-btn color="primary" prepend-icon="mdi-plus" @click="AddNew">
-        Add Category
+        Thêm danh mục
       </v-btn>
     </div>
     <TableBudgetView :categories="categories" :totalCategories="totalCategories" @on-edit="(item) => handleOnEdit(item)"
@@ -37,7 +37,7 @@ async function loadCategories(options = {}) {
     filteredCategories.value = categories.value
     totalCategories.value = categories.value.length
   } catch (e) {
-    app.showError(e?.message || 'Failed to load categories')
+    app.showError(e?.message || 'Không thể tải danh mục')
   } finally {
     loading.value = false
   }

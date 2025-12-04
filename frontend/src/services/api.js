@@ -31,25 +31,25 @@ api.interceptors.response.use(
         return api.request(error.config)
       } catch (refreshError) {
         await authStore.logout()
-        appStore.showError('Session expired. Please login again.')
+        appStore.showError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.')
         return Promise.reject(refreshError)
       }
     }
 
     if (error.response?.status === 403) {
-      appStore.showError('You do not have permission to perform this action.')
+      appStore.showError('Bạn không có quyền thực hiện thao tác này.')
     }
 
     if (error.response?.status === 404) {
-      appStore.showError('Resource not found.')
+      appStore.showError('Không tìm thấy tài nguyên.')
     }
 
     if (error.response?.status >= 500) {
-      appStore.showError('Server error. Please try again later.')
+      appStore.showError('Lỗi máy chủ. Vui lòng thử lại sau.')
     }
 
     if (!error.response) {
-      appStore.showError('Network error. Please check your connection.')
+      appStore.showError('Lỗi mạng. Vui lòng kiểm tra kết nối của bạn.')
     }
 
     return Promise.reject(error)
@@ -66,6 +66,7 @@ export const authAPI = {
   changePassword: (passwordData) => api.post('/auth/change-password', passwordData),
   getIncome: () => api.get('/auth/income'),
   setIncome: (monthly_income) => api.put('/auth/income', { monthly_income }),
+  setLargeTransactionThreshold: (threshold) => api.put('/auth/large-transaction-threshold', { threshold }),
 }
 
 export const transactionAPI = {

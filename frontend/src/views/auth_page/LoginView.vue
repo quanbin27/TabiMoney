@@ -7,7 +7,7 @@
             <v-icon size="48" color="primary" class="mb-4">mdi-wallet</v-icon>
             <h2 class="text-h4 font-weight-bold">TabiMoney</h2>
             <p class="text-subtitle-1 text-medium-emphasis mt-2">
-              AI-Powered Personal Finance Management
+              Quản lý tài chính cá nhân với AI
             </p>
           </v-card-title>
 
@@ -16,13 +16,13 @@
               <v-text-field v-model="form.email" label="Email" type="email" variant="outlined" :rules="emailRules"
                 :error-messages="errors.email" required class="mb-4" />
 
-              <v-text-field v-model="form.password" label="Password" type="password" variant="outlined"
+              <v-text-field v-model="form.password" label="Mật khẩu" type="password" variant="outlined"
                 :rules="passwordRules" :error-messages="errors.password" required class="mb-4" />
 
-              <v-checkbox v-model="form.remember" label="Remember me" color="primary" class="mb-4" />
+              <v-checkbox v-model="form.remember" label="Ghi nhớ đăng nhập" color="primary" class="mb-4" />
 
               <v-btn type="submit" color="primary" size="large" block :loading="loading" :disabled="!isFormValid">
-                Login
+                Đăng nhập
               </v-btn>
             </v-form>
           </v-card-text>
@@ -31,9 +31,9 @@
             <v-row>
               <v-col cols="12" class="text-center">
                 <p class="text-body-2">
-                  Don't have an account?
+                  Chưa có tài khoản?
                   <router-link to="/auth/register" class="text-primary text-decoration-none">
-                    Sign up here
+                    Đăng ký tại đây
                   </router-link>
                 </p>
               </v-col>
@@ -64,13 +64,13 @@ const form = reactive({
 
 // Form validation
 const emailRules = [
-  (v) => !!v || 'Email is required',
-  (v) => /.+@.+\..+/.test(v) || 'Email must be valid',
+  (v) => !!v || 'Vui lòng nhập email',
+  (v) => /.+@.+\..+/.test(v) || 'Email không hợp lệ',
 ]
 
 const passwordRules = [
-  (v) => !!v || 'Password is required',
-  (v) => v.length >= 6 || 'Password must be at least 6 characters',
+  (v) => !!v || 'Vui lòng nhập mật khẩu',
+  (v) => v.length >= 6 || 'Mật khẩu phải có ít nhất 6 ký tự',
 ]
 
 // Form state
@@ -102,7 +102,7 @@ const handleLogin = async () => {
       password: form.password,
     })
 
-    appStore.showSuccess('Login successful!')
+    appStore.showSuccess('Đăng nhập thành công!')
   } catch (error) {
     if (error.message.includes('email')) {
       errors.email = [error.message]

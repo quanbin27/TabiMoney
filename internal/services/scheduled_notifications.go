@@ -16,12 +16,14 @@ import (
 type ScheduledNotificationService struct {
 	dispatcher *NotificationDispatcher
 	db         *gorm.DB
+	config     *config.Config
 }
 
-func NewScheduledNotificationService() *ScheduledNotificationService {
+func NewScheduledNotificationService(cfg *config.Config) *ScheduledNotificationService {
 	return &ScheduledNotificationService{
-		dispatcher: NewNotificationDispatcher(),
+		dispatcher: NewNotificationDispatcher(cfg),
 		db:         database.GetDB(),
+		config:     cfg,
 	}
 }
 
@@ -93,7 +95,7 @@ func (s *ScheduledNotificationService) checkBudgetAlerts() error {
 
 	for _, budget := range budgets {
 		// Calculate current metrics
-		bs := NewBudgetService()
+		bs := NewBudgetService(s.config)
 		bs.calculateBudgetMetrics(&budget)
 
 		// Check if budget needs alert
@@ -127,7 +129,7 @@ func (s *ScheduledNotificationService) checkBudgetPacingAlerts() error {
     if err := s.db.Where("is_active = ? AND start_date <= ? AND end_date >= ?", true, now, now).Find(&budgets).Error; err != nil {
         return err
     }
-    bs := NewBudgetService()
+    bs := NewBudgetService(s.config)
     for _, b := range budgets {
         bb := b // copy
         bs.calculateBudgetMetrics(&bb)
@@ -241,7 +243,7 @@ func (s *ScheduledNotificationService) checkMonthlyReports() error {
 		
 		if err == gorm.ErrRecordNotFound {
 			// Generate and send monthly report
-			ts := NewTransactionService()
+			ts := NewTransactionService(s.config)
 			analytics, err := ts.GetMonthlySummary(user.ID, now.Year(), int(now.Month()-1))
 			if err == nil {
 				s.dispatcher.TriggerMonthlyReportAlert(user.ID, analytics)
@@ -268,7 +270,7 @@ func (s *ScheduledNotificationService) checkFinancialHealthAlerts() error {
 
 	for _, user := range users {
 		// Generate monthly analytics
-		ts := NewTransactionService()
+		ts := NewTransactionService(s.config)
 		analytics, err := ts.GetMonthlySummary(user.ID, now.Year(), int(now.Month()-1))
 		if err != nil {
 			continue

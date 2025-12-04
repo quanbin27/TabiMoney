@@ -131,25 +131,34 @@ const getProgressPercentage = (goal) => {
 }
 
 const getGoalStatus = (goal) => {
-    const progress = getProgressPercentage(goal)
+    const progress = Number(getProgressPercentage(goal))
     const now = new Date()
-    const targetDate = new Date(goal.target_date)
+    const targetDate = goal.target_date ? new Date(goal.target_date) : null
 
-    if (progress >= 100) return 'completed'
-    if (targetDate < now) return 'overdue'
-    if (progress >= 75) return 'on_track'
-    if (progress >= 50) return 'in_progress'
-    return 'not_started'
+    // Nếu backend đã đánh dấu đạt mục tiêu thì ưu tiên trạng thái này
+    if (goal.is_achieved) return 'completed'
+
+    // Nếu chưa có ngày mục tiêu hoặc ngày mục tiêu nằm trong quá khứ mà chưa đạt -> quá hạn
+    if (targetDate && targetDate < now && progress < 100) return 'overdue'
+
+    // Nếu chưa có đóng góp nào
+    if (!goal.current_amount || goal.current_amount === 0) return 'not_started'
+
+    // Đã có tiền hiện tại nhưng chưa đạt
+    if (progress < 50) return 'in_progress'
+    if (progress < 100) return 'on_track'
+
+    return 'in_progress'
 }
 
 const getGoalStatusText = (goal) => {
     const status = getGoalStatus(goal)
     const statusMap = {
-        completed: 'Completed',
-        overdue: 'Overdue',
-        on_track: 'On Track',
-        in_progress: 'In Progress',
-        not_started: 'Not Started'
+        completed: 'Hoàn thành',
+        overdue: 'Quá hạn',
+        on_track: 'Đúng tiến độ',
+        in_progress: 'Đang thực hiện',
+        not_started: 'Chưa bắt đầu'
     }
     return statusMap[status] || 'Unknown'
 }

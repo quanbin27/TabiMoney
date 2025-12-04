@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	"tabimoney/internal/config"
 	"tabimoney/internal/database"
 	"tabimoney/internal/models"
 
@@ -12,12 +13,14 @@ import (
 )
 
 type GoalService struct {
-	db *gorm.DB
+	db     *gorm.DB
+	config *config.Config
 }
 
-func NewGoalService() *GoalService {
+func NewGoalService(cfg *config.Config) *GoalService {
 	return &GoalService{
-		db: database.GetDB(),
+		db:     database.GetDB(),
+		config: cfg,
 	}
 }
 
@@ -68,6 +71,14 @@ func (s *GoalService) UpdateGoal(userID uint64, goalID uint64, req *models.Finan
 		return nil, fmt.Errorf("goal not found: %w", err)
 	}
 
+	// Basic validation to keep domain state consistent
+	if req.TargetAmount <= 0 {
+		return nil, fmt.Errorf("target_amount must be greater than 0")
+	}
+	if req.CurrentAmount < 0 {
+		return nil, fmt.Errorf("current_amount cannot be negative")
+	}
+
 	// Update fields
 	goal.Title = req.Title
 	goal.Description = req.Description
@@ -77,11 +88,19 @@ func (s *GoalService) UpdateGoal(userID uint64, goalID uint64, req *models.Finan
 	goal.GoalType = req.GoalType
 	goal.Priority = req.Priority
 
-	// Check if goal is achieved
-	if goal.CurrentAmount >= goal.TargetAmount && !goal.IsAchieved {
-		goal.IsAchieved = true
-		now := time.Now()
-		goal.AchievedAt = &now
+	// Recalculate achievement state based on new numbers
+	if goal.CurrentAmount >= goal.TargetAmount {
+		if !goal.IsAchieved {
+			goal.IsAchieved = true
+			now := time.Now()
+			goal.AchievedAt = &now
+		}
+	} else {
+		// If user chỉnh lại target hoặc current xuống thấp hơn, coi như goal chưa đạt nữa
+		if goal.IsAchieved {
+			goal.IsAchieved = false
+			goal.AchievedAt = nil
+		}
 	}
 
 	if err := s.db.Save(&goal).Error; err != nil {
@@ -117,6 +136,15 @@ func (s *GoalService) AddContribution(userID uint64, goalID uint64, amount float
 		return nil, fmt.Errorf("goal not found: %w", err)
 	}
 
+	if amount <= 0 {
+		return nil, fmt.Errorf("contribution amount must be greater than 0")
+	}
+
+	// Không cho góp thêm vào mục tiêu đã đạt để tránh trạng thái/notification khó hiểu
+	if goal.IsAchieved {
+		return nil, fmt.Errorf("goal is already achieved; cannot add more contributions")
+	}
+
 	goal.CurrentAmount += amount
 
 	// Check if goal is achieved
@@ -145,7 +173,7 @@ func (s *GoalService) AddContribution(userID uint64, goalID uint64, amount float
 
 // checkGoalNotifications checks and triggers goal notifications
 func (s *GoalService) checkGoalNotifications(userID uint64, goal *models.FinancialGoal) {
-	dispatcher := NewNotificationDispatcher()
+	dispatcher := NewNotificationDispatcher(s.config)
 
 	// Check if goal is achieved
 	if goal.IsAchieved {

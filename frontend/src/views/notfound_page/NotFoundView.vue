@@ -1,6 +1,6 @@
 <template>
   <div class="text-center mt-10">
-    <h1>404 - Page Not Found</h1>
+    <h1>404 - Không tìm thấy trang</h1>
     <p>Trang bạn truy cập không tồn tại. Sẽ quay về trang chủ sau {{ countdown }} giây...</p>
   </div>
 </template>

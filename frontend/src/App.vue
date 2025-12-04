@@ -18,9 +18,9 @@
           </v-btn>
         </template>
         <v-list style="min-width: 320px; max-width: 420px; max-height: 420px; overflow-y: auto;">
-          <v-list-subheader>Notifications</v-list-subheader>
+          <v-list-subheader>Thông báo</v-list-subheader>
           <v-list-item v-if="notifications.length === 0">
-            <v-list-item-title>No notifications</v-list-item-title>
+            <v-list-item-title>Không có thông báo</v-list-item-title>
           </v-list-item>
           <v-list-item v-for="n in notifications" :key="n.id" :class="['notification-item', { 'opacity-70': n.is_read }]">
             <div class="d-flex align-center justify-space-between w-100">
@@ -35,7 +35,7 @@
             <template v-slot:append>
               <div class="notification-actions">
                 <v-btn size="x-small" variant="text" @click.stop="openNotification(n)">Xem</v-btn>
-                <v-btn v-if="!n.is_read" size="x-small" variant="text" @click.stop="markRead(n.id)">Mark read</v-btn>
+                <v-btn v-if="!n.is_read" size="x-small" variant="text" @click.stop="markRead(n.id)">Đánh dấu đã đọc</v-btn>
               </div>
             </template>
           </v-list-item>
@@ -89,12 +89,14 @@
           <v-list-item @click="goToProfile">
             <v-list-item-title>
               <v-icon>mdi-account</v-icon>
-              Profile</v-list-item-title>
+              Hồ sơ
+            </v-list-item-title>
           </v-list-item>
           <v-list-item @click="logout">
             <v-list-item-title>
               <v-icon>mdi-logout</v-icon>
-              Logout</v-list-item-title>
+              Đăng xuất
+            </v-list-item-title>
           </v-list-item>
         </v-list>
       </v-menu>
@@ -140,14 +142,14 @@ const selectedNotification = ref(null)
 
 // Navigation items
 const navigationItems = [
-  { title: 'Dashboard', icon: 'mdi-view-dashboard', to: '/dashboard' },
-  { title: 'Transactions', icon: 'mdi-receipt', to: '/transactions' },
-  { title: 'Analytics', icon: 'mdi-chart-line', to: '/analytics' },
-  { title: 'Goals', icon: 'mdi-target', to: '/goals' },
-  { title: 'Budgets', icon: 'mdi-wallet', to: '/budgets' },
-  { title: 'Categories', icon: 'mdi-tag', to: '/categories' },
-  { title: 'AI Assistant', icon: 'mdi-robot', to: '/ai-assistant' },
-  { title: 'Settings', icon: 'mdi-cog', to: '/settings' },
+  { title: 'Tổng quan', icon: 'mdi-view-dashboard', to: '/dashboard' },
+  { title: 'Giao dịch', icon: 'mdi-receipt', to: '/transactions' },
+  { title: 'Phân tích', icon: 'mdi-chart-line', to: '/analytics' },
+  { title: 'Mục tiêu', icon: 'mdi-target', to: '/goals' },
+  { title: 'Ngân sách', icon: 'mdi-wallet', to: '/budgets' },
+  { title: 'Danh mục', icon: 'mdi-tag', to: '/categories' },
+  { title: 'Trợ lý AI', icon: 'mdi-robot', to: '/ai-assistant' },
+  { title: 'Cài đặt', icon: 'mdi-cog', to: '/settings' },
 ]
 
 // Check if current page is auth page

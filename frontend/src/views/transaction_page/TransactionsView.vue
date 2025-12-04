@@ -4,10 +4,10 @@
 
     <v-row class="mb-4" align="center" justify="space-between">
       <v-col cols="12" md="6">
-        <h1 class="text-h5">Transactions</h1>
+        <h1 class="text-h5">Giao dịch</h1>
       </v-col>
       <v-col cols="12" md="6" class="text-right">
-        <v-btn color="primary" @click="isShowAddDialog = true">Add Transaction</v-btn>
+        <v-btn color="primary" @click="isShowAddDialog = true">Thêm giao dịch</v-btn>
       </v-col>
     </v-row>
 
@@ -50,7 +50,7 @@ async function load() {
     const { data } = await transactionAPI.getTransactions({ page: 1, limit: 50 })
     items.value = Array.isArray(data.data) ? data.data : []
   } catch (e) {
-    appStore.showError(e?.message || 'Failed to load transactions')
+    appStore.showError(e?.message || 'Không thể tải danh sách giao dịch')
   } finally {
     loading.value = false
   }

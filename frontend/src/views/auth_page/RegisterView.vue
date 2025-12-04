@@ -5,9 +5,9 @@
         <v-card class="elevation-12">
           <v-card-title class="text-center pa-8">
             <v-icon size="48" color="primary" class="mb-4">mdi-account-plus</v-icon>
-            <h2 class="text-h4 font-weight-bold">Create your account</h2>
+            <h2 class="text-h4 font-weight-bold">Tạo tài khoản mới</h2>
             <p class="text-subtitle-1 text-medium-emphasis mt-2">
-              Join TabiMoney to manage your finances with AI
+              Tham gia TabiMoney để quản lý tài chính với AI
             </p>
           </v-card-title>
 
@@ -16,18 +16,21 @@
               <v-text-field v-model="form.email" label="Email" type="email" :rules="emailRules"
                 :error-messages="errors.email" required class="mb-3" />
 
-              <v-text-field v-model="form.username" label="Username" :rules="[(v) => !!v || 'Username is required']"
+              <v-text-field
+                v-model="form.username"
+                label="Tên đăng nhập"
+                :rules="[(v) => !!v || 'Vui lòng nhập tên đăng nhập']"
                 :error-messages="errors.username" required class="mb-3" />
 
-              <v-text-field v-model="form.password" label="Password" type="password" :rules="passwordRules"
+              <v-text-field v-model="form.password" label="Mật khẩu" type="password" :rules="passwordRules"
                 :error-messages="errors.password" required class="mb-3" />
 
-              <v-text-field v-model="form.first_name" label="First name" class="mb-3" />
-              <v-text-field v-model="form.last_name" label="Last name" class="mb-3" />
-              <v-text-field v-model="form.phone" label="Phone" class="mb-6" />
+              <v-text-field v-model="form.first_name" label="Tên" class="mb-3" />
+              <v-text-field v-model="form.last_name" label="Họ" class="mb-3" />
+              <v-text-field v-model="form.phone" label="Số điện thoại" class="mb-6" />
 
               <v-btn type="submit" color="primary" size="large" block :loading="loading" :disabled="!isFormValid">
-                Create account
+                Tạo tài khoản
               </v-btn>
             </v-form>
           </v-card-text>
@@ -36,9 +39,9 @@
             <v-row>
               <v-col cols="12" class="text-center">
                 <p class="text-body-2">
-                  Already have an account?
+                  Đã có tài khoản?
                   <router-link to="/auth/login" class="text-primary text-decoration-none">
-                    Login here
+                    Đăng nhập tại đây
                   </router-link>
                 </p>
               </v-col>
@@ -77,13 +80,13 @@ const errors = reactive({
 })
 
 const emailRules = [
-  (v) => !!v || 'Email is required',
-  (v) => /.+@.+\..+/.test(v) || 'Email must be valid',
+  (v) => !!v || 'Vui lòng nhập email',
+  (v) => /.+@.+\..+/.test(v) || 'Email không hợp lệ',
 ]
 
 const passwordRules = [
-  (v) => !!v || 'Password is required',
-  (v) => v.length >= 6 || 'Password must be at least 6 characters',
+  (v) => !!v || 'Vui lòng nhập mật khẩu',
+  (v) => v.length >= 6 || 'Mật khẩu phải có ít nhất 6 ký tự',
 ]
 
 const isFormValid = computed(() => {
@@ -112,7 +115,7 @@ const handleRegister = async () => {
       phone: form.phone || undefined,
     })
 
-    appStore.showSuccess('Registration successful!')
+    appStore.showSuccess('Đăng ký tài khoản thành công!')
   } catch (error) {
     const message = error?.message || ''
     if (message.includes('email')) {
@@ -122,7 +125,7 @@ const handleRegister = async () => {
     } else if (message.includes('password')) {
       errors.password = [message]
     } else {
-      appStore.showError(message || 'Registration failed')
+      appStore.showError(message || 'Đăng ký thất bại')
     }
   } finally {
     loading.value = false

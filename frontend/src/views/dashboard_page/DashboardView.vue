@@ -42,7 +42,7 @@ const loadDashboardData = async () => {
     analytics.value = analyticsResponse.data
     recentTransactions.value = transactionsResponse.data.data
   } catch (error) {
-    appStore.showError('Failed to load dashboard data')
+    appStore.showError('Không thể tải dữ liệu tổng quan')
   } finally {
     loading.value = false
   }
@@ -53,7 +53,7 @@ const loadRecentTransactions = async () => {
     const transactionsResponse = await transactionAPI.getTransactions({ limit: 10, sort_by: 'transaction_date', sort_order: 'desc' })
     recentTransactions.value = transactionsResponse.data.data
   } catch (error) {
-    appStore.showError('Failed to load recent transactions')
+    appStore.showError('Không thể tải danh sách giao dịch gần đây')
   }
 }
 
@@ -72,7 +72,7 @@ async function loadCategories() {
     const { data } = await categoryAPI.getCategories()
     categoryItems.value = Array.isArray(data) ? data : []
   } catch (e) {
-    appStore.showError(e?.message || 'Failed to load categories')
+    appStore.showError(e?.message || 'Không thể tải danh mục')
   }
 }
 
