@@ -2,6 +2,8 @@
 
 TabiMoney là một hệ thống quản lý chi tiêu cá nhân thông minh, tích hợp AI Agent để cung cấp phân tích tài chính, dự đoán chi tiêu và tư vấn cá nhân hóa.
 
+🌐 Sản phẩm: https://tabimoney.site
+
 ## 🚀 Tính năng chính
 
 ### 📱 Chức năng đầy đủ của Ứng dụng Quản lý Chi tiêu Cá nhân hóa
@@ -93,6 +95,7 @@ docker-compose up -d
 ```
 
 4. **Truy cập ứng dụng**
+- Sản phẩm: https://tabimoney.site
 - Frontend: http://localhost:3000
 - Backend API: http://localhost:8080
 - API Documentation: http://localhost:8080/docs
