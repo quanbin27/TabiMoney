@@ -1,7 +1,8 @@
 package services
 
 import (
-    "context"
+	"context"
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"time"
@@ -41,34 +42,46 @@ func (s *AuthService) Register(req *models.UserCreateRequest) (*models.AuthRespo
 		return nil, fmt.Errorf("failed to hash password: %w", err)
 	}
 
-	// Create user
-	user := &models.User{
-		Email:        req.Email,
-		Username:     req.Username,
-		PasswordHash: string(hashedPassword),
-		FirstName:    req.FirstName,
-		LastName:     req.LastName,
-		Phone:        req.Phone,
-		IsVerified:   false,
-	}
+	var user *models.User
+	var profile *models.UserProfile
 
-	if err := s.db.Create(user).Error; err != nil {
-		return nil, fmt.Errorf("failed to create user: %w", err)
-	}
+	// Use transaction to ensure atomicity
+	err = s.db.Transaction(func(tx *gorm.DB) error {
+		// Create user
+		user = &models.User{
+			Email:        req.Email,
+			Username:     req.Username,
+			PasswordHash: string(hashedPassword),
+			FirstName:    req.FirstName,
+			LastName:     req.LastName,
+			Phone:        req.Phone,
+			IsVerified:   false,
+		}
 
-	// Create user profile
-	profile := &models.UserProfile{
-		UserID:        user.ID,
-		MonthlyIncome: 0,
-		Currency:      "VND",
-		Timezone:      "Asia/Ho_Chi_Minh",
-		Language:      "vi",
-		NotificationSettings: "{}",
-		AISettings:          "{}",
-	}
+		if err := tx.Create(user).Error; err != nil {
+			return fmt.Errorf("failed to create user: %w", err)
+		}
 
-	if err := s.db.Create(profile).Error; err != nil {
-		return nil, fmt.Errorf("failed to create user profile: %w", err)
+		// Create user profile
+		profile = &models.UserProfile{
+			UserID:               user.ID,
+			MonthlyIncome:        0,
+			Currency:             "VND",
+			Timezone:             "Asia/Ho_Chi_Minh",
+			Language:             "vi",
+			NotificationSettings: "{}",
+			AISettings:           "{}",
+		}
+
+		if err := tx.Create(profile).Error; err != nil {
+			return fmt.Errorf("failed to create user profile: %w", err)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
 	}
 
 	// Generate tokens
@@ -83,8 +96,8 @@ func (s *AuthService) Register(req *models.UserCreateRequest) (*models.AuthRespo
 	}
 
 	// Update last login
-    now := time.Now()
-    user.LastLoginAt = &now
+	now := time.Now()
+	user.LastLoginAt = &now
 	s.db.Save(user)
 
 	return &models.AuthResponse{
@@ -123,8 +136,8 @@ func (s *AuthService) Login(req *models.UserLoginRequest) (*models.AuthResponse,
 	}
 
 	// Update last login
-    now := time.Now()
-    user.LastLoginAt = &now
+	now := time.Now()
+	user.LastLoginAt = &now
 	s.db.Save(user)
 
 	return &models.AuthResponse{
@@ -194,9 +207,9 @@ func (s *AuthService) Logout(userID uint64, tokenHash string) error {
 	}
 
 	// Delete from Redis cache
-    ctx := context.Background()
-    sessionKey := fmt.Sprintf("session:%s", tokenHash)
-    if err := database.DeleteCache(ctx, sessionKey); err != nil {
+	ctx := context.Background()
+	sessionKey := fmt.Sprintf("session:%s", tokenHash)
+	if err := database.DeleteCache(ctx, sessionKey); err != nil {
 		// Log error but don't fail logout
 		fmt.Printf("Warning: failed to delete session from cache: %v\n", err)
 	}
@@ -217,46 +230,46 @@ func (s *AuthService) ValidateToken(tokenString string) (uint64, error) {
 		return 0, errors.New("invalid token")
 	}
 
-    claims, ok := token.Claims.(jwt.MapClaims)
+	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
 		return 0, errors.New("invalid token claims")
 	}
 
-    userID, ok := claims["user_id"].(float64)
+	userID, ok := claims["user_id"].(float64)
 	if !ok {
 		return 0, errors.New("invalid user ID in token")
 	}
 
-    // Allow telegram_access tokens without DB session check
-    if t, ok := claims["type"].(string); ok && t == "telegram_access" {
-        // Respect exp if present
-        if expVal, hasExp := claims["exp"]; hasExp {
-            switch exp := expVal.(type) {
-            case float64:
-                if time.Now().Unix() > int64(exp) {
-                    return 0, errors.New("token expired")
-                }
-            case int64:
-                if time.Now().Unix() > exp {
-                    return 0, errors.New("token expired")
-                }
-            }
-        }
-        return uint64(userID), nil
-    }
+	// Allow telegram_access tokens without DB session check
+	if t, ok := claims["type"].(string); ok && t == "telegram_access" {
+		// Respect exp if present
+		if expVal, hasExp := claims["exp"]; hasExp {
+			switch exp := expVal.(type) {
+			case float64:
+				if time.Now().Unix() > int64(exp) {
+					return 0, errors.New("token expired")
+				}
+			case int64:
+				if time.Now().Unix() > exp {
+					return 0, errors.New("token expired")
+				}
+			}
+		}
+		return uint64(userID), nil
+	}
 
-    // Default: require active session for normal access tokens
-    var session models.UserSession
-    if err := s.db.Where("user_id = ? AND token_hash = ? AND is_active = ?",
-        uint64(userID), tokenString, true).First(&session).Error; err != nil {
-        return 0, errors.New("session not found or inactive")
-    }
+	// Default: require active session for normal access tokens
+	var session models.UserSession
+	if err := s.db.Where("user_id = ? AND token_hash = ? AND is_active = ?",
+		uint64(userID), tokenString, true).First(&session).Error; err != nil {
+		return 0, errors.New("session not found or inactive")
+	}
 
-    if time.Now().After(session.ExpiresAt) {
-        return 0, errors.New("token expired")
-    }
+	if time.Now().After(session.ExpiresAt) {
+		return 0, errors.New("token expired")
+	}
 
-    return uint64(userID), nil
+	return uint64(userID), nil
 }
 
 // ChangePassword changes user password
@@ -296,52 +309,52 @@ func (s *AuthService) ChangePassword(userID uint64, req *models.ChangePasswordRe
 
 // GetMonthlyIncome returns the user's configured monthly income from profile
 func (s *AuthService) GetMonthlyIncome(userID uint64) (float64, error) {
-    var profile models.UserProfile
-    if err := s.db.Where("user_id = ?", userID).First(&profile).Error; err != nil {
-        if errors.Is(err, gorm.ErrRecordNotFound) {
-            // Ensure profile exists
-            profile = models.UserProfile{UserID: userID}
-            if err := s.db.Create(&profile).Error; err != nil {
-                return 0, fmt.Errorf("failed to create profile: %w", err)
-            }
-            return profile.MonthlyIncome, nil
-        }
-        return 0, fmt.Errorf("failed to get profile: %w", err)
-    }
-    return profile.MonthlyIncome, nil
+	var profile models.UserProfile
+	if err := s.db.Where("user_id = ?", userID).First(&profile).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// Ensure profile exists
+			profile = models.UserProfile{UserID: userID}
+			if err := s.db.Create(&profile).Error; err != nil {
+				return 0, fmt.Errorf("failed to create profile: %w", err)
+			}
+			return profile.MonthlyIncome, nil
+		}
+		return 0, fmt.Errorf("failed to get profile: %w", err)
+	}
+	return profile.MonthlyIncome, nil
 }
 
 // SetMonthlyIncome updates the user's monthly income in profile
 func (s *AuthService) SetMonthlyIncome(userID uint64, amount float64) error {
-    if amount < 0 {
-        return errors.New("monthly income must be non-negative")
-    }
-    var profile models.UserProfile
-    if err := s.db.Where("user_id = ?", userID).First(&profile).Error; err != nil {
-        if errors.Is(err, gorm.ErrRecordNotFound) {
-            profile = models.UserProfile{UserID: userID, MonthlyIncome: amount}
-            return s.db.Create(&profile).Error
-        }
-        return fmt.Errorf("failed to get profile: %w", err)
-    }
-    profile.MonthlyIncome = amount
+	if amount < 0 {
+		return errors.New("monthly income must be non-negative")
+	}
+	var profile models.UserProfile
+	if err := s.db.Where("user_id = ?", userID).First(&profile).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			profile = models.UserProfile{UserID: userID, MonthlyIncome: amount}
+			return s.db.Create(&profile).Error
+		}
+		return fmt.Errorf("failed to get profile: %w", err)
+	}
+	profile.MonthlyIncome = amount
 	return s.db.Save(&profile).Error
 }
 
 // SetLargeTransactionThreshold sets the large transaction threshold for a user
 func (s *AuthService) SetLargeTransactionThreshold(userID uint64, threshold *float64) error {
-    if threshold != nil && *threshold < 0 {
-        return errors.New("large transaction threshold must be non-negative")
-    }
-    var profile models.UserProfile
-    if err := s.db.Where("user_id = ?", userID).First(&profile).Error; err != nil {
-        if errors.Is(err, gorm.ErrRecordNotFound) {
-            profile = models.UserProfile{UserID: userID, LargeTransactionThreshold: threshold}
-            return s.db.Create(&profile).Error
-        }
-        return fmt.Errorf("failed to get profile: %w", err)
-    }
-    profile.LargeTransactionThreshold = threshold
+	if threshold != nil && *threshold < 0 {
+		return errors.New("large transaction threshold must be non-negative")
+	}
+	var profile models.UserProfile
+	if err := s.db.Where("user_id = ?", userID).First(&profile).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			profile = models.UserProfile{UserID: userID, LargeTransactionThreshold: threshold}
+			return s.db.Create(&profile).Error
+		}
+		return fmt.Errorf("failed to get profile: %w", err)
+	}
+	profile.LargeTransactionThreshold = threshold
 	return s.db.Save(&profile).Error
 }
 
@@ -351,36 +364,39 @@ func (s *AuthService) SetLargeTransactionThreshold(userID uint64, threshold *flo
 func (s *AuthService) GenerateTelegramLinkCode(userID uint64) (string, error) {
 	// Generate random 8-character code
 	code := generateRandomCode(8)
-	
+
 	// Store in database with expiration
 	linkCode := &models.TelegramLinkCode{
-		Code:           code,
-		WebUserID:      userID,
-		ExpiresAt:      time.Now().Add(10 * time.Minute), // 10 minutes expiry
+		Code:      code,
+		WebUserID: userID,
+		ExpiresAt: time.Now().Add(10 * time.Minute), // 10 minutes expiry
 	}
-	
+
 	if err := s.db.Create(linkCode).Error; err != nil {
 		return "", fmt.Errorf("failed to create link code: %w", err)
 	}
-	
+
 	return code, nil
 }
 
 // ValidateTelegramLinkCode validates a link code and returns web user ID
 func (s *AuthService) ValidateTelegramLinkCode(code string) (uint64, error) {
 	var linkCode models.TelegramLinkCode
-	
+
 	if err := s.db.Where("code = ? AND expires_at > ? AND used_at IS NULL", code, time.Now()).First(&linkCode).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return 0, errors.New("invalid or expired link code")
 		}
 		return 0, fmt.Errorf("failed to validate link code: %w", err)
 	}
-	
+
 	// Mark as used
-	linkCode.UsedAt = &time.Time{}
-	s.db.Save(&linkCode)
-	
+	now := time.Now()
+	linkCode.UsedAt = &now
+	if err := s.db.Save(&linkCode).Error; err != nil {
+		return 0, fmt.Errorf("failed to mark link code as used: %w", err)
+	}
+
 	return linkCode.WebUserID, nil
 }
 
@@ -394,7 +410,7 @@ func (s *AuthService) LinkTelegramAccount(telegramUserID int64, webUserID uint64
 		existing.UpdatedAt = time.Now()
 		return s.db.Save(&existing).Error
 	}
-	
+
 	// Create new link
 	account := &models.TelegramAccount{
 		TelegramUserID: telegramUserID,
@@ -402,7 +418,7 @@ func (s *AuthService) LinkTelegramAccount(telegramUserID int64, webUserID uint64
 		CreatedAt:      time.Now(),
 		UpdatedAt:      time.Now(),
 	}
-	
+
 	return s.db.Create(account).Error
 }
 
@@ -436,7 +452,7 @@ func (s *AuthService) GetTelegramUserID(webUserID uint64) (int64, error) {
 func (s *AuthService) GenerateTelegramJWT(telegramUserID int64, webUserID uint64) (string, error) {
 	now := time.Now()
 	expiresAt := now.Add(365 * 24 * time.Hour) // 1 year expiration
-	
+
 	claims := jwt.MapClaims{
 		"user_id":          webUserID,
 		"telegram_user_id": telegramUserID,
@@ -444,13 +460,13 @@ func (s *AuthService) GenerateTelegramJWT(telegramUserID int64, webUserID uint64
 		"exp":              expiresAt.Unix(),
 		"iat":              now.Unix(),
 	}
-	
+
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString([]byte(s.config.JWT.Secret))
 	if err != nil {
 		return "", fmt.Errorf("failed to generate JWT token: %w", err)
 	}
-	
+
 	return tokenString, nil
 }
 
@@ -458,8 +474,20 @@ func (s *AuthService) GenerateTelegramJWT(telegramUserID int64, webUserID uint64
 func generateRandomCode(length int) string {
 	const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	b := make([]byte, length)
+
+	// Use crypto/rand for secure random generation
+	randomBytes := make([]byte, length)
+	if _, err := rand.Read(randomBytes); err != nil {
+		// Fallback to time-based if crypto/rand fails (shouldn't happen)
+		for i := range b {
+			b[i] = charset[time.Now().UnixNano()%int64(len(charset))]
+		}
+		return string(b)
+	}
+
+	// Map random bytes to charset
 	for i := range b {
-		b[i] = charset[time.Now().UnixNano()%int64(len(charset))]
+		b[i] = charset[randomBytes[i]%byte(len(charset))]
 	}
 	return string(b)
 }
@@ -502,12 +530,12 @@ func (s *AuthService) generateTokens(userID uint64) (string, string, time.Time, 
 
 func (s *AuthService) createSession(userID uint64, accessToken, refreshToken string, expiresAt time.Time) error {
 	session := &models.UserSession{
-		UserID:            userID,
-		TokenHash:         accessToken,
-		RefreshTokenHash:  refreshToken,
-		ExpiresAt:         expiresAt,
-		RefreshExpiresAt:  time.Now().Add(s.config.GetJWTRefreshExpiration()),
-		IsActive:          true,
+		UserID:           userID,
+		TokenHash:        accessToken,
+		RefreshTokenHash: refreshToken,
+		ExpiresAt:        expiresAt,
+		RefreshExpiresAt: time.Now().Add(s.config.GetJWTRefreshExpiration()),
+		IsActive:         true,
 	}
 
 	return s.db.Create(session).Error
@@ -525,6 +553,16 @@ func (s *AuthService) updateSession(userID uint64, accessToken, refreshToken str
 }
 
 func (s *AuthService) userToResponse(user *models.User) models.UserResponse {
+	return UserToResponse(user)
+}
+
+// DB exposes the shared database handle for handlers that need direct access
+func DB() *gorm.DB {
+	return database.GetDB()
+}
+
+// UserToResponse converts a User model to API response (exported helper)
+func UserToResponse(user *models.User) models.UserResponse {
 	return models.UserResponse{
 		ID:          user.ID,
 		Email:       user.Email,
@@ -538,26 +576,4 @@ func (s *AuthService) userToResponse(user *models.User) models.UserResponse {
 		CreatedAt:   user.CreatedAt,
 		UpdatedAt:   user.UpdatedAt,
 	}
-}
-
-// DB exposes the shared database handle for handlers that need direct access
-func DB() *gorm.DB {
-    return database.GetDB()
-}
-
-// UserToResponse converts a User model to API response (exported helper)
-func UserToResponse(user *models.User) models.UserResponse {
-    return models.UserResponse{
-        ID:          user.ID,
-        Email:       user.Email,
-        Username:    user.Username,
-        FirstName:   user.FirstName,
-        LastName:    user.LastName,
-        Phone:       user.Phone,
-        AvatarURL:   user.AvatarURL,
-        IsVerified:  user.IsVerified,
-        LastLoginAt: user.LastLoginAt,
-        CreatedAt:   user.CreatedAt,
-        UpdatedAt:   user.UpdatedAt,
-    }
 }
