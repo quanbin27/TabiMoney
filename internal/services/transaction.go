@@ -1,18 +1,18 @@
 package services
 
 import (
-    "context"
-    "encoding/json"
-    "errors"
-    "fmt"
-    "log"
-    "time"
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"log"
+	"time"
 
-    "tabimoney/internal/config"
-    "tabimoney/internal/database"
-    "tabimoney/internal/models"
+	"tabimoney/internal/config"
+	"tabimoney/internal/database"
+	"tabimoney/internal/models"
 
-    "gorm.io/gorm"
+	"gorm.io/gorm"
 )
 
 type TransactionService struct {
@@ -31,7 +31,7 @@ func NewTransactionService(cfg *config.Config) *TransactionService {
 func (s *TransactionService) CreateTransaction(userID uint64, req *models.TransactionCreateRequest) (*models.TransactionResponse, error) {
 	// Validate category exists and belongs to user or is system category
 	var category models.Category
-	if err := s.db.Where("id = ? AND (user_id = ? OR is_system = ?)", 
+	if err := s.db.Where("id = ? AND (user_id = ? OR is_system = ?)",
 		req.CategoryID, userID, true).First(&category).Error; err != nil {
 		return nil, fmt.Errorf("category not found or not accessible: %w", err)
 	}
@@ -57,21 +57,21 @@ func (s *TransactionService) CreateTransaction(userID uint64, req *models.Transa
 
 	// Create transaction
 	transaction := &models.Transaction{
-		UserID:          userID,
-		CategoryID:      req.CategoryID,
-		Amount:          req.Amount,
-		Description:     req.Description,
-		TransactionType: req.TransactionType,
-		TransactionDate: transactionDate,
-		TransactionTime: transactionTime,
-		Location:        req.Location,
-		Tags:            s.marshalTags(req.Tags),
-		Metadata:        s.marshalMetadata(req.Metadata),
-		IsRecurring:     req.IsRecurring,
+		UserID:           userID,
+		CategoryID:       req.CategoryID,
+		Amount:           req.Amount,
+		Description:      req.Description,
+		TransactionType:  req.TransactionType,
+		TransactionDate:  transactionDate,
+		TransactionTime:  transactionTime,
+		Location:         req.Location,
+		Tags:             s.marshalTags(req.Tags),
+		Metadata:         s.marshalMetadata(req.Metadata),
+		IsRecurring:      req.IsRecurring,
 		RecurringPattern: req.RecurringPattern,
 	}
 
-    if err := s.db.Create(transaction).Error; err != nil {
+	if err := s.db.Create(transaction).Error; err != nil {
 		return nil, fmt.Errorf("failed to create transaction: %w", err)
 	}
 
@@ -81,9 +81,14 @@ func (s *TransactionService) CreateTransaction(userID uint64, req *models.Transa
 	}
 
 	// Trigger budget threshold notifications synchronously (best-effort)
+	// Chỉ kiểm tra budgets liên quan đến category của giao dịch này
+	// (hoặc general budgets nếu là expense)
 	bs := NewBudgetService(s.config)
-	if err := bs.CheckBudgetNotifications(userID); err != nil {
-		log.Printf("Failed to check budget notifications: %v", err)
+	if transaction.TransactionType == "expense" {
+		// Chỉ kiểm tra budgets cho category này hoặc general budgets
+		if err := bs.CheckBudgetNotifications(userID, &transaction.CategoryID); err != nil {
+			log.Printf("Failed to check budget notifications: %v", err)
+		}
 	}
 
 	// Check for large transaction alert (only for expense transactions)
@@ -132,7 +137,7 @@ func (s *TransactionService) GetTransactions(userID uint64, req *models.Transact
 		query = query.Where("amount <= ?", *req.MaxAmount)
 	}
 	if req.Search != "" {
-		query = query.Where("description LIKE ? OR location LIKE ?", 
+		query = query.Where("description LIKE ? OR location LIKE ?",
 			"%"+req.Search+"%", "%"+req.Search+"%")
 	}
 
@@ -161,8 +166,8 @@ func (s *TransactionService) GetTransactions(userID uint64, req *models.Transact
 		return nil, 0, fmt.Errorf("failed to get transactions: %w", err)
 	}
 
-    // Convert to response (ensure empty slice, not null)
-    responses := make([]models.TransactionResponse, 0)
+	// Convert to response (ensure empty slice, not null)
+	responses := make([]models.TransactionResponse, 0)
 	for _, t := range transactions {
 		responses = append(responses, *s.transactionToResponse(&t))
 	}
@@ -174,7 +179,7 @@ func (s *TransactionService) GetTransactions(userID uint64, req *models.Transact
 func (s *TransactionService) UpdateTransaction(userID, transactionID uint64, req *models.TransactionUpdateRequest) (*models.TransactionResponse, error) {
 	// Find transaction
 	var transaction models.Transaction
-	
+
 	if err := s.db.Where("user_id = ? AND id = ?", userID, transactionID).First(&transaction).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("transaction not found")
@@ -182,9 +187,12 @@ func (s *TransactionService) UpdateTransaction(userID, transactionID uint64, req
 		return nil, fmt.Errorf("failed to find transaction: %w", err)
 	}
 
+	// Lưu category cũ để kiểm tra budgets sau khi update
+	oldCategoryID := transaction.CategoryID
+
 	// Validate category
 	var category models.Category
-	if err := s.db.Where("id = ? AND (user_id = ? OR is_system = ?)", 
+	if err := s.db.Where("id = ? AND (user_id = ? OR is_system = ?)",
 		req.CategoryID, userID, true).First(&category).Error; err != nil {
 		return nil, fmt.Errorf("category not found or not accessible: %w", err)
 	}
@@ -228,8 +236,24 @@ func (s *TransactionService) UpdateTransaction(userID, transactionID uint64, req
 		return nil, fmt.Errorf("failed to load transaction with category: %w", err)
 	}
 
+	// Trigger budget threshold notifications synchronously (best-effort)
+	// Cần kiểm tra cả category cũ và category mới (nếu có thay đổi)
+	bs := NewBudgetService(s.config)
+	if transaction.TransactionType == "expense" {
+		// Kiểm tra budgets cho category mới
+		if err := bs.CheckBudgetNotifications(userID, &transaction.CategoryID); err != nil {
+			log.Printf("Failed to check budget notifications for new category: %v", err)
+		}
+		// Nếu category đã thay đổi, cũng kiểm tra budgets cho category cũ
+		if oldCategoryID != transaction.CategoryID && oldCategoryID != 0 {
+			if err := bs.CheckBudgetNotifications(userID, &oldCategoryID); err != nil {
+				log.Printf("Failed to check budget notifications for old category: %v", err)
+			}
+		}
+	}
+
 	// Clear dashboard cache
-    ctx := context.Background()
+	ctx := context.Background()
 	database.DeleteDashboardCache(ctx, userID)
 
 	return s.transactionToResponse(&transaction), nil
@@ -251,26 +275,31 @@ func (s *TransactionService) DeleteTransaction(userID, transactionID uint64) err
 		return fmt.Errorf("failed to delete transaction: %w", err)
 	}
 
-    // Trigger budget threshold notifications synchronously (best-effort)
-    bs := NewBudgetService(s.config)
-    if err := bs.CheckBudgetNotifications(userID); err != nil {
-        log.Printf("Failed to check budget notifications: %v", err)
-    }
+	// Trigger budget threshold notifications synchronously (best-effort)
+	// Chỉ kiểm tra budgets liên quan đến category của giao dịch đã xóa
+	// (hoặc general budgets nếu là expense)
+	bs := NewBudgetService(s.config)
+	if transaction.TransactionType == "expense" {
+		// Chỉ kiểm tra budgets cho category này hoặc general budgets
+		if err := bs.CheckBudgetNotifications(userID, &transaction.CategoryID); err != nil {
+			log.Printf("Failed to check budget notifications: %v", err)
+		}
+	}
 
-    // Clear dashboard cache
-    ctx := context.Background()
-    database.DeleteDashboardCache(ctx, userID)
+	// Clear dashboard cache
+	ctx := context.Background()
+	database.DeleteDashboardCache(ctx, userID)
 
 	return nil
 }
 
 // GetMonthlySummary retrieves monthly financial summary
 func (s *TransactionService) GetMonthlySummary(userID uint64, year int, month int) (*models.DashboardAnalytics, error) {
-    // Check cache first
-    ctx := context.Background()
+	// Check cache first
+	ctx := context.Background()
 	period := fmt.Sprintf("%d-%02d", year, month)
 	cacheKey := fmt.Sprintf("dashboard:%d:%s", userID, period)
-	
+
 	if cached, err := database.GetCache(ctx, cacheKey); err == nil {
 		var analytics models.DashboardAnalytics
 		if err := json.Unmarshal([]byte(cached), &analytics); err == nil {
@@ -284,7 +313,7 @@ func (s *TransactionService) GetMonthlySummary(userID uint64, year int, month in
 
 	// Get transactions
 	var transactions []models.Transaction
-	if err := s.db.Where("user_id = ? AND transaction_date BETWEEN ? AND ?", 
+	if err := s.db.Where("user_id = ? AND transaction_date BETWEEN ? AND ?",
 		userID, startDate, endDate).
 		Preload("Category").
 		Find(&transactions).Error; err != nil {
@@ -357,24 +386,24 @@ func (s *TransactionService) getLargeTransactionThreshold(userID uint64) float64
 
 func (s *TransactionService) transactionToResponse(t *models.Transaction) *models.TransactionResponse {
 	response := &models.TransactionResponse{
-		ID:                      t.ID,
-		UserID:                  t.UserID,
-		CategoryID:              t.CategoryID,
-		Amount:                  t.Amount,
-		Description:             t.Description,
-		TransactionType:         t.TransactionType,
-		TransactionDate:         t.TransactionDate,
-		TransactionTime:         t.TransactionTime,
-		Location:                t.Location,
-		Tags:                    s.unmarshalTags(t.Tags),
-		Metadata:                s.unmarshalMetadata(t.Metadata),
-		IsRecurring:             t.IsRecurring,
-		RecurringPattern:        t.RecurringPattern,
-		ParentTransactionID:     t.ParentTransactionID,
-		AIConfidence:            t.AIConfidence,
-		AISuggestedCategoryID:  t.AISuggestedCategoryID,
-		CreatedAt:               t.CreatedAt,
-		UpdatedAt:               t.UpdatedAt,
+		ID:                    t.ID,
+		UserID:                t.UserID,
+		CategoryID:            t.CategoryID,
+		Amount:                t.Amount,
+		Description:           t.Description,
+		TransactionType:       t.TransactionType,
+		TransactionDate:       t.TransactionDate,
+		TransactionTime:       t.TransactionTime,
+		Location:              t.Location,
+		Tags:                  s.unmarshalTags(t.Tags),
+		Metadata:              s.unmarshalMetadata(t.Metadata),
+		IsRecurring:           t.IsRecurring,
+		RecurringPattern:      t.RecurringPattern,
+		ParentTransactionID:   t.ParentTransactionID,
+		AIConfidence:          t.AIConfidence,
+		AISuggestedCategoryID: t.AISuggestedCategoryID,
+		CreatedAt:             t.CreatedAt,
+		UpdatedAt:             t.UpdatedAt,
 	}
 
 	if t.Category != nil {
@@ -486,31 +515,31 @@ func (s *TransactionService) calculateMonthlyAnalytics(userID uint64, transactio
 	}
 
 	financialHealth := models.FinancialHealth{
-		Score:       s.calculateFinancialHealthScore(savingsRate, totalIncome, totalExpense),
-		Level:       s.getFinancialHealthLevel(savingsRate),
-		IncomeRatio: totalIncome,
-		SavingsRate: savingsRate,
-		DebtRatio:   0, // Simplified - would need debt data
+		Score:           s.calculateFinancialHealthScore(savingsRate, totalIncome, totalExpense),
+		Level:           s.getFinancialHealthLevel(savingsRate),
+		IncomeRatio:     totalIncome,
+		SavingsRate:     savingsRate,
+		DebtRatio:       0, // Simplified - would need debt data
 		Recommendations: s.generateFinancialRecommendations(savingsRate, totalIncome, totalExpense),
 	}
 
 	return &models.DashboardAnalytics{
-		UserID:             userID,
-		Period:             period,
-		TotalIncome:        totalIncome,
-		TotalExpense:       totalExpense,
-		NetAmount:          netAmount,
-		TransactionCount:   len(transactions),
-		CategoryBreakdown:  categoryBreakdown,
-		FinancialHealth:    financialHealth,
-		GeneratedAt:        time.Now(),
+		UserID:            userID,
+		Period:            period,
+		TotalIncome:       totalIncome,
+		TotalExpense:      totalExpense,
+		NetAmount:         netAmount,
+		TransactionCount:  len(transactions),
+		CategoryBreakdown: categoryBreakdown,
+		FinancialHealth:   financialHealth,
+		GeneratedAt:       time.Now(),
 	}
 }
 
 func (s *TransactionService) calculateFinancialHealthScore(savingsRate, income, expense float64) float64 {
 	// Simplified financial health scoring
 	score := 50.0 // Base score
-	
+
 	if savingsRate > 20 {
 		score += 30
 	} else if savingsRate > 10 {

@@ -52,6 +52,8 @@ services:
       - USE_GEMINI=${USE_GEMINI:-true}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - GEMINI_MODEL=${GEMINI_MODEL:-gemini-1.5-flash}
+      - GEMINI_MAX_TOKENS=${GEMINI_MAX_TOKENS:-1024}
+      - GEMINI_TEMPERATURE=${GEMINI_TEMPERATURE:-0.3}
       - DEBUG=false
     ports:
       - "8001:8001"

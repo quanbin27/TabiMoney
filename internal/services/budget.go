@@ -166,12 +166,20 @@ func (s *BudgetService) calculateBudgetMetrics(budget *models.Budget) {
 }
 
 // CheckBudgetNotifications checks and triggers budget notifications
-func (s *BudgetService) CheckBudgetNotifications(userID uint64) error {
+// categoryID is optional: if provided, only checks budgets for that category or general budgets (category_id = nil)
+// if categoryID is nil, checks all budgets (for scheduled checks)
+func (s *BudgetService) CheckBudgetNotifications(userID uint64, categoryID *uint64) error {
 	dispatcher := NewNotificationDispatcher(s.config)
 
 	// Chỉ kiểm tra các budget đang hoạt động
+	query := s.db.Where("user_id = ? AND is_active = ?", userID, true)
+
+	if categoryID != nil {
+		query = query.Where("(category_id = ? OR category_id IS NULL)", *categoryID)
+	}
+
 	var budgets []models.Budget
-	if err := s.db.Where("user_id = ? AND is_active = ?", userID, true).Find(&budgets).Error; err != nil {
+	if err := query.Find(&budgets).Error; err != nil {
 		return fmt.Errorf("failed to load budgets for notifications: %w", err)
 	}
 
@@ -208,176 +216,184 @@ func (s *BudgetService) CheckBudgetNotifications(userID uint64) error {
 
 // GetBudgetInsights computes safe-to-spend and pacing information for active budgets in current period
 func (s *BudgetService) GetBudgetInsights(userID uint64) (*models.BudgetInsights, error) {
-    // Load active budgets
-    var budgets []models.Budget
-    if err := s.db.Where("user_id = ? AND is_active = ?", userID, true).Find(&budgets).Error; err != nil {
-        return nil, fmt.Errorf("failed to load budgets: %w", err)
-    }
+	// Load active budgets
+	var budgets []models.Budget
+	if err := s.db.Where("user_id = ? AND is_active = ?", userID, true).Find(&budgets).Error; err != nil {
+		return nil, fmt.Errorf("failed to load budgets: %w", err)
+	}
 
-    now := time.Now()
-    // Determine current period from budgets (default monthly)
-    period := "monthly"
-    if len(budgets) > 0 {
-        period = budgets[0].Period
-    }
+	now := time.Now()
+	// Determine current period from budgets (default monthly)
+	period := "monthly"
+	if len(budgets) > 0 {
+		period = budgets[0].Period
+	}
 
-    var totalRemaining float64
-    var daysLeft int
-    insights := &models.BudgetInsights{
-        UserID: userID,
-        Period: period,
-        AsOf:   now,
-    }
+	var totalRemaining float64
+	var daysLeft int
+	insights := &models.BudgetInsights{
+		UserID: userID,
+		Period: period,
+		AsOf:   now,
+	}
 
-    for i := range budgets {
-        s.calculateBudgetMetrics(&budgets[i])
-        // Only consider budgets whose window includes now
-        if now.Before(budgets[i].StartDate) || now.After(budgets[i].EndDate) {
-            continue
-        }
-        // days left including today
-        dl := int(math.Max(1, math.Ceil(budgets[i].EndDate.Sub(now).Hours()/24)))
-        if daysLeft == 0 || dl < daysLeft {
-            daysLeft = dl
-        }
-        totalRemaining += math.Max(0, budgets[i].RemainingAmount)
+	for i := range budgets {
+		s.calculateBudgetMetrics(&budgets[i])
+		// Only consider budgets whose window includes now
+		if now.Before(budgets[i].StartDate) || now.After(budgets[i].EndDate) {
+			continue
+		}
+		// days left including today
+		dl := int(math.Max(1, math.Ceil(budgets[i].EndDate.Sub(now).Hours()/24)))
+		if daysLeft == 0 || dl < daysLeft {
+			daysLeft = dl
+		}
+		totalRemaining += math.Max(0, budgets[i].RemainingAmount)
 
-        // compute pacing
-        totalDays := int(math.Max(1, math.Round(budgets[i].EndDate.Sub(budgets[i].StartDate).Hours()/24)))
-        elapsedDays := int(math.Max(1, math.Round(now.Sub(budgets[i].StartDate).Hours()/24)))
-        allowedPace := 100.0 * float64(elapsedDays) / float64(totalDays)
-        actualPace := budgets[i].UsagePercentage
-        bp := models.BudgetPace{
-            BudgetID:        budgets[i].ID,
-            Name:            budgets[i].Name,
-            CategoryID:      budgets[i].CategoryID,
-            Amount:          budgets[i].Amount,
-            SpentAmount:     budgets[i].SpentAmount,
-            RemainingAmount: budgets[i].RemainingAmount,
-            UsagePercentage: budgets[i].UsagePercentage,
-            AllowedPacePct:  math.Min(100, math.Max(0, allowedPace)),
-            ActualPacePct:   math.Min(100, math.Max(0, actualPace)),
-            IsOverPace:      actualPace > allowedPace*1.2, // 120% of allowed pace considered risky
-        }
-        insights.Budgets = append(insights.Budgets, bp)
-        if bp.IsOverPace {
-            insights.RiskBudgetIDs = append(insights.RiskBudgetIDs, bp.BudgetID)
-        }
-    }
+		// compute pacing
+		totalDays := int(math.Max(1, math.Round(budgets[i].EndDate.Sub(budgets[i].StartDate).Hours()/24)))
+		elapsedDays := int(math.Max(1, math.Round(now.Sub(budgets[i].StartDate).Hours()/24)))
+		allowedPace := 100.0 * float64(elapsedDays) / float64(totalDays)
+		actualPace := budgets[i].UsagePercentage
+		bp := models.BudgetPace{
+			BudgetID:        budgets[i].ID,
+			Name:            budgets[i].Name,
+			CategoryID:      budgets[i].CategoryID,
+			Amount:          budgets[i].Amount,
+			SpentAmount:     budgets[i].SpentAmount,
+			RemainingAmount: budgets[i].RemainingAmount,
+			UsagePercentage: budgets[i].UsagePercentage,
+			AllowedPacePct:  math.Min(100, math.Max(0, allowedPace)),
+			ActualPacePct:   math.Min(100, math.Max(0, actualPace)),
+			IsOverPace:      actualPace > allowedPace*1.2, // 120% of allowed pace considered risky
+		}
+		insights.Budgets = append(insights.Budgets, bp)
+		if bp.IsOverPace {
+			insights.RiskBudgetIDs = append(insights.RiskBudgetIDs, bp.BudgetID)
+		}
+	}
 
-    insights.TotalRemaining = totalRemaining
-    insights.DaysLeft = daysLeft
-    if daysLeft <= 0 {
-        insights.SafeToSpendDaily = 0
-        insights.SafeToSpendWeekly = 0
-    } else {
-        insights.SafeToSpendDaily = totalRemaining / float64(daysLeft)
-        insights.SafeToSpendWeekly = insights.SafeToSpendDaily * 7
-    }
+	insights.TotalRemaining = totalRemaining
+	insights.DaysLeft = daysLeft
+	if daysLeft <= 0 {
+		insights.SafeToSpendDaily = 0
+		insights.SafeToSpendWeekly = 0
+	} else {
+		insights.SafeToSpendDaily = totalRemaining / float64(daysLeft)
+		insights.SafeToSpendWeekly = insights.SafeToSpendDaily * 7
+	}
 
-    // projected end usage: average of per-budget projection weighted by amount
-    var weightedUsage, sumAmount float64
-    for _, b := range insights.Budgets {
-        if b.Amount > 0 {
-            weightedUsage += b.UsagePercentage * b.Amount
-            sumAmount += b.Amount
-        }
-    }
-    if sumAmount > 0 {
-        insights.ProjectedEndUsagePct = weightedUsage / sumAmount
-    }
+	// projected end usage: average of per-budget projection weighted by amount
+	var weightedUsage, sumAmount float64
+	for _, b := range insights.Budgets {
+		if b.Amount > 0 {
+			weightedUsage += b.UsagePercentage * b.Amount
+			sumAmount += b.Amount
+		}
+	}
+	if sumAmount > 0 {
+		insights.ProjectedEndUsagePct = weightedUsage / sumAmount
+	}
 
-    return insights, nil
+	return insights, nil
 }
 
 // SuggestBudgets proposes category budgets based on recent spending or 50/30/20
 func (s *BudgetService) SuggestBudgets(userID uint64) (*models.AutoBudgetSuggestResponse, error) {
-    now := time.Now()
-    startOfMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
-    endOfMonth := time.Date(now.Year(), now.Month()+1, 0, 23, 59, 59, 0, now.Location())
+	now := time.Now()
+	startOfMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	endOfMonth := time.Date(now.Year(), now.Month()+1, 0, 23, 59, 59, 0, now.Location())
 
-    // fetch profile for income
-    var profile models.UserProfile
-    _ = s.db.Where("user_id = ?", userID).First(&profile).Error
+	// fetch profile for income
+	var profile models.UserProfile
+	_ = s.db.Where("user_id = ?", userID).First(&profile).Error
 
-    // aggregate last 3 months expenses by category
-    threeMonthsAgo := startOfMonth.AddDate(0, -3, 0)
-    type row struct{ CategoryID uint64; Name string; Amount float64 }
-    var rows []row
-    s.db.Table("transactions t").
-        Select("t.category_id as category_id, c.name as name, COALESCE(SUM(t.amount),0) as amount").
-        Joins("JOIN categories c ON c.id = t.category_id").
-        Where("t.user_id = ? AND t.transaction_type = 'expense' AND t.transaction_date BETWEEN ? AND ?", userID, threeMonthsAgo, endOfMonth).
-        Group("t.category_id, c.name").
-        Scan(&rows)
+	// aggregate last 3 months expenses by category
+	threeMonthsAgo := startOfMonth.AddDate(0, -3, 0)
+	type row struct {
+		CategoryID uint64
+		Name       string
+		Amount     float64
+	}
+	var rows []row
+	s.db.Table("transactions t").
+		Select("t.category_id as category_id, c.name as name, COALESCE(SUM(t.amount),0) as amount").
+		Joins("JOIN categories c ON c.id = t.category_id").
+		Where("t.user_id = ? AND t.transaction_type = 'expense' AND t.transaction_date BETWEEN ? AND ?", userID, threeMonthsAgo, endOfMonth).
+		Group("t.category_id, c.name").
+		Scan(&rows)
 
-    suggestions := []models.AutoBudgetSuggestion{}
-    var total float64
-    if len(rows) > 0 {
-        for _, r := range rows {
-            medianApprox := r.Amount / 3.0
-            suggested := medianApprox * 0.9 // safety margin
-            cid := r.CategoryID
-            suggestions = append(suggestions, models.AutoBudgetSuggestion{
-                CategoryID:   &cid,
-                Name:         r.Name,
-                SuggestedAmt: math.Max(0, math.Round(suggested*100)/100),
-            })
-            total += suggested
-        }
-    } else {
-        // fallback 50/30/20 if no history
-        income := profile.MonthlyIncome
-        needs := income * 0.5
-        wants := income * 0.3
-        savings := income * 0.2
+	suggestions := []models.AutoBudgetSuggestion{}
+	var total float64
+	if len(rows) > 0 {
+		for _, r := range rows {
+			medianApprox := r.Amount / 3.0
+			suggested := medianApprox * 0.9 // safety margin
+			cid := r.CategoryID
+			suggestions = append(suggestions, models.AutoBudgetSuggestion{
+				CategoryID:   &cid,
+				Name:         r.Name,
+				SuggestedAmt: math.Max(0, math.Round(suggested*100)/100),
+			})
+			total += suggested
+		}
+	} else {
+		// fallback 50/30/20 if no history
+		income := profile.MonthlyIncome
+		needs := income * 0.5
+		wants := income * 0.3
+		savings := income * 0.2
 
-        // map needs: food 40%, transport 20%, bills 30%, healthcare 10%
-        // Try to find system categories by name_en; fallback to nil
-        type catRow struct{ ID uint64; Name string; NameEn string }
-        var cats []catRow
-        s.db.Raw("SELECT id, name, name_en FROM categories WHERE is_system = TRUE").Scan(&cats)
-        findCat := func(nameEn string) *uint64 {
-            for _, c := range cats {
-                if c.NameEn == nameEn {
-                    id := c.ID
-                    return &id
-                }
-            }
-            return nil
-        }
-        add := func(name string, amt float64, cid *uint64) {
-            suggestions = append(suggestions, models.AutoBudgetSuggestion{CategoryID: cid, Name: name, SuggestedAmt: math.Round(amt*100) / 100})
-            total += amt
-        }
-        add("Food & Dining", needs*0.4, findCat("Food & Dining"))
-        add("Transportation", needs*0.2, findCat("Transportation"))
-        add("Bills", needs*0.3, nil)
-        add("Healthcare", needs*0.1, findCat("Healthcare"))
-        add("Entertainment", wants*0.4, findCat("Entertainment"))
-        add("Shopping", wants*0.4, findCat("Shopping"))
-        add("Other", wants*0.2, findCat("Other"))
-        add("Savings", savings, findCat("Savings"))
-    }
+		// map needs: food 40%, transport 20%, bills 30%, healthcare 10%
+		// Try to find system categories by name_en; fallback to nil
+		type catRow struct {
+			ID     uint64
+			Name   string
+			NameEn string
+		}
+		var cats []catRow
+		s.db.Raw("SELECT id, name, name_en FROM categories WHERE is_system = TRUE").Scan(&cats)
+		findCat := func(nameEn string) *uint64 {
+			for _, c := range cats {
+				if c.NameEn == nameEn {
+					id := c.ID
+					return &id
+				}
+			}
+			return nil
+		}
+		add := func(name string, amt float64, cid *uint64) {
+			suggestions = append(suggestions, models.AutoBudgetSuggestion{CategoryID: cid, Name: name, SuggestedAmt: math.Round(amt*100) / 100})
+			total += amt
+		}
+		add("Food & Dining", needs*0.4, findCat("Food & Dining"))
+		add("Transportation", needs*0.2, findCat("Transportation"))
+		add("Bills", needs*0.3, nil)
+		add("Healthcare", needs*0.1, findCat("Healthcare"))
+		add("Entertainment", wants*0.4, findCat("Entertainment"))
+		add("Shopping", wants*0.4, findCat("Shopping"))
+		add("Other", wants*0.2, findCat("Other"))
+		add("Savings", savings, findCat("Savings"))
+	}
 
-    resp := &models.AutoBudgetSuggestResponse{
-        UserID:         userID,
-        MonthlyIncome:  profile.MonthlyIncome,
-        Period:         "monthly",
-        StartDate:      startOfMonth,
-        EndDate:        endOfMonth,
-        Suggestions:    suggestions,
-        TotalSuggested: math.Round(total*100) / 100,
-        Notes:          []string{"Suggestions based on recent spending or 50/30/20 fallback", "Safety margin applied where applicable"},
-    }
-    return resp, nil
+	resp := &models.AutoBudgetSuggestResponse{
+		UserID:         userID,
+		MonthlyIncome:  profile.MonthlyIncome,
+		Period:         "monthly",
+		StartDate:      startOfMonth,
+		EndDate:        endOfMonth,
+		Suggestions:    suggestions,
+		TotalSuggested: math.Round(total*100) / 100,
+		Notes:          []string{"Suggestions based on recent spending or 50/30/20 fallback", "Safety margin applied where applicable"},
+	}
+	return resp, nil
 }
 
 // CreateBudgetsFromSuggestions creates budgets from suggestions payload
 func (s *BudgetService) CreateBudgetsFromSuggestions(userID uint64, req *models.AutoBudgetCreateRequest) ([]models.Budget, error) {
-    if req == nil || len(req.Budgets) == 0 {
-        return nil, fmt.Errorf("no budgets provided")
-    }
+	if req == nil || len(req.Budgets) == 0 {
+		return nil, fmt.Errorf("no budgets provided")
+	}
 
 	// Validate basic period and date range
 	if req.StartDate.After(req.EndDate) {
