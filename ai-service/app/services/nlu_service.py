@@ -126,7 +126,7 @@ class NLUService:
                     ],
                     "generationConfig": {
                         "temperature": settings.GEMINI_TEMPERATURE,
-                        "maxOutputTokens": 4000,  # Increase token limit
+                        "maxOutputTokens": settings.GEMINI_MAX_TOKENS,
                         "response_mime_type": "application/json"
                     }
                 }

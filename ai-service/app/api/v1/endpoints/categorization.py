@@ -42,9 +42,24 @@ async def suggest_category(payload: SuggestRequest):
         "Ví dụ: {\"suggestions\": [{\"category_name\": \"Ăn uống\", \"confidence_score\": 0.9, \"reason\": \"Chi phí ăn uống\", \"is_existing\": true}], \"confidence_score\": 0.9}"
     )
 
-    result = await call_gemini(prompt, temperature=0.2, max_tokens=400, format_json=True, timeout=120.0)
-    parsed = result.get("json") or extract_json_block(result.get("raw", ""))
+    result = await call_gemini(prompt, temperature=0.2, max_tokens=settings.GEMINI_MAX_TOKENS, format_json=True, timeout=120.0)
+    
+    # Try to get parsed JSON first
+    parsed = result.get("json") or {}
+    
+    # If parsing failed, try to extract from raw content
+    if not parsed and result.get("raw"):
+        parsed = extract_json_block(result.get("raw", ""))
+    
+    # If still no valid JSON, log the issue and return empty result
     if not parsed:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(
+            "Failed to parse JSON from Gemini response for description: '%s'. Raw response: %s",
+            payload.description,
+            result.get("raw", "")[:1000]
+        )
         parsed = {"suggestions": [], "confidence_score": 0.0}
 
     # Ensure schema integrity

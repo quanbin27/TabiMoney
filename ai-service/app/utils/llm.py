@@ -72,6 +72,13 @@ async def call_gemini(
     try:
         if "candidates" in data and data["candidates"]:
             candidate = data["candidates"][0]
+            # Check for finish reason (might indicate incomplete response)
+            finish_reason = candidate.get("finishReason", "")
+            if finish_reason == "MAX_TOKENS":
+                logger.warning("Gemini response was truncated (MAX_TOKENS) - consider increasing max_tokens")
+            elif finish_reason not in ("STOP", ""):
+                logger.warning("Gemini finish reason: %s", finish_reason)
+            
             if "content" in candidate and "parts" in candidate["content"]:
                 content = candidate["content"]["parts"][0].get("text", "")
             elif "text" in candidate:
@@ -80,9 +87,22 @@ async def call_gemini(
             content = data["text"]
         else:
             content = str(data)
+            logger.warning("Unexpected Gemini response structure: %s", list(data.keys())[:10])
     except Exception as e:
-        logger.error(f"Failed to extract Gemini content: {e}")
+        logger.error(f"Failed to extract Gemini content: {e}, response: {str(data)[:500]}")
         content = str(data)
 
+    if not content:
+        logger.error("Empty content from Gemini API")
+        return {"raw": "", "json": {}}
+
     parsed = extract_json_block(content) if format_json else {}
+    
+    # Log if JSON parsing failed but format_json was requested
+    if format_json and not parsed:
+        logger.warning(
+            "Failed to parse JSON from Gemini response. Raw content (first 500 chars): %s",
+            content[:500]
+        )
+    
     return {"raw": content, "json": parsed}

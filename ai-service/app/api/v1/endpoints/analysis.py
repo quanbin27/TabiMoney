@@ -3,6 +3,7 @@ from typing import List, Optional
 from fastapi import APIRouter
 from pydantic import BaseModel
 
+from app.core.config import settings
 from app.utils.llm import call_gemini
 from app.utils.json_utils import extract_json_block, ensure_string_list
 
@@ -47,7 +48,7 @@ async def analyze_spending(req: SpendingAnalysisRequest):
         result = await call_gemini(
             prompt,
             temperature=0.3,
-            max_tokens=400,
+            max_tokens=settings.GEMINI_MAX_TOKENS,
             format_json=True,
         )
         payload = result.get("json") or extract_json_block(result.get("raw", ""))
