@@ -6,16 +6,16 @@
           <v-form ref="formRef" @submit.prevent="handleSubmit">
             <v-row>
               <v-col cols="12">
-                <v-text-field v-model="form.name" label="Category Name" :rules="[v => !!v || 'Name is required']"
+                <v-text-field v-model="form.name" label="Tên danh mục" :rules="[v => !!v || 'Tên là bắt buộc']"
                   required />
               </v-col>
 
               <v-col cols="12">
-                <v-text-field v-model="form.name_en" label="English Name (Optional)" />
+                <v-text-field v-model="form.name_en" label="Tên tiếng Anh (Tùy chọn)" />
               </v-col>
 
               <v-col cols="12">
-                <v-textarea v-model="form.description" label="Description (Optional)" rows="3" />
+                <v-textarea v-model="form.description" label="Mô tả (Tùy chọn)" rows="3" />
               </v-col>
             </v-row>
           </v-form>
@@ -24,10 +24,10 @@
         <v-card-actions class="pa-6 pt-0">
           <v-spacer />
           <v-btn variant="text" @click="closeDialog">
-            Cancel
+            Hủy
           </v-btn>
           <v-btn color="primary" :loading="loading" @click="handleSubmit">
-            Create Category
+            Tạo danh mục
           </v-btn>
         </v-card-actions>
       </v-card>
@@ -82,11 +82,11 @@ async function handleSubmit() {
       description: form.description || undefined,
     })
 
-    app.showSuccess('Category created successfully!')
+    app.showSuccess('Tạo danh mục thành công!')
     props.load()
     closeDialog()
   } catch (e) {
-    app.showError(e?.message || 'Failed to create category')
+    app.showError(e?.message || 'Tạo danh mục thất bại')
   } finally {
     loading.value = false
   }

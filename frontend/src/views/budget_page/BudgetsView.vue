@@ -76,7 +76,7 @@
       <v-col cols="12" md="3">
         <v-card color="info" variant="tonal">
           <v-card-text>
-            <div class="text-h6">Safe to Spend (Ngày)</div>
+            <div class="text-h6">An toàn chi tiêu (Ngày)</div>
             <div class="text-h5">{{ formatCurrency(insights?.safe_to_spend_daily || 0) }}</div>
           </v-card-text>
         </v-card>
@@ -84,7 +84,7 @@
       <v-col cols="12" md="3">
         <v-card color="info" variant="tonal">
           <v-card-text>
-            <div class="text-h6">Safe to Spend (Tuần)</div>
+            <div class="text-h6">An toàn chi tiêu (Tuần)</div>
             <div class="text-h5">{{ formatCurrency(insights?.safe_to_spend_weekly || 0) }}</div>
           </v-card-text>
         </v-card>
@@ -593,9 +593,9 @@ const getProgressColor = (budget) => {
 
 const getStatusText = (budget) => {
   const percentage = getProgressPercentage(budget)
-  if (percentage >= 100) return 'Over Budget'
-  if (percentage >= 80) return 'Near Limit'
-  return 'On Track'
+  if (percentage >= 100) return 'Vượt ngân sách'
+  if (percentage >= 80) return 'Gần giới hạn'
+  return 'Đúng tiến độ'
 }
 
 const getStatusColor = (budget) => {

@@ -27,7 +27,7 @@
                                 <template v-slot:prepend>
                                     <v-icon>mdi-delete</v-icon>
                                 </template>
-                                <v-list-item-title>Delete</v-list-item-title>
+                                <v-list-item-title>Xóa</v-list-item-title>
                             </v-list-item>
                         </v-list>
                     </v-menu>

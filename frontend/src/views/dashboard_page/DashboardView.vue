@@ -5,14 +5,16 @@
     <ChartHeath :analytics="analytics" />
     <RecentTransactions :recentTransactions="recentTransactions" :loadRecentTransactions="loadRecentTransactions"
       @openEdit="handleOpenEditDialog" />
-    <AddTransactionView v-model="isShowAddDialog" @update:modelValue="onModelUpdated" :categoryItems="categoryItems" />
+    <AddTransactionView v-model="isShowAddDialog" @update:modelValue="onModelUpdated" 
+      @category-created="handleCategoryCreated" :categoryItems="categoryItems" />
     <EditTransactionView v-model="isShowEditDialog" :transaction="selectedTransaction"
-      @update:modelValue="onModelUpdated" :categoryItems="categoryItems" />
+      @update:modelValue="onModelUpdated" @category-created="handleCategoryCreated" :categoryItems="categoryItems" />
   </v-container>
 </template>
 
 <script setup>
 import { analyticsAPI, categoryAPI, transactionAPI } from '@/services/api'
+import { useAppStore } from '@/stores/app'
 import { onMounted, ref } from 'vue'
 import {
   ChartHeath,
@@ -22,6 +24,7 @@ import {
 import { AddTransactionView, EditTransactionView } from '../transaction_page/component/index'
 
 // State
+const appStore = useAppStore()
 const analytics = ref(null)
 const recentTransactions = ref([])
 const loading = ref(false)
@@ -75,6 +78,13 @@ async function loadCategories() {
     appStore.showError(e?.message || 'Không thể tải danh mục')
   }
 }
+
+const handleCategoryCreated = (newCategory) => {
+  // Add new category to the list
+  categoryItems.value.push(newCategory);
+  // Optionally reload categories to ensure consistency
+  loadCategories();
+};
 
 // Lifecycle
 onMounted(() => {

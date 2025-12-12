@@ -2,22 +2,22 @@
   <v-container class="py-8" style="max-width: 720px">
     <v-dialog v-model="props.modelValue" persistent max-width="800">
       <v-card>
-        <v-card-title>Edit</v-card-title>
+        <v-card-title>Sửa danh mục</v-card-title>
 
         <v-card-text class="pa-6">
           <v-form ref="formRef" @submit.prevent="handleSubmit">
             <v-row>
               <v-col cols="12">
-                <v-text-field v-model="form.name" label="Category Name" :rules="[v => !!v || 'Name is required']"
+                <v-text-field v-model="form.name" label="Tên danh mục" :rules="[v => !!v || 'Tên là bắt buộc']"
                   required />
               </v-col>
 
               <v-col cols="12">
-                <v-text-field v-model="form.name_en" label="English Name (Optional)" />
+                <v-text-field v-model="form.name_en" label="Tên tiếng Anh (Tùy chọn)" />
               </v-col>
 
               <v-col cols="12">
-                <v-textarea v-model="form.description" label="Description (Optional)" rows="3" />
+                <v-textarea v-model="form.description" label="Mô tả (Tùy chọn)" rows="3" />
               </v-col>
             </v-row>
           </v-form>
@@ -26,10 +26,10 @@
         <v-card-actions class="pa-6 pt-0">
           <v-spacer />
           <v-btn variant="text" @click="closeDialog">
-            Cancel
+            Hủy
           </v-btn>
           <v-btn color="primary" :loading="loading" @click="handleSubmit">
-            Update Category
+            Cập nhật danh mục
           </v-btn>
         </v-card-actions>
       </v-card>
@@ -98,11 +98,11 @@ async function handleSubmit() {
       name_en: form.value.name_en || undefined,
       description: form.value.description || undefined,
     })
-    app.showSuccess('Category updated successfully!')
+    app.showSuccess('Cập nhật danh mục thành công!')
     props.load()
     closeDialog()
   } catch (e) {
-    app.showError(e?.message || 'Failed to update category')
+    app.showError(e?.message || 'Cập nhật danh mục thất bại')
   } finally {
     loading.value = false
   }

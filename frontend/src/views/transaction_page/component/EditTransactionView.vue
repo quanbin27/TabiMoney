@@ -2,47 +2,46 @@
   <v-container class="py-8" style="max-width: 720px" v-if="props.transaction">
     <v-dialog v-model="props.modelValue" persistent max-width="800">
       <v-card>
-        <v-card-title class="text-h6">Edit Transaction</v-card-title>
+        <v-card-title class="text-h6">Sửa giao dịch</v-card-title>
         <v-card-text v-if="props.transaction">
           <v-form ref="formRef" @submit.prevent="handleSubmit">
             <v-row>
               <v-col cols="12" md="6">
                 <v-select :items="typeItems" item-title="label" item-value="value" v-model="form.transaction_type"
-                  label="Type" :rules="[v => !!v || 'Type is required']" required />
+                  label="Loại" :rules="[v => !!v || 'Loại là bắt buộc']" required />
               </v-col>
               <v-col cols="12" md="6">
-                <v-text-field v-model.number="form.amount" type="number" label="Amount"
-                  :rules="[v => !!v || 'Amount is required', v => v > 0 || 'Amount must be > 0']" required />
+                <v-text-field v-model.number="form.amount" type="number" label="Số tiền"
+                  :rules="[v => !!v || 'Số tiền là bắt buộc', v => v > 0 || 'Số tiền phải > 0']" required />
               </v-col>
               <v-col cols="12" md="6">
                 <v-select :items="props.categoryItems" :item-title="formatCategoryTitle" item-value="id"
-                  v-model="form.category_id" label="Category" :rules="[v => !!v || 'Category is required']" required />
+                  v-model="form.category_id" label="Danh mục" :rules="[v => !!v || 'Danh mục là bắt buộc']" required />
               </v-col>
               <v-col cols="12" md="6">
-                <v-text-field v-model="form.transaction_date" type="date" label="Date"
-                  :rules="[v => !!v || 'Date is required']" required />
+                <v-text-field v-model="form.transaction_date" type="date" label="Ngày"
+                  :rules="[v => !!v || 'Ngày là bắt buộc']" required />
               </v-col>
               <v-col cols="12" md="6">
-                <v-text-field v-model="form.transaction_time" type="time" label="Time (Optional)" />
+                <v-text-field v-model="form.transaction_time" type="time" label="Giờ (Tùy chọn)" />
               </v-col>
               <v-col cols="12" md="6">
-                <v-text-field v-model="form.description" label="Description (Optional)" />
+                <v-text-field v-model="form.description" label="Mô tả (Tùy chọn)" />
               </v-col>
               <v-col cols="12">
-                <v-text-field v-model="form.location" label="Location (Optional)" />
+                <v-text-field v-model="form.location" label="Địa điểm (Tùy chọn)" />
               </v-col>
               <v-col cols="12" class="d-flex justify-end">
                 <v-btn variant="outlined" color="secondary" class="mr-2" :loading="aiLoading"
-                  @click="suggestCategory">AI
-                  Suggest Category</v-btn>
+                  @click="suggestCategory">AI Gợi ý danh mục</v-btn>
               </v-col>
             </v-row>
           </v-form>
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn text @click="closeDialog">Close</v-btn>
-          <v-btn @click="handleSubmit" variant="tonal" color="primary" :loading="loading">Save</v-btn>
+          <v-btn text @click="closeDialog">Đóng</v-btn>
+          <v-btn @click="handleSubmit" variant="tonal" color="primary" :loading="loading">Lưu</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -50,22 +49,22 @@
     <!-- // dialog ai create category -->
     <v-dialog v-model="createDialog" max-width="500">
       <v-card>
-        <v-card-title>Create category from AI suggestion</v-card-title>
+        <v-card-title>Tạo danh mục từ gợi ý AI</v-card-title>
         <v-card-text>
-          <v-text-field v-model="newCategory.name" label="Category Name" required />
-          <v-text-field v-model="newCategory.description" label="Description" />
+          <v-text-field v-model="newCategory.name" label="Tên danh mục" required />
+          <v-text-field v-model="newCategory.description" label="Mô tả" />
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn variant="text" @click="createDialog = false">Cancel</v-btn>
-          <v-btn color="primary" @click="createCategoryFromSuggestion">Use this category</v-btn>
+          <v-btn variant="text" @click="createDialog = false">Hủy</v-btn>
+          <v-btn color="primary" @click="createCategoryFromSuggestion">Sử dụng danh mục này</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
   </v-container>
 </template>
 <script setup>
-import { aiAPI, transactionAPI } from '@/services/api'
+import { aiAPI, categoryAPI, transactionAPI } from '@/services/api'
 import { useAppStore } from '@/stores/app'
 import { reactive, ref, watch } from 'vue'
 
@@ -86,7 +85,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue', 'category-created'])
 
 const appStore = useAppStore()
 const loading = ref(false)
@@ -101,9 +100,9 @@ function formatCategoryTitle(c) {
 }
 
 const typeItems = [
-  { label: 'Expense', value: 'expense' },
-  { label: 'Income', value: 'income' },
-  { label: 'Transfer', value: 'transfer' },
+  { label: 'Chi tiêu', value: 'expense' },
+  { label: 'Thu nhập', value: 'income' },
+  { label: 'Chuyển khoản', value: 'transfer' },
 ]
 
 const form = reactive({
@@ -136,26 +135,26 @@ async function handleSubmit() {
 
     // Ensure required fields are present
     if (!payload.category_id) {
-      appStore.showError('Please select a category')
+      appStore.showError('Vui lòng chọn danh mục')
       return
     }
     if (!payload.amount || payload.amount <= 0) {
-      appStore.showError('Please enter a valid amount')
+      appStore.showError('Vui lòng nhập số tiền hợp lệ')
       return
     }
     if (!payload.transaction_type) {
-      appStore.showError('Please select transaction type')
+      appStore.showError('Vui lòng chọn loại giao dịch')
       return
     }
     if (!payload.transaction_date) {
-      appStore.showError('Please select transaction date')
+      appStore.showError('Vui lòng chọn ngày')
       return
     }
     await transactionAPI.updateTransaction(props.transaction.id, payload)
-    appStore.showSuccess('Update')
+    appStore.showSuccess('Cập nhật thành công')
     closeDialog()
   } catch (e) {
-    appStore.showError(e?.message || 'Update failed')
+    appStore.showError(e?.message || 'Cập nhật thất bại')
   } finally {
     loading.value = false
   }
@@ -163,7 +162,7 @@ async function handleSubmit() {
 
 async function suggestCategory() {
   if (!form.description || !form.amount) {
-    appStore.showWarning('Enter description and amount first')
+    appStore.showWarning('Vui lòng nhập mô tả và số tiền trước')
     return
   }
   aiLoading.value = true
@@ -186,7 +185,7 @@ async function suggestCategory() {
       // AI already determined if category exists
       if (top.is_existing) {
         // Find the existing category by name
-        const found = props.categoryItems.value.find((c) => {
+        const found = props.categoryItems.find((c) => {
           const existingName = (c.name || '').toLowerCase().trim()
           const existingNameEn = (c.name_en || '').toLowerCase().trim()
           const topName = (top.category_name || '').toLowerCase().trim()
@@ -195,22 +194,22 @@ async function suggestCategory() {
 
         if (found) {
           form.category_id = found.id
-          appStore.showSuccess(`AI suggested existing category: ${found.name}`)
+          appStore.showSuccess(`AI gợi ý danh mục hiện có: ${found.name}`)
         } else {
-          appStore.showWarning('AI suggested existing category but not found in list')
+          appStore.showWarning('AI gợi ý danh mục hiện có nhưng không tìm thấy trong danh sách')
         }
       } else {
         // AI suggests new category
         newCategory.name = top.category_name || ''
-        newCategory.description = top.reason || `Created from AI suggestion`
+        newCategory.description = top.reason || `Được tạo từ gợi ý AI`
         createDialog.value = true
-        appStore.showInfo(`AI suggests new category: "${top.category_name}"`)
+        appStore.showInfo(`AI gợi ý danh mục mới: "${top.category_name}"`)
       }
     } else {
-      appStore.showInfo('No suggestion')
+      appStore.showInfo('Không có gợi ý')
     }
   } catch (e) {
-    appStore.showError(e?.message || 'AI suggestion failed')
+    appStore.showError(e?.message || 'Gợi ý AI thất bại')
   } finally {
     aiLoading.value = false
   }
@@ -222,12 +221,17 @@ async function createCategoryFromSuggestion() {
       name: newCategory.name,
       description: newCategory.description || undefined,
     })
-    props.categoryItems.value.push(data)
+    // Emit event to parent to update categoryItems
+    emit('category-created', data)
+    // Also update local props if it's an array (for immediate UI update)
+    if (Array.isArray(props.categoryItems)) {
+      props.categoryItems.push(data)
+    }
     form.category_id = data.id
     createDialog.value = false
-    appStore.showSuccess('Category created')
+    appStore.showSuccess('Tạo danh mục thành công')
   } catch (e) {
-    appStore.showError(e?.message || 'Create category failed')
+    appStore.showError(e?.message || 'Tạo danh mục thất bại')
   }
 }
 

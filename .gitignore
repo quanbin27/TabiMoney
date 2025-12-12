@@ -5,6 +5,7 @@ package-lock.json
 
 
 # Environment variables
+.env.prod
 .env
 config.env
 
@@ -71,3 +72,7 @@ coverage/
 
 # Air (Go live reload)
 tmp/
+
+#reports
+uml-diagrams/
+reports/

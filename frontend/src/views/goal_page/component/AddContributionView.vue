@@ -1,20 +1,20 @@
 <template>
     <v-dialog v-model="props.modelValue" max-width="400">
         <v-card>
-            <v-card-title>Add Contribution</v-card-title>
+            <v-card-title>Thêm đóng góp</v-card-title>
             <v-card-text>
                 <v-form ref="contributionFormRef" validate-on="submit">
-                    <v-text-field v-model="contributionForm.amount" label="Amount" type="number"
+                    <v-text-field v-model="contributionForm.amount" label="Số tiền" type="number"
                         :rules="[props.rules.required, props.rules.positive]" prefix="₫" required></v-text-field>
 
-                    <v-textarea v-model="contributionForm.note" label="Note (Optional)" rows="2"></v-textarea>
+                    <v-textarea v-model="contributionForm.note" label="Ghi chú (Tùy chọn)" rows="2"></v-textarea>
                 </v-form>
             </v-card-text>
             <v-card-actions>
                 <v-spacer></v-spacer>
-                <v-btn @click="closeDialog">Cancel</v-btn>
+                <v-btn @click="closeDialog">Hủy</v-btn>
                 <v-btn color="primary" @click="saveContribution" :loading="savingContribution">
-                    Add Contribution
+                    Thêm đóng góp
                 </v-btn>
             </v-card-actions>
         </v-card>
@@ -71,10 +71,10 @@ const saveContribution = async () => {
         })
         await props.loadGoals()
         closeDialog()
-        useAppStore().showSuccess('Contribution added successfully')
+        useAppStore().showSuccess('Thêm đóng góp thành công')
     } catch (error) {
         console.error('Failed to add contribution:', error)
-        useAppStore().showError('Failed to add contribution')
+        useAppStore().showError('Thêm đóng góp thất bại')
     } finally {
         contributionFormRef.value?.reset()
         savingContribution.value = false

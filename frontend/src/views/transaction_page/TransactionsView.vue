@@ -12,9 +12,10 @@
     </v-row>
 
     <TableTransactionView :items="items" :loading="loading" @openEdit="handleOpenEditDialog" :load="load" />
-    <AddTransactionView v-model="isShowAddDialog" @update:modelValue="onModelUpdated" :categoryItems="categoryItems" />
+    <AddTransactionView v-model="isShowAddDialog" @update:modelValue="onModelUpdated" 
+      @category-created="handleCategoryCreated" :categoryItems="categoryItems" />
     <EditTransactionView v-model="isShowEditDialog" :transaction="selectedTransaction"
-      @update:modelValue="onModelUpdated" :categoryItems="categoryItems" />
+      @update:modelValue="onModelUpdated" @category-created="handleCategoryCreated" :categoryItems="categoryItems" />
   </v-container>
 </template>
 <script setup>
@@ -44,6 +45,13 @@ const onModelUpdated = (value) => {
   }
 };
 
+const handleCategoryCreated = (newCategory) => {
+  // Add new category to the list
+  categoryItems.value.push(newCategory);
+  // Optionally reload categories to ensure consistency
+  loadCategories();
+};
+
 async function load() {
   loading.value = true
   try {
@@ -60,7 +68,7 @@ async function loadCategories() {
     const { data } = await categoryAPI.getCategories()
     categoryItems.value = Array.isArray(data) ? data : []
   } catch (e) {
-    appStore.showError(e?.message || 'Failed to load categories')
+    appStore.showError(e?.message || 'Không thể tải danh sách danh mục')
   }
 }
 
