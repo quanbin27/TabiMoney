@@ -469,8 +469,10 @@ func (d *NotificationDispatcher) CheckAndTriggerScheduledNotifications() error {
 
 // checkBudgetAlerts checks for budget alerts that need to be sent
 func (d *NotificationDispatcher) checkBudgetAlerts() error {
+	now := time.Now()
 	var budgets []models.Budget
-	if err := d.db.Where("is_active = ? AND end_date >= ?", true, time.Now()).Find(&budgets).Error; err != nil {
+	// Chỉ lấy ngân sách đang hoạt động và đã bắt đầu (tránh báo sớm cho budget tương lai)
+	if err := d.db.Where("is_active = ? AND start_date <= ? AND end_date >= ?", true, now, now).Find(&budgets).Error; err != nil {
 		return err
 	}
 
