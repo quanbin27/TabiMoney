@@ -18,8 +18,14 @@ export const formatCurrency = (amount, currency = 'VND') => {
 }
 
 export const formatDate = (date) => {
-  const dateObj = typeof date === 'string' ? parseISO(date) : date
-  return format(dateObj, 'MMM dd, yyyy')
+  if (!date) return 'N/A'
+  try {
+    const dateObj = typeof date === 'string' ? parseISO(date) : date
+    if (!dateObj || isNaN(dateObj.getTime())) return String(date)
+    return format(dateObj, 'MMM dd, yyyy')
+  } catch (e) {
+    return String(date)
+  }
 }
 
 export const formatDateTime = (date) => {

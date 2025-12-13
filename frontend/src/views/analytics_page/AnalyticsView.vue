@@ -54,10 +54,10 @@
               </div>
               <v-divider class="my-2" />
               <div>
-                <div>Thay đổi thu nhập: <strong :class="mom.incomeChange >= 0 ? 'text-success' : 'text-error'">{{
-                  mom.incomeChange.toFixed(1) }}%</strong></div>
-                <div>Thay đổi chi tiêu: <strong :class="mom.expenseChange >= 0 ? 'text-error' : 'text-success'">{{
-                  mom.expenseChange.toFixed(1) }}%</strong></div>
+                <div>Thay đổi thu nhập: <strong :class="(mom.incomeChange || 0) >= 0 ? 'text-success' : 'text-error'">{{
+                  (mom.incomeChange || 0).toFixed(1) }}%</strong></div>
+                <div>Thay đổi chi tiêu: <strong :class="(mom.expenseChange || 0) >= 0 ? 'text-error' : 'text-success'">{{
+                  (mom.expenseChange || 0).toFixed(1) }}%</strong></div>
               </div>
             </div>
             <div v-else class="text-caption">Chọn tháng để so sánh.</div>
@@ -260,20 +260,90 @@
       <!-- Anomaly Detection -->
       <v-col cols="12" md="6">
         <v-card>
-          <v-card-title>
-            <v-icon class="mr-2">mdi-alert-circle</v-icon>
-            Chi tiêu bất thường
+          <v-card-title class="d-flex justify-space-between align-center">
+            <div class="d-flex align-center">
+              <v-icon class="mr-2">mdi-alert-circle</v-icon>
+              Chi tiêu bất thường
+              <v-chip v-if="anomalies && anomalies.anomalies" size="small" color="warning" class="ml-2">
+                {{ anomalies.anomalies.length }}
+              </v-chip>
+            </div>
           </v-card-title>
           <v-card-text>
             <div v-if="anomalies && anomalies.anomalies && anomalies.anomalies.length > 0">
-              <v-alert v-for="(anomaly, index) in anomalies.anomalies" :key="index" type="warning" variant="tonal"
-                class="mb-2">
-                <div class="text-subtitle-2">{{ anomaly.description }}</div>
-                <div class="text-caption">
-                  Số tiền: {{ formatCurrency(anomaly.amount) }} |
-                  Ngày: {{ formatDate(anomaly.date) }}
+              <!-- Summary -->
+              <div class="mb-3 pa-2 bg-warning-lighten-5 rounded">
+                <div class="text-caption text-medium-emphasis">
+                  Phát hiện <strong>{{ anomalies.total_anomalies || anomalies.anomalies.length }}</strong> giao dịch bất thường
+                  <span v-if="anomalies.detection_score">
+                    (Độ tin cậy: {{ (anomalies.detection_score * 100).toFixed(1) }}%)
+                  </span>
                 </div>
-              </v-alert>
+              </div>
+
+              <!-- Anomalies List -->
+              <div class="anomalies-list" style="max-height: 500px; overflow-y: auto;">
+                <v-list density="comfortable" class="pa-0">
+                  <v-list-item
+                    v-for="(anomaly, index) in displayedAnomalies"
+                    :key="anomaly.transaction_id || index"
+                    class="mb-2 pa-3 rounded"
+                    :class="getAnomalySeverityClass(anomaly.anomaly_score)"
+                    style="border: 1px solid rgba(0,0,0,0.12);"
+                  >
+                    <template v-slot:prepend>
+                      <v-avatar size="40" :color="getAnomalyIconColor(anomaly.anomaly_score)" variant="tonal" class="mr-3">
+                        <v-icon :color="getAnomalyIconColor(anomaly.anomaly_score)" size="20">
+                          {{ getAnomalyIcon(anomaly.anomaly_type) }}
+                        </v-icon>
+                      </v-avatar>
+                    </template>
+                    
+                    <v-list-item-title class="text-body-1 font-weight-bold mb-1">
+                      {{ formatCurrency(anomaly.amount) }}
+                    </v-list-item-title>
+                    
+                    <v-list-item-subtitle class="text-caption">
+                      <div class="d-flex flex-wrap align-center gap-2 mt-1">
+                        <v-chip size="small" variant="outlined" color="primary" density="compact">
+                          <v-icon start size="14">mdi-tag</v-icon>
+                          {{ anomaly.category_name }}
+                        </v-chip>
+                        <v-chip size="small" variant="text" color="default" density="compact">
+                          <v-icon start size="14">mdi-calendar</v-icon>
+                          {{ formatDate(anomaly.transaction_date || anomaly.date) }}
+                        </v-chip>
+                        <v-chip 
+                          v-if="anomaly.anomaly_score" 
+                          size="small" 
+                          variant="tonal" 
+                          :color="anomaly.anomaly_score > 0.1 ? 'error' : anomaly.anomaly_score > 0.05 ? 'warning' : 'info'"
+                          density="compact"
+                        >
+                          <v-icon start size="14">mdi-chart-line</v-icon>
+                          {{ (anomaly.anomaly_score * 100).toFixed(1) }}%
+                        </v-chip>
+                      </div>
+                      <div class="text-caption text-medium-emphasis mt-2" style="line-height: 1.4;">
+                        {{ anomaly.description }}
+                      </div>
+                    </v-list-item-subtitle>
+                  </v-list-item>
+                </v-list>
+              </div>
+
+              <!-- Show More/Less Button -->
+              <div v-if="anomalies.anomalies.length > maxAnomaliesToShow" class="text-center mt-3">
+                <v-btn
+                  size="small"
+                  variant="text"
+                  color="primary"
+                  @click="showAllAnomalies = !showAllAnomalies"
+                >
+                  <v-icon class="mr-1">{{ showAllAnomalies ? 'mdi-chevron-up' : 'mdi-chevron-down' }}</v-icon>
+                  {{ showAllAnomalies ? 'Thu gọn' : `Xem thêm ${anomalies.anomalies.length - maxAnomaliesToShow} giao dịch` }}
+                </v-btn>
+              </div>
             </div>
             <div v-else class="text-center pa-4">
               <v-icon size="32" color="success">mdi-check-circle</v-icon>
@@ -367,9 +437,11 @@ const predictions = ref(null)
 const monthlyIncome = ref(0)
 const incomeSaving = ref(false)
 const mom = ref(null)
+const showAllAnomalies = ref(false)
+const maxAnomaliesToShow = 5
 
-// Date range
-const selectedPeriod = ref('last_month')
+// Date range - Default to last_6_months for better AI predictions (needs at least 3 months)
+const selectedPeriod = ref('last_6_months')
 const startDate = ref('')
 const endDate = ref('')
 
@@ -506,6 +578,9 @@ const loadAnalytics = async () => {
     }
     anomalies.value = anomalyData.data
     predictions.value = predictionData.data
+    
+    // Reset showAllAnomalies when loading new data
+    showAllAnomalies.value = false
 
     // Debug logging
     console.log('Dashboard Data:', dashboardData.value)
@@ -635,6 +710,47 @@ const percentOfIncome = computed(() => {
   if (!inc || inc <= 0) return 0
   return (exp / inc) * 100
 })
+
+// Anomalies display logic
+const displayedAnomalies = computed(() => {
+  if (!anomalies.value || !anomalies.value.anomalies) return []
+  const sorted = [...anomalies.value.anomalies].sort((a, b) => {
+    // Sort by anomaly_score descending (highest first)
+    const scoreA = a.anomaly_score || 0
+    const scoreB = b.anomaly_score || 0
+    return scoreB - scoreA
+  })
+  if (showAllAnomalies.value) {
+    return sorted
+  }
+  return sorted.slice(0, maxAnomaliesToShow)
+})
+
+// Helper functions for anomaly display
+const getAnomalySeverityClass = (score) => {
+  if (!score) return 'bg-grey-lighten-5'
+  if (score > 0.1) return 'bg-error-lighten-5 border-error'
+  if (score > 0.05) return 'bg-warning-lighten-5 border-warning'
+  return 'bg-info-lighten-5 border-info'
+}
+
+const getAnomalyIconColor = (score) => {
+  if (!score) return 'grey'
+  if (score > 0.1) return 'error'
+  if (score > 0.05) return 'warning'
+  return 'info'
+}
+
+const getAnomalyIcon = (type) => {
+  const iconMap = {
+    'amount_pattern': 'mdi-cash-multiple',
+    'frequency_pattern': 'mdi-repeat',
+    'category_pattern': 'mdi-tag-multiple',
+    'time_pattern': 'mdi-clock-alert',
+    'unknown': 'mdi-alert-circle'
+  }
+  return iconMap[type] || 'mdi-alert-circle'
+}
 
 // Initialize date range
 const initializeDateRange = () => {
