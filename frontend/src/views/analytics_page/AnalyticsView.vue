@@ -171,7 +171,7 @@
             <v-list-item v-for="t in filteredItems.slice(0, 10)" :key="t.id">
                 <v-list-item-title>{{ t.description || '(không có mô tả)' }}</v-list-item-title>
                 <v-list-item-subtitle>
-                  {{ t.transaction_type }} · {{ t.category?.name || 'Chưa phân loại' }} · {{ formatCurrency(t.amount) }}
+                  {{ t.transaction_type === 'income' ? 'Thu nhập' : 'Chi tiêu' }} · {{ t.category?.name || 'Chưa phân loại' }} · {{ formatCurrency(t.amount) }}
                   · {{ new Date(t.transaction_date).toLocaleDateString() }}
                 </v-list-item-subtitle>
               </v-list-item>
@@ -387,7 +387,7 @@
                 <v-card variant="outlined">
                   <v-card-text>
                     <div class="text-h6 text-warning">Xu hướng</div>
-                    <div class="text-h4">{{ predictions.trends?.[0]?.trend || 'ổn định' }}</div>
+                    <div class="text-h4">{{ formatTrend(predictions.trends?.[0]?.trend) || 'Ổn định' }}</div>
                     <div class="text-caption">Xu hướng chi tiêu</div>
                   </v-card-text>
                 </v-card>
@@ -538,27 +538,38 @@ const loadAnalytics = async () => {
     categorySpending.value = spending.data
     // Normalize spending patterns to support both string and object formats
     const patternsData = patterns.data || {}
-    const normalizedInsights = Array.isArray(patternsData.insights)
-      ? patternsData.insights.map((it) => {
-        if (typeof it === 'string') {
-          return { type: 'info', description: it }
-        }
-        return {
-          type: it.type || 'info',
-          description: it.description || String(it)
-        }
-      })
-      : []
     const translateToVi = (text) => {
       if (!text) return text
+      // Backend đã trả về tiếng Việt, nhưng vẫn giữ map này cho các text từ AI service hoặc các nguồn khác
       const map = {
         'Set up budget alerts for your top spending categories.': 'Thiết lập cảnh báo ngân sách cho các danh mục chi tiêu hàng đầu của bạn.',
         'Consider setting monthly spending limits for discretionary categories.': 'Cân nhắc đặt hạn mức chi tiêu hàng tháng cho các danh mục tùy ý.',
         'Your spending patterns show consistent behavior across categories.': 'Mẫu chi tiêu của bạn cho thấy hành vi ổn định giữa các danh mục.',
         'Consider reviewing your top spending categories for optimization opportunities.': 'Hãy xem lại các danh mục chi tiêu hàng đầu để tối ưu hoá.'
       }
-      return map[text] || text
+      // Try exact match first
+      if (map[text]) return map[text]
+      // Try case-insensitive match
+      const lowerText = text.toLowerCase().trim()
+      for (const [key, value] of Object.entries(map)) {
+        if (key.toLowerCase().trim() === lowerText) {
+          return value
+        }
+      }
+      // Nếu không có trong map, trả về text gốc (có thể đã là tiếng Việt từ backend)
+      return text
     }
+    const normalizedInsights = Array.isArray(patternsData.insights)
+      ? patternsData.insights.map((it) => {
+        if (typeof it === 'string') {
+          return { type: 'info', description: translateToVi(it) }
+        }
+        return {
+          type: it.type || 'info',
+          description: translateToVi(it.description || String(it))
+        }
+      })
+      : []
     const normalizedRecs = Array.isArray(patternsData.recommendations)
       ? patternsData.recommendations.map((it) => {
         if (typeof it === 'string') {
@@ -632,6 +643,19 @@ const getRecommendationIcon = (priority) => {
     case 'low': return 'mdi-lightbulb'
     default: return 'mdi-information'
   }
+}
+
+const formatTrend = (trend) => {
+  if (!trend) return 'Ổn định'
+  const trendMap = {
+    'stable': 'Ổn định',
+    'increasing': 'Tăng',
+    'decreasing': 'Giảm',
+    'tăng': 'Tăng',
+    'giảm': 'Giảm',
+    'ổn định': 'Ổn định'
+  }
+  return trendMap[trend.toLowerCase()] || trend
 }
 
 const loadIncome = async () => {

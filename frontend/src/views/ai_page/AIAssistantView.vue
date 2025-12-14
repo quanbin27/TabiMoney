@@ -62,12 +62,42 @@
                     {{ message.isUser ? 'mdi-account' : 'mdi-robot' }}
                   </v-icon>
                   <span>{{ message.isUser ? 'Bạn' : 'Tabi AI' }}</span>
+                  <v-chip
+                    v-if="!message.isUser && message.intent && message.intent !== 'error' && message.intent !== 'general'"
+                    size="x-small"
+                    variant="tonal"
+                    color="primary"
+                    class="ms-2 intent-badge"
+                  >
+                    {{ formatIntent(message.intent) }}
+                  </v-chip>
                 </div>
                 <span class="text-caption text-medium-emphasis">{{ formatTime(message.timestamp) }}</span>
               </div>
 
               <div class="message-bubble" :class="{ 'user-bubble': message.isUser }">
                 <div class="text-body-1" v-html="formatMessage(message.content)"></div>
+                
+                <!-- AI Suggestions - Context-aware suggestions từ AI -->
+                <div v-if="!message.isUser && message.suggestions && message.suggestions.length > 0" class="message-suggestions">
+                  <div class="text-caption mb-2 opacity-75 d-flex align-center">
+                    <v-icon size="14" class="me-1">mdi-lightbulb-outline</v-icon>
+                    Gợi ý tiếp theo:
+                  </div>
+                  <div class="suggestion-chips">
+                    <v-chip
+                      v-for="(suggestion, idx) in message.suggestions.slice(0, 4)"
+                      :key="idx"
+                      size="small"
+                      variant="outlined"
+                      class="suggestion-chip"
+                      @click="sendQuickMessage(suggestion)"
+                      prepend-icon="mdi-arrow-right"
+                    >
+                      {{ suggestion }}
+                    </v-chip>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -129,7 +159,7 @@
           <div class="suggestion-grid">
             <v-sheet v-for="(suggestion, index) in quickSuggestions" :key="index" class="suggestion-pill"
               color="primary" variant="tonal" @click="sendQuickMessage(suggestion.text)" rounded="lg">
-              <v-icon size="18" class="me-2">mdi-lightbulb</v-icon>
+              <v-icon size="18" class="me-2">{{ suggestion.icon || 'mdi-lightbulb' }}</v-icon>
               <div class="text-body-2 flex-grow-1">
                 {{ suggestion.text }}
               </div>
@@ -195,14 +225,15 @@ const inputMessage = ref('')
 const isTyping = ref(false)
 const chatMessages = ref(null)
 
-// Quick suggestions
+// Quick suggestions - General suggestions, không thay đổi theo context
+// Message suggestions sẽ được AI tạo context-aware và hiển thị dưới mỗi message
 const quickSuggestions = ref([
-  { text: 'Tôi đã chi bao nhiêu tiền tháng này?' },
-  { text: 'Danh mục nào tôi chi nhiều nhất?' },
-  { text: 'Tôi có thể tiết kiệm được bao nhiêu?' },
-  { text: 'Dự đoán chi tiêu tháng tới' },
-  { text: 'Gợi ý cách quản lý tài chính' },
-  { text: 'Phân tích xu hướng chi tiêu' }
+  { text: 'Tôi đã chi bao nhiêu tiền tháng này?', icon: 'mdi-cash' },
+  { text: 'Danh mục nào tôi chi nhiều nhất?', icon: 'mdi-chart-pie' },
+  { text: 'Tình hình ngân sách của tôi thế nào?', icon: 'mdi-wallet' },
+  { text: 'Tiến độ mục tiêu của tôi?', icon: 'mdi-target' },
+  { text: 'Gợi ý tiết kiệm cho tôi', icon: 'mdi-lightbulb' },
+  { text: 'Dự đoán chi tiêu tháng tới', icon: 'mdi-trending-up' }
 ])
 
 const recentTransactions = ref([])
@@ -236,19 +267,31 @@ const sendMessage = async () => {
     // Simulate typing delay
     await new Promise(resolve => setTimeout(resolve, 1000))
 
-    // Add AI response
+    // Add AI response with suggestions
+    const aiResponse = response.data.response || 'Xin lỗi, tôi không thể trả lời câu hỏi này.'
+    const suggestions = response.data.suggestions || []
+    
     messages.value.push({
-      content: response.data.response || 'Xin lỗi, tôi không thể trả lời câu hỏi này.',
+      content: aiResponse,
       isUser: false,
-      timestamp: new Date()
+      timestamp: new Date(),
+      suggestions: suggestions,
+      intent: response.data.intent,
+      entities: response.data.entities || []
     })
+
+    // Không cập nhật quick suggestions từ AI suggestions
+    // Quick suggestions nên giữ nguyên (general suggestions)
+    // Message suggestions đã context-aware và hiển thị dưới mỗi message
 
   } catch (error) {
     console.error('Chat error:', error)
+    const errorMessage = error.response?.data?.detail || error.message || 'Xin lỗi, có lỗi xảy ra khi xử lý tin nhắn của bạn.'
     messages.value.push({
-      content: 'Xin lỗi, có lỗi xảy ra khi xử lý tin nhắn của bạn.',
+      content: errorMessage,
       isUser: false,
-      timestamp: new Date()
+      timestamp: new Date(),
+      suggestions: ['Thử lại', 'Xem số dư', 'Thêm giao dịch mới']
     })
   } finally {
     isTyping.value = false
@@ -283,6 +326,21 @@ const formatTime = (date) => {
     hour: '2-digit',
     minute: '2-digit'
   })
+}
+
+const formatIntent = (intent) => {
+  const intentMap = {
+    'add_transaction': 'Thêm giao dịch',
+    'query_balance': 'Truy vấn số dư',
+    'analyze_data': 'Phân tích dữ liệu',
+    'budget_management': 'Quản lý ngân sách',
+    'goal_tracking': 'Theo dõi mục tiêu',
+    'smart_recommendations': 'Gợi ý thông minh',
+    'expense_forecasting': 'Dự đoán chi tiêu',
+    'general': 'Chung',
+    'error': 'Lỗi'
+  }
+  return intentMap[intent] || intent
 }
 
 const loadRecentTransactions = async () => {
@@ -530,6 +588,38 @@ watch(isTyping, (typing) => {
 
 .transaction-amount {
   font-weight: 600;
+}
+
+.message-suggestions {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.message-bubble.user-bubble .message-suggestions {
+  border-top-color: rgba(255, 255, 255, 0.3);
+}
+
+.suggestion-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.suggestion-chip {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.suggestion-chip:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.intent-badge {
+  font-size: 10px;
+  height: 18px;
+  padding: 0 6px;
 }
 
 @media (max-width: 1280px) {

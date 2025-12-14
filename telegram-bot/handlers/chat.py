@@ -70,28 +70,32 @@ async def handle_chat_message(update: Update, context: ContextTypes.DEFAULT_TYPE
 async def format_ai_response(response_text: str, ai_response: dict) -> str:
     """Format AI response for Telegram"""
     try:
-        # Basic formatting
+        # Basic formatting - response_text đã được AI tạo tự nhiên, chỉ cần format cho Telegram
         formatted = response_text
         
-        # Add context if available
-        if ai_response.get('intent'):
-            intent = ai_response['intent']
-            formatted = f"🤖 <b>AI Assistant</b>\n\n{formatted}"
-            
-            # Add intent-specific formatting
-            if intent == 'transaction_analysis':
-                formatted += "\n\n📊 <i>Phân tích giao dịch</i>"
-            elif intent == 'budget_advice':
-                formatted += "\n\n💰 <i>Lời khuyên ngân sách</i>"
-            elif intent == 'goal_tracking':
-                formatted += "\n\n🎯 <i>Theo dõi mục tiêu</i>"
-            elif intent == 'expense_categorization':
-                formatted += "\n\n📂 <i>Phân loại chi tiêu</i>"
+        # Map intent names to Vietnamese labels (cập nhật theo 8 intent mới)
+        intent_labels = {
+            'add_transaction': 'Thêm giao dịch',
+            'query_balance': 'Truy vấn số dư',
+            'analyze_data': 'Phân tích dữ liệu',
+            'budget_management': 'Quản lý ngân sách',
+            'goal_tracking': 'Theo dõi mục tiêu',
+            'smart_recommendations': 'Gợi ý thông minh',
+            'expense_forecasting': 'Dự đoán chi tiêu',
+            'general': 'Câu hỏi chung',
+            'error': 'Lỗi'
+        }
         
-        # Add suggestions if available
+        # Add intent badge if available (optional, không bắt buộc)
+        intent = ai_response.get('intent')
+        if intent and intent != 'general' and intent != 'error':
+            intent_label = intent_labels.get(intent, intent)
+            formatted = f"🤖 <b>AI Assistant</b> • {intent_label}\n\n{formatted}"
+        
+        # Add suggestions if available (AI đã tạo suggestions tự nhiên)
         suggestions = ai_response.get('suggestions', [])
-        if suggestions:
-            formatted += "\n\n💡 <b>Gợi ý:</b>\n"
+        if suggestions and len(suggestions) > 0:
+            formatted += "\n\n💡 <b>Gợi ý tiếp theo:</b>\n"
             for suggestion in suggestions[:3]:  # Limit to 3 suggestions
                 formatted += f"• {suggestion}\n"
         

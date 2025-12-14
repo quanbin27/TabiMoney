@@ -35,7 +35,7 @@
                         </v-progress-circular>
 
                         <div class="text-h6 font-weight-bold mb-2">
-                            {{ analytics.financial_health.level.toUpperCase() }}
+                            {{ formatHealthLevel(analytics.financial_health.level) }}
                         </div>
 
                         <div class="text-body-2 text-medium-emphasis mb-4">
@@ -107,6 +107,22 @@ const healthColor = computed(() => {
     if (score >= 60) return 'warning'
     return 'error'
 })
+
+const formatHealthLevel = (level) => {
+    if (!level) return 'Không xác định'
+    const levelMap = {
+        'excellent': 'Xuất sắc',
+        'good': 'Tốt',
+        'fair': 'Trung bình',
+        'poor': 'Yếu',
+        'stable': 'Ổn định',
+        'unstable': 'Không ổn định',
+        'healthy': 'Khỏe mạnh',
+        'at_risk': 'Có rủi ro',
+        'critical': 'Nghiêm trọng'
+    }
+    return levelMap[level.toLowerCase()] || level.toUpperCase()
+}
 
 </script>
 

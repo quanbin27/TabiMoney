@@ -21,7 +21,7 @@
                                 <template v-slot:prepend>
                                     <v-icon>mdi-pencil</v-icon>
                                 </template>
-                                <v-list-item-title>Edit</v-list-item-title>
+                                <v-list-item-title>Sửa</v-list-item-title>
                             </v-list-item>
                             <v-list-item @click="deleteGoal(goal.id)">
                                 <template v-slot:prepend>
@@ -37,7 +37,7 @@
                     <!-- Progress Bar -->
                     <div class="mb-4">
                         <div class="d-flex justify-space-between mb-2">
-                            <span class="text-body-2">Progress</span>
+                            <span class="text-body-2">Tiến độ</span>
                             <span class="text-body-2 font-weight-bold">
                                 {{ getProgressPercentage(goal) }}%
                             </span>
@@ -52,13 +52,13 @@
                             <div class="text-h6 text-primary">
                                 {{ formatCurrency(goal.current_amount) }}
                             </div>
-                            <div class="text-caption text-grey">Current</div>
+                            <div class="text-caption text-grey">Hiện tại</div>
                         </v-col>
                         <v-col cols="6">
                             <div class="text-h6 text-grey">
                                 {{ formatCurrency(goal.target_amount) }}
                             </div>
-                            <div class="text-caption text-grey">Target</div>
+                            <div class="text-caption text-grey">Mục tiêu</div>
                         </v-col>
                     </v-row>
 
@@ -70,17 +70,17 @@
                     <!-- Deadline -->
                     <div class="mt-3 text-caption text-grey">
                         <v-icon size="small" class="mr-1">mdi-calendar</v-icon>
-                        Deadline: {{ formatDate(goal.target_date) }}
+                        Hạn chót: {{ formatDate(goal.target_date) }}
                     </div>
                 </v-card-text>
 
                 <v-card-actions>
                     <v-btn color="primary" variant="text" @click="openDetails(goal)">
-                        View Details
+                        Xem chi tiết
                     </v-btn>
                     <v-spacer></v-spacer>
                     <v-btn color="success" variant="text" @click="addContribution(goal)">
-                        Add Contribution
+                        Thêm đóng góp
                     </v-btn>
                 </v-card-actions>
             </v-card>
@@ -160,7 +160,7 @@ const getGoalStatusText = (goal) => {
         in_progress: 'Đang thực hiện',
         not_started: 'Chưa bắt đầu'
     }
-    return statusMap[status] || 'Unknown'
+    return statusMap[status] || 'Không xác định'
 }
 
 const getGoalStatusColor = (goal) => {

@@ -55,17 +55,17 @@ func main() {
 		log.Fatal("No system categories found. Please run database migrations first.")
 	}
 
-	// Find income category (usually ID 8 based on schema)
+	// Find income category
 	var incomeCategory models.Category
 	db.Where("name = ? OR name_en = ?", "Thu nhập", "Income").First(&incomeCategory)
 
 	// Set random seed
 	rand.Seed(*seed)
 
-	fmt.Printf("Generating %d transactions for user %d over %d months...\n", *numTxns, *userID, *months)
+	fmt.Printf("Generating realistic Vietnamese user data: %d transactions for user %d over %d months...\n", *numTxns, *userID, *months)
 
 	// Generate transactions
-	transactions := generateTransactions(*userID, categories, incomeCategory, *numTxns, *months, *includeAnomalies)
+	transactions := generateRealisticTransactions(*userID, categories, incomeCategory, *numTxns, *months, *includeAnomalies)
 
 	// Insert transactions in batches
 	batchSize := 50
@@ -86,245 +86,395 @@ func main() {
 	printSummary(db, *userID)
 }
 
-func generateTransactions(userID uint64, categories []models.Category, incomeCategory models.Category, count, months int, includeAnomalies bool) []models.Transaction {
+func generateRealisticTransactions(userID uint64, categories []models.Category, incomeCategory models.Category, count, months int, includeAnomalies bool) []models.Transaction {
 	transactions := make([]models.Transaction, 0, count)
 
 	now := time.Now()
 	startDate := now.AddDate(0, -months, 0)
 
-	// Category distributions for expenses (more realistic spending patterns)
-	expenseCategories := make([]models.Category, 0)
+	// Find categories by name
+	categoryMap := make(map[string]models.Category)
 	for _, cat := range categories {
-		if cat.Name != "Thu nhập" && cat.NameEn != "Income" {
-			expenseCategories = append(expenseCategories, cat)
+		categoryMap[cat.Name] = cat
+		if cat.NameEn != "" {
+			categoryMap[cat.NameEn] = cat
 		}
 	}
 
-	// Typical spending ranges per category (in VND)
-	categoryRanges := map[string]struct {
-		min, max  float64
-		frequency float64 // probability of this category
-	}{
-		"Ăn uống":        {min: 30000, max: 300000, frequency: 0.35},
-		"Food & Dining":  {min: 30000, max: 300000, frequency: 0.35},
-		"Giao thông":     {min: 20000, max: 500000, frequency: 0.20},
-		"Transportation": {min: 20000, max: 500000, frequency: 0.20},
-		"Mua sắm":        {min: 100000, max: 2000000, frequency: 0.15},
-		"Shopping":       {min: 100000, max: 2000000, frequency: 0.15},
-		"Giải trí":       {min: 50000, max: 500000, frequency: 0.10},
-		"Entertainment":  {min: 50000, max: 500000, frequency: 0.10},
-		"Y tế":           {min: 100000, max: 5000000, frequency: 0.05},
-		"Healthcare":     {min: 100000, max: 5000000, frequency: 0.05},
-		"Học tập":        {min: 50000, max: 1000000, frequency: 0.05},
-		"Education":      {min: 50000, max: 1000000, frequency: 0.05},
-		"Tiết kiệm":      {min: 500000, max: 5000000, frequency: 0.05},
-		"Savings":        {min: 500000, max: 5000000, frequency: 0.05},
-		"Khác":           {min: 20000, max: 500000, frequency: 0.05},
-		"Other":          {min: 20000, max: 500000, frequency: 0.05},
-	}
+	// Monthly salary (realistic for Vietnamese office worker)
+	monthlySalary := 18000000.0 // 18M VND/month
 
-	// Generate income transactions (monthly salary)
-	incomeCount := months
-	for i := 0; i < incomeCount; i++ {
-		date := startDate.AddDate(0, i, rand.Intn(3)) // Around start of month
+	// Generate income transactions (monthly salary on 5th of each month)
+	for i := 0; i < months; i++ {
+		date := startDate.AddDate(0, i, 0)
+		// Salary on 5th of month
+		salaryDate := time.Date(date.Year(), date.Month(), 5, 9, 0, 0, 0, time.UTC)
+		
+		// Sometimes late salary (5th-10th)
+		if rand.Float64() < 0.2 {
+			salaryDate = salaryDate.AddDate(0, 0, rand.Intn(6))
+		}
+
 		transactions = append(transactions, models.Transaction{
 			UserID:           userID,
 			CategoryID:       incomeCategory.ID,
-			Amount:           15000000 + rand.Float64()*5000000, // 15-20M VND salary
-			Description:      fmt.Sprintf("Lương tháng %s", date.Format("01/2006")),
+			Amount:           monthlySalary,
+			Description:      fmt.Sprintf("Lương tháng %s", salaryDate.Format("01/2006")),
 			TransactionType:  "income",
-			TransactionDate:  date,
-			TransactionTime:  timePtr(time.Date(date.Year(), date.Month(), date.Day(), 9, 0, 0, 0, time.UTC)),
-			Location:         "Công ty",
-			Tags:             `["salary", "income"]`,
-			Metadata:         `{"source": "employer", "type": "monthly"}`,
+			TransactionDate:  salaryDate,
+			TransactionTime:  timePtr(time.Date(salaryDate.Year(), salaryDate.Month(), salaryDate.Day(), 9, 0, 0, 0, time.UTC)),
+			Location:         "Ngân hàng",
+			Tags:             `["salary", "income", "lương"]`,
+			Metadata:         `{"source": "employer", "type": "monthly", "payment_method": "bank_transfer"}`,
 			IsRecurring:      true,
 			RecurringPattern: "monthly",
 		})
+
+		// Bonus sometimes (end of quarter)
+		if date.Month()%3 == 0 && rand.Float64() < 0.3 {
+			bonusDate := time.Date(date.Year(), date.Month(), 28, 15, 0, 0, 0, time.UTC)
+			transactions = append(transactions, models.Transaction{
+				UserID:          userID,
+				CategoryID:      incomeCategory.ID,
+				Amount:          monthlySalary * 0.5, // 50% bonus
+				Description:     fmt.Sprintf("Thưởng quý %d", (int(date.Month())-1)/3+1),
+				TransactionType: "income",
+				TransactionDate: bonusDate,
+				TransactionTime: timePtr(bonusDate),
+				Location:        "Ngân hàng",
+				Tags:            `["bonus", "thưởng"]`,
+				Metadata:        `{"source": "employer", "type": "bonus"}`,
+			})
+		}
 	}
 
-	// Generate expense transactions
-	expenseCount := count - incomeCount
+	// Generate realistic expense patterns
+	expenseCount := count - months - (months/3) // Reserve space for bonuses
 	anomalyCount := 0
 	if includeAnomalies {
-		anomalyCount = expenseCount / 10 // 10% anomalies
+		anomalyCount = expenseCount / 15 // ~6-7% anomalies (more realistic)
 	}
 
-	for i := 0; i < expenseCount; i++ {
-		isAnomaly := includeAnomalies && i < anomalyCount
+	// Daily patterns
+	dayCount := int(now.Sub(startDate).Hours() / 24)
+	normalExpenseCount := expenseCount - anomalyCount
 
-		// Random date within range
-		daysDiff := int(now.Sub(startDate).Hours() / 24)
-		daysOffset := rand.Intn(daysDiff)
-		date := startDate.AddDate(0, 0, daysOffset)
-
-		// Select category based on frequency
-		var category models.Category
-		if isAnomaly {
-			// Anomalies: random category, unusual amounts
-			category = expenseCategories[rand.Intn(len(expenseCategories))]
-		} else {
-			// Normal: weighted random selection
-			category = selectCategoryByFrequency(expenseCategories, categoryRanges)
+	// Generate recurring bills (monthly)
+	for i := 0; i < months; i++ {
+		monthStart := startDate.AddDate(0, i, 0)
+		
+		// Electricity bill (15th of month, 500k-1.5M)
+		if cat, ok := categoryMap["Khác"]; ok {
+			transactions = append(transactions, models.Transaction{
+				UserID:          userID,
+				CategoryID:      cat.ID,
+				Amount:          500000 + rand.Float64()*1000000,
+				Description:     "Tiền điện",
+				TransactionType: "expense",
+				TransactionDate: time.Date(monthStart.Year(), monthStart.Month(), 15, 18, 0, 0, 0, time.UTC),
+				TransactionTime: timePtr(time.Date(monthStart.Year(), monthStart.Month(), 15, 18, 0, 0, 0, time.UTC)),
+				Location:        "EVN",
+				Tags:            `["tiện ích", "điện"]`,
+				Metadata:        `{"payment_method": "bank_transfer", "recurring": true}`,
+				IsRecurring:     true,
+				RecurringPattern: "monthly",
+			})
 		}
 
-		// Generate amount
-		var amount float64
-		catRange, hasRange := categoryRanges[category.Name]
-		if !hasRange {
-			catRange, hasRange = categoryRanges[category.NameEn]
+		// Water bill (20th of month, 100k-300k)
+		if cat, ok := categoryMap["Khác"]; ok {
+			transactions = append(transactions, models.Transaction{
+				UserID:          userID,
+				CategoryID:      cat.ID,
+				Amount:          100000 + rand.Float64()*200000,
+				Description:     "Tiền nước",
+				TransactionType: "expense",
+				TransactionDate: time.Date(monthStart.Year(), monthStart.Month(), 20, 19, 0, 0, 0, time.UTC),
+				TransactionTime: timePtr(time.Date(monthStart.Year(), monthStart.Month(), 20, 19, 0, 0, 0, time.UTC)),
+				Location:        "Cấp nước",
+				Tags:            `["tiện ích", "nước"]`,
+				Metadata:        `{"payment_method": "bank_transfer", "recurring": true}`,
+				IsRecurring:     true,
+				RecurringPattern: "monthly",
+			})
 		}
 
-		if isAnomaly {
-			// Anomaly: very high or very low amounts, or unusual timing
-			if rand.Float64() < 0.7 {
-				// High amount anomaly (3-10x normal)
-				if hasRange {
-					amount = catRange.max * (3 + rand.Float64()*7)
+		// Internet bill (1st of month, 200k-500k)
+		if cat, ok := categoryMap["Khác"]; ok {
+			transactions = append(transactions, models.Transaction{
+				UserID:          userID,
+				CategoryID:      cat.ID,
+				Amount:          200000 + rand.Float64()*300000,
+				Description:     "Tiền internet",
+				TransactionType: "expense",
+				TransactionDate: time.Date(monthStart.Year(), monthStart.Month(), 1, 20, 0, 0, 0, time.UTC),
+				TransactionTime: timePtr(time.Date(monthStart.Year(), monthStart.Month(), 1, 20, 0, 0, 0, time.UTC)),
+				Location:        "VNPT/FPT",
+				Tags:            `["tiện ích", "internet"]`,
+				Metadata:        `{"payment_method": "e_wallet", "recurring": true}`,
+				IsRecurring:     true,
+				RecurringPattern: "monthly",
+			})
+		}
+	}
+
+	// Generate daily expenses (food, transport, etc.)
+	dailyExpenseCount := normalExpenseCount - (months * 3) // Subtract bills
+	expensesPerDay := float64(dailyExpenseCount) / float64(dayCount)
+
+	for day := 0; day < dayCount; day++ {
+		currentDate := startDate.AddDate(0, 0, day)
+		weekday := currentDate.Weekday()
+
+		// Skip some days (not every day has expenses)
+		if rand.Float64() > expensesPerDay {
+			continue
+		}
+
+		// Morning coffee (Mon-Fri, 7-8 AM, 25k-50k)
+		if weekday >= time.Monday && weekday <= time.Friday && rand.Float64() < 0.7 {
+			if cat, ok := categoryMap["Ăn uống"]; ok {
+				transactions = append(transactions, models.Transaction{
+					UserID:          userID,
+					CategoryID:      cat.ID,
+					Amount:          25000 + rand.Float64()*25000,
+					Description:     getRandomFood([]string{"Cà phê sáng", "Trà đá", "Cà phê đen", "Nước cam"}),
+					TransactionType: "expense",
+					TransactionDate: currentDate,
+					TransactionTime: timePtr(time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 7+rand.Intn(2), rand.Intn(30), 0, 0, time.UTC)),
+					Location:        getRandomLocation([]string{"Highlands Coffee", "Starbucks", "Cà phê vỉa hè", "Circle K"}),
+					Tags:            `["cà phê", "sáng"]`,
+					Metadata:        `{"payment_method": "e_wallet"}`,
+				})
+			}
+		}
+
+		// Lunch (Mon-Fri, 11:30-13:00, 50k-150k)
+		if weekday >= time.Monday && weekday <= time.Friday && rand.Float64() < 0.9 {
+			if cat, ok := categoryMap["Ăn uống"]; ok {
+				transactions = append(transactions, models.Transaction{
+					UserID:          userID,
+					CategoryID:      cat.ID,
+					Amount:          50000 + rand.Float64()*100000,
+					Description:     getRandomFood([]string{"Cơm trưa", "Bún chả", "Phở", "Bánh mì", "Cơm tấm", "Bún bò"}),
+					TransactionType: "expense",
+					TransactionDate: currentDate,
+					TransactionTime: timePtr(time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 11+rand.Intn(2), 30+rand.Intn(30), 0, 0, time.UTC)),
+					Location:        getRandomLocation([]string{"Quán cơm", "Nhà hàng", "Canteen công ty", "Food court"}),
+					Tags:            `["ăn trưa", "cơm"]`,
+					Metadata:        `{"payment_method": "cash"}`,
+				})
+			}
+		}
+
+		// Dinner (daily, 18:00-20:00, varies)
+		if rand.Float64() < 0.8 {
+			if cat, ok := categoryMap["Ăn uống"]; ok {
+				var amount float64
+				var desc string
+				if weekday >= time.Saturday && rand.Float64() < 0.5 {
+					// Weekend: Grab Food or restaurant (more expensive)
+					amount = 100000 + rand.Float64()*200000
+					desc = getRandomFood([]string{"Grab Food", "Now Food", "Baemin", "Nhà hàng", "Buffet"})
 				} else {
-					amount = 5000000 + rand.Float64()*10000000 // 5-15M
+					// Weekday: home cooking or cheap food
+					amount = 30000 + rand.Float64()*70000
+					desc = getRandomFood([]string{"Cơm tối", "Chợ", "Siêu thị", "Bánh mì", "Bún"})
 				}
-			} else {
-				// Low amount anomaly (unusually small)
-				amount = 5000 + rand.Float64()*10000
-			}
-		} else {
-			// Normal amount
-			if hasRange {
-				amount = catRange.min + rand.Float64()*(catRange.max-catRange.min)
-			} else {
-				amount = 50000 + rand.Float64()*500000
+				transactions = append(transactions, models.Transaction{
+					UserID:          userID,
+					CategoryID:      cat.ID,
+					Amount:          amount,
+					Description:     desc,
+					TransactionType: "expense",
+					TransactionDate: currentDate,
+					TransactionTime: timePtr(time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 18+rand.Intn(2), rand.Intn(60), 0, 0, time.UTC)),
+					Location:        getRandomLocation([]string{"Nhà", "Grab", "Siêu thị", "Chợ", "Nhà hàng"}),
+					Tags:            `["ăn tối"]`,
+					Metadata:        `{"payment_method": "e_wallet"}`,
+				})
 			}
 		}
 
-		// Generate description
-		description := generateDescription(category, isAnomaly)
+		// Transport (Mon-Fri, morning and evening)
+		if weekday >= time.Monday && weekday <= time.Friday {
+			// Morning commute (7-8 AM)
+			if rand.Float64() < 0.8 {
+				if cat, ok := categoryMap["Giao thông"]; ok {
+					transactions = append(transactions, models.Transaction{
+						UserID:          userID,
+						CategoryID:      cat.ID,
+						Amount:          15000 + rand.Float64()*35000, // Grab/Gojek 15k-50k
+						Description:     getRandomTransport([]string{"Grab đi làm", "Gojek", "Xe buýt", "Xe máy"}),
+						TransactionType: "expense",
+						TransactionDate: currentDate,
+						TransactionTime: timePtr(time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 7+rand.Intn(2), rand.Intn(30), 0, 0, time.UTC)),
+						Location:        "Đường phố",
+						Tags:            `["đi làm"]`,
+						Metadata:        `{"payment_method": "e_wallet"}`,
+					})
+				}
+			}
 
-		// Generate time (normal business hours vs anomalies at odd times)
-		var txTime *time.Time
-		if isAnomaly && rand.Float64() < 0.3 {
-			// Anomaly: odd hours (2-5 AM)
-			hour := 2 + rand.Intn(3)
-			txTime = timePtr(time.Date(date.Year(), date.Month(), date.Day(), hour, rand.Intn(60), 0, 0, time.UTC))
-		} else {
-			// Normal: business hours
-			hour := 8 + rand.Intn(12)
-			txTime = timePtr(time.Date(date.Year(), date.Month(), date.Day(), hour, rand.Intn(60), 0, 0, time.UTC))
+			// Evening commute (17-18 PM)
+			if rand.Float64() < 0.7 {
+				if cat, ok := categoryMap["Giao thông"]; ok {
+					transactions = append(transactions, models.Transaction{
+						UserID:          userID,
+						CategoryID:      cat.ID,
+						Amount:          15000 + rand.Float64()*35000,
+						Description:     getRandomTransport([]string{"Grab về nhà", "Gojek", "Xe buýt"}),
+						TransactionType: "expense",
+						TransactionDate: currentDate,
+						TransactionTime: timePtr(time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 17+rand.Intn(2), rand.Intn(30), 0, 0, time.UTC)),
+						Location:        "Đường phố",
+						Tags:            `["về nhà"]`,
+						Metadata:        `{"payment_method": "e_wallet"}`,
+					})
+				}
+			}
 		}
 
-		transactions = append(transactions, models.Transaction{
-			UserID:          userID,
-			CategoryID:      category.ID,
-			Amount:          amount,
-			Description:     description,
-			TransactionType: "expense",
-			TransactionDate: date,
-			TransactionTime: txTime,
-			Location:        generateLocation(category),
-			Tags:            generateTags(category, isAnomaly),
-			Metadata:        generateMetadata(category, isAnomaly),
-			IsRecurring:     !isAnomaly && rand.Float64() < 0.1, // 10% recurring
-			RecurringPattern: func() string {
-				if rand.Float64() < 0.1 {
-					patterns := []string{"daily", "weekly", "monthly"}
-					return patterns[rand.Intn(len(patterns))]
-				}
-				return ""
-			}(),
-		})
+		// Gas (weekly, 200k-500k)
+		if weekday == time.Sunday && rand.Float64() < 0.3 {
+			if cat, ok := categoryMap["Giao thông"]; ok {
+				transactions = append(transactions, models.Transaction{
+					UserID:          userID,
+					CategoryID:      cat.ID,
+					Amount:          200000 + rand.Float64()*300000,
+					Description:     "Đổ xăng",
+					TransactionType: "expense",
+					TransactionDate: currentDate,
+					TransactionTime: timePtr(time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 10+rand.Intn(4), rand.Intn(60), 0, 0, time.UTC)),
+					Location:        "Cây xăng",
+					Tags:            `["xăng", "xe máy"]`,
+					Metadata:        `{"payment_method": "cash"}`,
+				})
+			}
+		}
+
+		// Shopping (occasional, weekends more likely)
+		if (weekday == time.Saturday || weekday == time.Sunday) && rand.Float64() < 0.2 {
+			if cat, ok := categoryMap["Mua sắm"]; ok {
+				transactions = append(transactions, models.Transaction{
+					UserID:          userID,
+					CategoryID:      cat.ID,
+					Amount:          200000 + rand.Float64()*800000,
+					Description:     getRandomShopping([]string{"Quần áo", "Đồ dùng nhà", "Mỹ phẩm", "Điện thoại phụ kiện", "Sách"}),
+					TransactionType: "expense",
+					TransactionDate: currentDate,
+					TransactionTime: timePtr(time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 14+rand.Intn(4), rand.Intn(60), 0, 0, time.UTC)),
+					Location:        getRandomLocation([]string{"Vincom", "Big C", "AEON Mall", "Lotte", "Online"}),
+					Tags:            `["mua sắm"]`,
+					Metadata:        `{"payment_method": "card"}`,
+				})
+			}
+		}
+
+		// Entertainment (weekends, 100k-500k)
+		if (weekday == time.Saturday || weekday == time.Sunday) && rand.Float64() < 0.3 {
+			if cat, ok := categoryMap["Giải trí"]; ok {
+				transactions = append(transactions, models.Transaction{
+					UserID:          userID,
+					CategoryID:      cat.ID,
+					Amount:          100000 + rand.Float64()*400000,
+					Description:     getRandomEntertainment([]string{"Xem phim", "Cà phê", "Karaoke", "Game", "Công viên"}),
+					TransactionType: "expense",
+					TransactionDate: currentDate,
+					TransactionTime: timePtr(time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 15+rand.Intn(6), rand.Intn(60), 0, 0, time.UTC)),
+					Location:        getRandomLocation([]string{"CGV", "Lotte Cinema", "Karaoke", "Game center"}),
+					Tags:            `["giải trí"]`,
+					Metadata:        `{"payment_method": "card"}`,
+				})
+			}
+		}
+
+		// Healthcare (occasional, 200k-2M)
+		if rand.Float64() < 0.05 { // ~5% chance per day
+			if cat, ok := categoryMap["Y tế"]; ok {
+				transactions = append(transactions, models.Transaction{
+					UserID:          userID,
+					CategoryID:      cat.ID,
+					Amount:          200000 + rand.Float64()*1800000,
+					Description:     getRandomHealthcare([]string{"Khám bệnh", "Thuốc", "Khám sức khỏe", "Nha khoa"}),
+					TransactionType: "expense",
+					TransactionDate: currentDate,
+					TransactionTime: timePtr(time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 9+rand.Intn(4), rand.Intn(60), 0, 0, time.UTC)),
+					Location:        getRandomLocation([]string{"Bệnh viện", "Phòng khám", "Nhà thuốc"}),
+					Tags:            `["y tế"]`,
+					Metadata:        `{"payment_method": "cash"}`,
+				})
+			}
+		}
+	}
+
+	// Generate anomalies (if enabled)
+	if includeAnomalies {
+		for i := 0; i < anomalyCount; i++ {
+			daysOffset := rand.Intn(dayCount)
+			date := startDate.AddDate(0, 0, daysOffset)
+
+			// Anomaly types: very high amount, unusual category, odd time
+			anomalyType := rand.Intn(3)
+			var cat models.Category
+			var amount float64
+			var desc string
+
+			switch anomalyType {
+			case 0: // Very high amount
+				cat = categoryMap["Mua sắm"]
+				amount = 5000000 + rand.Float64()*10000000 // 5-15M
+				desc = "Mua laptop/điện thoại"
+			case 1: // Unusual category
+				cat = categoryMap["Y tế"]
+				amount = 3000000 + rand.Float64()*7000000 // 3-10M
+				desc = "Khám bệnh/Phẫu thuật"
+			case 2: // Odd time + high amount
+				cat = categoryMap["Giải trí"]
+				amount = 2000000 + rand.Float64()*5000000 // 2-7M
+				desc = "Du lịch/Celebration"
+			}
+
+			transactions = append(transactions, models.Transaction{
+				UserID:          userID,
+				CategoryID:      cat.ID,
+				Amount:          amount,
+				Description:     desc,
+				TransactionType: "expense",
+				TransactionDate: date,
+				TransactionTime: timePtr(time.Date(date.Year(), date.Month(), date.Day(), rand.Intn(24), rand.Intn(60), 0, 0, time.UTC)),
+				Location:        "Various",
+				Tags:            `["anomaly", "unusual"]`,
+				Metadata:        `{"payment_method": "card", "flagged": true}`,
+			})
+		}
 	}
 
 	return transactions
 }
 
-func selectCategoryByFrequency(categories []models.Category, ranges map[string]struct {
-	min, max  float64
-	frequency float64
-}) models.Category {
-	// Create weighted list
-	weighted := make([]models.Category, 0)
-	for _, cat := range categories {
-		freq := 0.1 // default frequency
-		if r, ok := ranges[cat.Name]; ok {
-			freq = r.frequency
-		} else if r, ok := ranges[cat.NameEn]; ok {
-			freq = r.frequency
-		}
-		// Add category multiple times based on frequency
-		count := int(freq * 100)
-		for i := 0; i < count; i++ {
-			weighted = append(weighted, cat)
-		}
-	}
-	if len(weighted) == 0 {
-		return categories[rand.Intn(len(categories))]
-	}
-	return weighted[rand.Intn(len(weighted))]
+func getRandomFood(options []string) string {
+	return options[rand.Intn(len(options))]
 }
 
-func generateDescription(category models.Category, isAnomaly bool) string {
-	descriptions := map[string][]string{
-		"Ăn uống":        {"Cơm trưa", "Cà phê sáng", "Nhà hàng", "Grab Food", "Siêu thị"},
-		"Food & Dining":  {"Lunch", "Morning coffee", "Restaurant", "Food delivery", "Supermarket"},
-		"Giao thông":     {"Xăng xe", "Grab", "Taxi", "Vé máy bay", "Bảo dưỡng xe"},
-		"Transportation": {"Gas", "Ride share", "Taxi", "Flight ticket", "Car maintenance"},
-		"Mua sắm":        {"Quần áo", "Điện thoại", "Laptop", "Đồ dùng nhà", "Quà tặng"},
-		"Shopping":       {"Clothes", "Phone", "Laptop", "Home supplies", "Gift"},
-		"Giải trí":       {"Xem phim", "Karaoke", "Du lịch", "Game", "Concert"},
-		"Entertainment":  {"Movie", "Karaoke", "Travel", "Games", "Concert"},
-		"Y tế":           {"Khám bệnh", "Thuốc", "Bảo hiểm", "Nha khoa", "Khám sức khỏe"},
-		"Healthcare":     {"Doctor visit", "Medicine", "Insurance", "Dental", "Health check"},
-		"Học tập":        {"Khóa học online", "Sách", "Tài liệu", "Workshop", "Certification"},
-		"Education":      {"Online course", "Books", "Materials", "Workshop", "Certification"},
-		"Tiết kiệm":      {"Tiết kiệm", "Đầu tư", "Quỹ dự phòng", "Tích lũy"},
-		"Savings":        {"Savings", "Investment", "Emergency fund", "Accumulation"},
-		"Khác":           {"Chi phí khác", "Phí dịch vụ", "Khác"},
-		"Other":          {"Other expense", "Service fee", "Misc"},
-	}
-
-	options := descriptions[category.Name]
-	if len(options) == 0 {
-		options = descriptions[category.NameEn]
-	}
-	if len(options) == 0 {
-		options = []string{"Transaction", "Payment", "Expense"}
-	}
-
-	desc := options[rand.Intn(len(options))]
-	if isAnomaly {
-		desc = "[ANOMALY] " + desc
-	}
-	return desc
+func getRandomTransport(options []string) string {
+	return options[rand.Intn(len(options))]
 }
 
-func generateLocation(category models.Category) string {
-	locations := []string{
-		"Hà Nội", "TP. Hồ Chí Minh", "Đà Nẵng", "Hải Phòng", "Cần Thơ",
-		"Online", "ATM", "Cửa hàng", "Siêu thị", "Nhà hàng",
-	}
-	return locations[rand.Intn(len(locations))]
+func getRandomShopping(options []string) string {
+	return options[rand.Intn(len(options))]
 }
 
-func generateTags(category models.Category, isAnomaly bool) string {
-	tags := []string{category.Name}
-	if isAnomaly {
-		tags = append(tags, "anomaly", "unusual")
-	}
-	if rand.Float64() < 0.3 {
-		tags = append(tags, "urgent")
-	}
-	return fmt.Sprintf(`["%s"]`, tags[0])
+func getRandomEntertainment(options []string) string {
+	return options[rand.Intn(len(options))]
 }
 
-func generateMetadata(category models.Category, isAnomaly bool) string {
-	paymentMethods := []string{"cash", "card", "bank_transfer", "e_wallet"}
-	method := paymentMethods[rand.Intn(len(paymentMethods))]
+func getRandomHealthcare(options []string) string {
+	return options[rand.Intn(len(options))]
+}
 
-	meta := fmt.Sprintf(`{"payment_method": "%s"}`, method)
-	if isAnomaly {
-		meta = fmt.Sprintf(`{"payment_method": "%s", "flagged": true}`, method)
-	}
-	return meta
+func getRandomLocation(options []string) string {
+	return options[rand.Intn(len(options))]
 }
 
 func timePtr(t time.Time) *time.Time {
@@ -352,7 +502,11 @@ func printSummary(db *gorm.DB, userID uint64) {
 	fmt.Printf("  Total Income:   %.0f VND (%d transactions)\n", totalIncome, incomeCount)
 	fmt.Printf("  Total Expense:  %.0f VND (%d transactions)\n", totalExpense, expenseCount)
 	fmt.Printf("  Net Amount:     %.0f VND\n", totalIncome-totalExpense)
-	fmt.Printf("  Savings Rate:   %.1f%%\n", (totalIncome-totalExpense)/totalIncome*100)
+	if totalIncome > 0 {
+		fmt.Printf("  Savings Rate:   %.1f%%\n", (totalIncome-totalExpense)/totalIncome*100)
+	} else {
+		fmt.Printf("  Savings Rate:   N/A (No income)\n")
+	}
 
 	// Category breakdown
 	var breakdown []struct {

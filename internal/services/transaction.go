@@ -575,15 +575,15 @@ func (s *TransactionService) generateFinancialRecommendations(savingsRate, incom
 	var recommendations []string
 
 	if savingsRate < 10 {
-		recommendations = append(recommendations, "Consider increasing your savings rate to at least 10%")
+		recommendations = append(recommendations, "Cân nhắc tăng tỷ lệ tiết kiệm lên ít nhất 10%")
 	}
 
 	if expense > income {
-		recommendations = append(recommendations, "Your expenses exceed your income. Review your spending habits")
+		recommendations = append(recommendations, "Chi tiêu của bạn vượt quá thu nhập. Hãy xem xét lại thói quen chi tiêu")
 	}
 
 	if savingsRate > 20 {
-		recommendations = append(recommendations, "Great job! Consider investing your excess savings")
+		recommendations = append(recommendations, "Làm tốt lắm! Hãy cân nhắc đầu tư số tiền tiết kiệm dư thừa")
 	}
 
 	return recommendations

@@ -14,7 +14,7 @@
                     <v-col cols="12" md="4" class="text-right">
                         <v-btn color="white" variant="outlined" size="large" @click="openAddTransactionDialog">
                             <v-icon left>mdi-plus</v-icon>
-                            Add Transaction
+                            Thêm giao dịch
                         </v-btn>
                     </v-col>
                 </v-row>

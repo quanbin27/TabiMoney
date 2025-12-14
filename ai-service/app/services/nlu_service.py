@@ -18,6 +18,7 @@ from app.core.database import get_db
 from app.models.nlu import ChatRequest, ChatResponse, Entity, NLURequest, NLUResponse
 from app.services.transaction_service import TransactionService
 from app.utils.json_utils import extract_json_block
+from app.utils.llm import call_gemini
 
 logger = logging.getLogger(__name__)
 
@@ -595,6 +596,8 @@ Output:"""
                 await self._handle_smart_recommendations(request.user_id, nlu_response)
             elif nlu_response.intent == "expense_forecasting":
                 await self._handle_expense_forecasting(request.user_id, nlu_response)
+            elif nlu_response.intent == "general":
+                await self._handle_general(request.user_id, nlu_response)
             
             # Generate suggestions based on intent
             suggestions = self._generate_chat_suggestions(nlu_response.intent)
@@ -606,7 +609,8 @@ Output:"""
                 intent=nlu_response.intent,
                 entities=nlu_response.entities,
                 suggestions=suggestions,
-                generated_at=datetime.now().isoformat() + "Z"
+                needs_confirmation=nlu_response.needs_confirmation,
+                generated_at=datetime.now()
             )
             
         except Exception as e:
@@ -619,7 +623,8 @@ Output:"""
                 intent="error",
                 entities=[],
                 suggestions=["Thử hỏi về chi tiêu", "Kiểm tra số dư", "Thêm giao dịch mới"],
-                generated_at=datetime.now().isoformat() + "Z"
+                needs_confirmation=False,
+                generated_at=datetime.now()
             )
     
     async def _handle_add_transaction(self, user_id: int, nlu_response: NLUResponse):
@@ -665,12 +670,65 @@ Output:"""
             logger.error(f"Error handling add transaction: {e}")
             nlu_response.response = "Có lỗi xảy ra khi thêm giao dịch."
     
+    async def _generate_natural_response(self, data_summary: str, context: str, user_message: str = "") -> str:
+        """Generate natural language response using Gemini AI"""
+        try:
+            if not settings.USE_GEMINI or not settings.GEMINI_API_KEY:
+                # Fallback to simple format if Gemini not available
+                return data_summary
+            
+            prompt = f"""Bạn là AI Assistant thân thiện cho ứng dụng quản lý tài chính TabiMoney. 
+Người dùng đã hỏi: "{user_message}"
+
+Dữ liệu thực tế từ database:
+{data_summary}
+
+Context: {context}
+
+Nhiệm vụ: Tạo một phản hồi tự nhiên, thân thiện, dễ hiểu bằng tiếng Việt dựa trên dữ liệu trên.
+- Sử dụng ngôn ngữ tự nhiên, không quá kỹ thuật
+- Thêm emoji phù hợp để làm cho phản hồi sinh động
+- Đưa ra insights và gợi ý hữu ích nếu có thể
+- Giữ nguyên các con số chính xác từ dữ liệu
+- Phản hồi nên ngắn gọn nhưng đầy đủ thông tin (khoảng 100-200 từ)
+
+Phản hồi:"""
+
+            result = await call_gemini(
+                prompt,
+                temperature=0.7,  # Higher temperature for more natural responses
+                format_json=False,  # We want plain text, not JSON
+                timeout=30.0
+            )
+            
+            response = result.get("raw", "").strip()
+            if response:
+                return response
+            else:
+                # Fallback to data summary if AI fails
+                return data_summary
+                
+        except Exception as e:
+            logger.warning(f"Failed to generate natural response with AI: {e}, using fallback")
+            return data_summary
+    
     async def _handle_query_balance(self, user_id: int, nlu_response: NLUResponse):
         """Handle balance query directly"""
         try:
             result = await self.transaction_service.get_user_balance(user_id)
             if result["success"]:
-                nlu_response.response = result["message"]
+                # Use AI to make response more natural
+                data_summary = f"""
+Tổng thu nhập tháng này: {result.get('total_income', 0):,.0f} VND
+Tổng chi tiêu tháng này: {result.get('total_expense', 0):,.0f} VND
+Số dư (chênh lệch): {result.get('net_amount', 0):,.0f} VND
+"""
+                natural_response = await self._generate_natural_response(
+                    data_summary,
+                    "Người dùng đang hỏi về số dư tài chính tháng hiện tại",
+                    "Số dư của tôi thế nào?"
+                )
+                nlu_response.response = natural_response
                 logger.info(f"Successfully retrieved balance for user {user_id}")
             else:
                 nlu_response.response = result["message"]
@@ -682,10 +740,6 @@ Output:"""
     async def _handle_analyze_data(self, user_id: int, nlu_response: NLUResponse):
         """AI tự phân tích dữ liệu theo yêu cầu"""
         try:
-            # AI có thể tự quyết định phân tích gì dựa trên context
-            # Ví dụ: spending patterns, category analysis, trends, etc.
-            
-            # Lấy dữ liệu giao dịch gần đây
             async with get_db() as db:
                 # Lấy transactions 30 ngày gần nhất
                 transactions_query = """
@@ -701,7 +755,7 @@ Output:"""
                 transactions = await db.execute(transactions_query, (user_id,))
                 
                 if transactions:
-                    # AI tự phân tích và đưa ra insights
+                    # Tính toán dữ liệu
                     total_expense = sum(t['amount'] for t in transactions if t['transaction_type'] == 'expense')
                     total_income = sum(t['amount'] for t in transactions if t['transaction_type'] == 'income')
                     
@@ -712,24 +766,32 @@ Output:"""
                             cat = t['category_name']
                             category_spending[cat] = category_spending.get(cat, 0) + t['amount']
                     
-                    # Tạo response tự nhiên
-                    insights = []
-                    if total_expense > 0:
-                        insights.append(f"Tổng chi tiêu 30 ngày: {total_expense:,.0f} VND")
-                    if total_income > 0:
-                        insights.append(f"Tổng thu nhập 30 ngày: {total_income:,.0f} VND")
+                    # Tạo data summary cho AI
+                    category_list = "\n".join([f"- {cat}: {amt:,.0f} VND" for cat, amt in sorted(category_spending.items(), key=lambda x: x[1], reverse=True)[:5]])
                     
-                    if category_spending:
-                        top_category = max(category_spending.items(), key=lambda x: x[1])
-                        insights.append(f"Chi nhiều nhất: {top_category[0]} ({top_category[1]:,.0f} VND)")
+                    data_summary = f"""
+Phân tích 30 ngày gần nhất:
+- Tổng chi tiêu: {total_expense:,.0f} VND
+- Tổng thu nhập: {total_income:,.0f} VND
+- Số dư: {total_income - total_expense:,.0f} VND
+- Số giao dịch: {len(transactions)}
+
+Top 5 danh mục chi nhiều nhất:
+{category_list if category_spending else "Chưa có dữ liệu"}
+"""
                     
-                    nlu_response.response = "Phân tích 30 ngày gần nhất:\n" + "\n".join(insights)
+                    natural_response = await self._generate_natural_response(
+                        data_summary,
+                        "Người dùng muốn phân tích chi tiêu và thu nhập trong 30 ngày gần nhất",
+                        "Phân tích chi tiêu của tôi"
+                    )
+                    nlu_response.response = natural_response
                 else:
-                    nlu_response.response = "Chưa có dữ liệu giao dịch để phân tích."
+                    nlu_response.response = "Chưa có dữ liệu giao dịch để phân tích. Hãy thêm giao dịch để tôi có thể giúp bạn phân tích!"
                     
         except Exception as e:
             logger.error(f"Error handling data analysis: {e}")
-            nlu_response.response = "Có lỗi xảy ra khi phân tích dữ liệu."
+            nlu_response.response = "Có lỗi xảy ra khi phân tích dữ liệu. Vui lòng thử lại sau."
     
     async def _handle_budget_management(self, user_id: int, nlu_response: NLUResponse):
         """AI quản lý ngân sách thông minh"""
@@ -757,68 +819,119 @@ Output:"""
                 expenses = await db.execute(expense_query, (user_id,))
                 
                 if budgets:
-                    insights = []
                     expense_dict = {e['category_name']: e['total_spent'] for e in expenses}
+                    budget_details = []
                     
                     for budget in budgets:
                         spent = expense_dict.get(budget['category_name'], 0)
                         remaining = budget['amount'] - spent
                         percentage = (spent / budget['amount']) * 100 if budget['amount'] > 0 else 0
                         
-                        if percentage > 90:
-                            insights.append(f"⚠️ {budget['category_name']}: {percentage:.0f}% ngân sách ({spent:,.0f}/{budget['amount']:,.0f} VND)")
-                        elif percentage > 70:
-                            insights.append(f"🟡 {budget['category_name']}: {percentage:.0f}% ngân sách ({spent:,.0f}/{budget['amount']:,.0f} VND)")
-                        else:
-                            insights.append(f"✅ {budget['category_name']}: {percentage:.0f}% ngân sách ({spent:,.0f}/{budget['amount']:,.0f} VND)")
+                        status = "vượt quá" if percentage > 100 else "sắp hết" if percentage > 90 else "đang ổn" if percentage > 70 else "còn nhiều"
+                        
+                        budget_details.append(
+                            f"- {budget['category_name']}: "
+                            f"Đã chi {spent:,.0f}/{budget['amount']:,.0f} VND ({percentage:.1f}%), "
+                            f"Còn lại {remaining:,.0f} VND - {status}"
+                        )
                     
-                    nlu_response.response = "📊 Tình hình ngân sách tháng này:\n" + "\n".join(insights)
+                    data_summary = f"""
+Tình hình ngân sách tháng này:
+{chr(10).join(budget_details)}
+"""
+                    
+                    natural_response = await self._generate_natural_response(
+                        data_summary,
+                        "Người dùng muốn kiểm tra tình hình ngân sách tháng hiện tại",
+                        "Tình hình ngân sách của tôi thế nào?"
+                    )
+                    nlu_response.response = natural_response
                 else:
-                    nlu_response.response = "Bạn chưa có ngân sách nào. Hãy tạo ngân sách để quản lý chi tiêu tốt hơn!"
+                    nlu_response.response = "Bạn chưa có ngân sách nào. Hãy tạo ngân sách để quản lý chi tiêu tốt hơn! 💡"
                     
         except Exception as e:
             logger.error(f"Error handling budget management: {e}")
-            nlu_response.response = "Có lỗi xảy ra khi kiểm tra ngân sách."
+            nlu_response.response = "Có lỗi xảy ra khi kiểm tra ngân sách. Vui lòng thử lại sau."
     
     async def _handle_goal_tracking(self, user_id: int, nlu_response: NLUResponse):
         """AI theo dõi mục tiêu tài chính"""
         try:
             async with get_db() as db:
-                # Lấy goals hiện tại
+                # Lấy goals hiện tại với current_amount từ database
                 goals_query = """
-                SELECT * FROM financial_goals 
+                SELECT id, title, description, target_amount, current_amount, target_date, 
+                       goal_type, priority, is_achieved, created_at
+                FROM financial_goals 
                 WHERE user_id = %s AND is_achieved = false
-                ORDER BY target_date ASC
+                ORDER BY target_date ASC, created_at DESC
                 """
                 goals = await db.execute(goals_query, (user_id,))
                 
                 if goals:
-                    insights = []
+                    goal_details = []
                     for goal in goals:
-                        # Tính progress
-                        progress_query = """
-                        SELECT SUM(amount) as saved_amount
-                        FROM transactions 
-                        WHERE user_id = %s AND category_id = 8 AND transaction_type = 'income'
-                        AND transaction_date >= %s
-                        """
-                        progress = await db.execute(progress_query, (user_id, goal['created_at']))
-                        saved = progress[0]['saved_amount'] if progress and progress[0]['saved_amount'] else 0
+                        current_amount = float(goal.get('current_amount', 0) or 0)
+                        target_amount = float(goal.get('target_amount', 0) or 0)
                         
-                        progress_percentage = (saved / goal['target_amount']) * 100 if goal['target_amount'] > 0 else 0
-                        remaining = goal['target_amount'] - saved
+                        if target_amount > 0:
+                            progress_percentage = (current_amount / target_amount) * 100
+                            remaining = target_amount - current_amount
+                        else:
+                            progress_percentage = 0
+                            remaining = 0
                         
-                        insights.append(f"🎯 {goal['title']}: {progress_percentage:.0f}% ({saved:,.0f}/{goal['target_amount']:,.0f} VND)")
-                        if remaining > 0:
-                            insights.append(f"   Còn lại: {remaining:,.0f} VND")
+                        goal_title = goal.get('title', 'Mục tiêu không tên')
+                        goal_type = goal.get('goal_type', 'savings')
+                        
+                        # Format date info
+                        date_info = ""
+                        if goal.get('target_date'):
+                            from datetime import datetime
+                            try:
+                                target_date = goal['target_date']
+                                if isinstance(target_date, str):
+                                    target_date = datetime.strptime(target_date, '%Y-%m-%d').date()
+                                elif hasattr(target_date, 'date'):
+                                    target_date = target_date.date()
+                                
+                                today = datetime.now().date()
+                                days_remaining = (target_date - today).days
+                                
+                                if days_remaining > 0:
+                                    date_info = f", Còn {days_remaining} ngày"
+                                elif days_remaining == 0:
+                                    date_info = ", Hôm nay là hạn chót"
+                                else:
+                                    date_info = f", Đã quá hạn {abs(days_remaining)} ngày"
+                            except Exception:
+                                pass
+                        
+                        status = "đã đạt" if remaining <= 0 else f"còn thiếu {remaining:,.0f} VND"
+                        
+                        goal_details.append(
+                            f"- {goal_title} ({goal_type}): "
+                            f"{progress_percentage:.1f}% hoàn thành "
+                            f"({current_amount:,.0f}/{target_amount:,.0f} VND), "
+                            f"{status}{date_info}"
+                        )
                     
-                    nlu_response.response = "🎯 Tiến độ mục tiêu:\n" + "\n".join(insights)
+                    data_summary = f"""
+Tiến độ mục tiêu tài chính:
+{chr(10).join(goal_details)}
+"""
+                    
+                    natural_response = await self._generate_natural_response(
+                        data_summary,
+                        "Người dùng muốn kiểm tra tiến độ các mục tiêu tài chính",
+                        "Tiến độ mục tiêu của tôi thế nào?"
+                    )
+                    nlu_response.response = natural_response
                 else:
-                    nlu_response.response = "Bạn chưa có mục tiêu tài chính nào. Hãy tạo mục tiêu để có động lực tiết kiệm!"
+                    nlu_response.response = "Bạn chưa có mục tiêu tài chính nào. Hãy tạo mục tiêu để có động lực tiết kiệm! 🎯"
                     
         except Exception as e:
-            logger.error(f"Error handling goal tracking: {e}")
-            nlu_response.response = "Có lỗi xảy ra khi kiểm tra mục tiêu."
+            logger.error(f"Error handling goal tracking: {e}", exc_info=True)
+            nlu_response.response = "Có lỗi xảy ra khi kiểm tra mục tiêu. Vui lòng thử lại sau."
     
     async def _handle_smart_recommendations(self, user_id: int, nlu_response: NLUResponse):
         """AI đưa ra gợi ý thông minh"""
@@ -836,36 +949,44 @@ Output:"""
                 AND t.transaction_date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
                 GROUP BY c.id, c.name
                 ORDER BY total_spent DESC
+                LIMIT 5
                 """
                 analysis = await db.execute(analysis_query, (user_id,))
                 
                 if analysis:
-                    recommendations = []
+                    # Tính tổng chi tiêu
+                    total_spent_3m = sum(a['total_spent'] for a in analysis)
                     
-                    # Tìm category chi nhiều nhất
-                    top_category = analysis[0]
-                    recommendations.append(f"💡 Bạn chi nhiều nhất cho {top_category['category_name']} ({top_category['total_spent']:,.0f} VND)")
+                    # Format data
+                    category_list = "\n".join([
+                        f"- {a['category_name']}: {a['total_spent']:,.0f} VND "
+                        f"({(a['total_spent']/total_spent_3m*100):.1f}%, {a['transaction_count']} giao dịch, "
+                        f"trung bình {a['avg_amount']:,.0f} VND/giao dịch)"
+                        for a in analysis
+                    ])
                     
-                    # Gợi ý tiết kiệm
-                    if top_category['category_name'] == 'Ăn uống':
-                        recommendations.append("🍽️ Gợi ý: Nấu ăn ở nhà nhiều hơn, hạn chế giao đồ ăn")
-                    elif top_category['category_name'] == 'Giao thông':
-                        recommendations.append("🚗 Gợi ý: Sử dụng phương tiện công cộng, đi chung xe")
-                    elif top_category['category_name'] == 'Mua sắm':
-                        recommendations.append("🛍️ Gợi ý: Mua sắm có kế hoạch, tránh mua sắm bốc đồng")
+                    data_summary = f"""
+Phân tích chi tiêu 3 tháng gần nhất:
+Tổng chi tiêu: {total_spent_3m:,.0f} VND
+
+Top 5 danh mục chi nhiều nhất:
+{category_list}
+
+Người dùng cần gợi ý cụ thể để tiết kiệm tiền dựa trên các danh mục này.
+"""
                     
-                    # Phân tích xu hướng
-                    if len(analysis) > 1:
-                        second_category = analysis[1]
-                        recommendations.append(f"📈 Xu hướng: {second_category['category_name']} cũng chi khá nhiều ({second_category['total_spent']:,.0f} VND)")
-                    
-                    nlu_response.response = "🤖 Gợi ý thông minh:\n" + "\n".join(recommendations)
+                    natural_response = await self._generate_natural_response(
+                        data_summary,
+                        "Người dùng muốn nhận gợi ý thông minh để tiết kiệm tiền dựa trên phân tích chi tiêu",
+                        "Gợi ý tiết kiệm cho tôi"
+                    )
+                    nlu_response.response = natural_response
                 else:
-                    nlu_response.response = "Chưa có đủ dữ liệu để đưa ra gợi ý. Hãy thêm nhiều giao dịch hơn!"
+                    nlu_response.response = "Chưa có đủ dữ liệu để đưa ra gợi ý. Hãy thêm nhiều giao dịch hơn để tôi có thể phân tích và đưa ra gợi ý hữu ích! 📊"
                     
         except Exception as e:
             logger.error(f"Error handling smart recommendations: {e}")
-            nlu_response.response = "Có lỗi xảy ra khi tạo gợi ý."
+            nlu_response.response = "Có lỗi xảy ra khi tạo gợi ý. Vui lòng thử lại sau."
     
     async def _handle_expense_forecasting(self, user_id: int, nlu_response: NLUResponse):
         """AI dự đoán chi tiêu tương lai"""
@@ -885,31 +1006,87 @@ Output:"""
                 expenses = await db.execute(forecast_query, (user_id,))
                 
                 if len(expenses) >= 3:
-                    # Tính trung bình chi tiêu
+                    # Tính toán
                     avg_expense = sum(e['monthly_expense'] for e in expenses) / len(expenses)
-                    
-                    # Dự đoán tháng tới
                     next_month_forecast = avg_expense * 1.1  # Tăng 10% để an toàn
                     
                     # Phân tích xu hướng
                     recent_avg = sum(e['monthly_expense'] for e in expenses[:3]) / 3
                     older_avg = sum(e['monthly_expense'] for e in expenses[3:]) / len(expenses[3:]) if len(expenses) > 3 else recent_avg
                     
-                    trend = "tăng" if recent_avg > older_avg else "giảm" if recent_avg < older_avg else "ổn định"
+                    trend_direction = "tăng" if recent_avg > older_avg else "giảm" if recent_avg < older_avg else "ổn định"
+                    trend_percentage = abs((recent_avg - older_avg) / older_avg * 100) if older_avg > 0 else 0
                     
-                    insights = [
-                        f"📊 Dự đoán chi tiêu tháng tới: {next_month_forecast:,.0f} VND",
-                        f"📈 Xu hướng: {trend} ({recent_avg:,.0f} vs {older_avg:,.0f} VND)",
-                        f"💰 Trung bình 6 tháng: {avg_expense:,.0f} VND"
-                    ]
+                    # Format monthly data
+                    monthly_data = "\n".join([
+                        f"- Tháng {e['month']}/{e['year']}: {e['monthly_expense']:,.0f} VND"
+                        for e in expenses[:6]
+                    ])
                     
-                    nlu_response.response = "🔮 Dự đoán tài chính:\n" + "\n".join(insights)
+                    data_summary = f"""
+Dữ liệu chi tiêu 6 tháng gần nhất:
+{monthly_data}
+
+Thống kê:
+- Trung bình 6 tháng: {avg_expense:,.0f} VND
+- Trung bình 3 tháng gần nhất: {recent_avg:,.0f} VND
+- Trung bình 3 tháng trước đó: {older_avg:,.0f} VND
+- Xu hướng: {trend_direction} {trend_percentage:.1f}%
+
+Dự đoán:
+- Chi tiêu tháng tới (dự kiến): {next_month_forecast:,.0f} VND (tăng 10% so với trung bình để an toàn)
+"""
+                    
+                    natural_response = await self._generate_natural_response(
+                        data_summary,
+                        "Người dùng muốn dự đoán chi tiêu tháng tới dựa trên dữ liệu lịch sử",
+                        "Dự đoán chi tiêu tháng tới"
+                    )
+                    nlu_response.response = natural_response
                 else:
-                    nlu_response.response = "Cần ít nhất 3 tháng dữ liệu để dự đoán. Hãy sử dụng app thường xuyên hơn!"
+                    nlu_response.response = "Cần ít nhất 3 tháng dữ liệu để dự đoán chính xác. Hãy sử dụng app thường xuyên hơn để tôi có thể đưa ra dự đoán tốt hơn! 📈"
                     
         except Exception as e:
             logger.error(f"Error handling expense forecasting: {e}")
-            nlu_response.response = "Có lỗi xảy ra khi dự đoán chi tiêu."
+            nlu_response.response = "Có lỗi xảy ra khi dự đoán chi tiêu. Vui lòng thử lại sau."
+    
+    async def _handle_general(self, user_id: int, nlu_response: NLUResponse):
+        """AI xử lý các câu hỏi chung chung về tài chính"""
+        try:
+            # Intent "general" được dùng cho các câu hỏi không thuộc các intent cụ thể
+            # AI đã tự tạo response phù hợp, chỉ cần đảm bảo response có ý nghĩa
+            
+            # Nếu response từ AI quá ngắn hoặc không rõ ràng, thêm thông tin hữu ích
+            if not nlu_response.response or len(nlu_response.response.strip()) < 20:
+                # Lấy thông tin tổng quan để cung cấp context
+                async with get_db() as db:
+                    # Lấy số giao dịch gần đây
+                    count_query = """
+                    SELECT COUNT(*) as total 
+                    FROM transactions 
+                    WHERE user_id = %s
+                    """
+                    result = await db.execute(count_query, (user_id,))
+                    total_transactions = result[0]['total'] if result else 0
+                    
+                    if total_transactions > 0:
+                        nlu_response.response = (
+                            f"{nlu_response.response}\n\n"
+                            f"💡 Bạn có {total_transactions} giao dịch trong hệ thống. "
+                            f"Tôi có thể giúp bạn phân tích chi tiêu, quản lý ngân sách, theo dõi mục tiêu và đưa ra gợi ý tài chính."
+                        )
+                    else:
+                        nlu_response.response = (
+                            f"{nlu_response.response}\n\n"
+                            f"💡 Bắt đầu bằng cách thêm giao dịch đầu tiên của bạn! "
+                            f"Tôi có thể giúp bạn quản lý tài chính, phân tích chi tiêu và đưa ra gợi ý."
+                        )
+            
+            logger.info(f"Handled general intent for user {user_id}")
+            
+        except Exception as e:
+            logger.error(f"Error handling general intent: {e}")
+            # Không cần thay đổi response nếu có lỗi, giữ nguyên response từ AI
     
     def _generate_chat_suggestions(self, intent: str) -> List[str]:
         """AI tự tạo suggestions dựa trên context"""

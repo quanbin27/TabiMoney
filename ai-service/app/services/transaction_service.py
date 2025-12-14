@@ -88,6 +88,10 @@ class TransactionService:
                 start_date = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
                 end_date = start_date.replace(month=start_date.month + 1) if start_date.month < 12 else start_date.replace(year=start_date.year + 1, month=1)
                 
+                # Format dates as strings for MySQL
+                start_date_str = start_date.strftime("%Y-%m-%d")
+                end_date_str = end_date.strftime("%Y-%m-%d")
+                
                 balance_query = """
                 SELECT 
                     SUM(CASE WHEN transaction_type = 'income' THEN amount ELSE 0 END) as total_income,
@@ -96,7 +100,7 @@ class TransactionService:
                 WHERE user_id = %s AND transaction_date BETWEEN %s AND %s
                 """
                 
-                result = await db.execute(balance_query, (user_id, start_date, end_date))
+                result = await db.execute(balance_query, (user_id, start_date_str, end_date_str))
                 
                 if result:
                     row = result[0]

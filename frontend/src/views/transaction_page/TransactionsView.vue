@@ -55,8 +55,27 @@ const handleCategoryCreated = (newCategory) => {
 async function load() {
   loading.value = true
   try {
-    const { data } = await transactionAPI.getTransactions({ page: 1, limit: 50 })
-    items.value = Array.isArray(data.data) ? data.data : []
+    // Load all transactions (use high limit or load in pages)
+    // First, get total count
+    const { data: firstPage } = await transactionAPI.getTransactions({ page: 1, limit: 100 })
+    const total = firstPage.total || firstPage.data?.length || 0
+    
+    if (total <= 100) {
+      // If total is small, use first page
+      items.value = Array.isArray(firstPage.data) ? firstPage.data : []
+    } else {
+      // Load all pages
+      items.value = Array.isArray(firstPage.data) ? firstPage.data : []
+      const totalPages = Math.ceil(total / 100)
+      
+      // Load remaining pages
+      for (let page = 2; page <= totalPages; page++) {
+        const { data } = await transactionAPI.getTransactions({ page, limit: 100 })
+        if (Array.isArray(data.data)) {
+          items.value = items.value.concat(data.data)
+        }
+      }
+    }
   } catch (e) {
     appStore.showError(e?.message || 'Không thể tải danh sách giao dịch')
   } finally {

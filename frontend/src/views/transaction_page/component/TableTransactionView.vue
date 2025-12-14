@@ -2,13 +2,28 @@
     <v-container>
         <v-text-field class="mb-4" v-model="search" label="Tìm kiếm" prepend-inner-icon="mdi-magnify" variant="outlined"
             hide-details single-line></v-text-field>
-        <v-data-table :headers="headers" :items="props.items" :loading="props.loading" :items-per-page="10"
-            :search="search" loading-text="Đang tải danh sách giao dịch...">
+        <v-data-table 
+            :headers="headers" 
+            :items="props.items" 
+            :loading="props.loading" 
+            :items-per-page="50"
+            :items-per-page-options="[25, 50, 100, -1]"
+            :search="search" 
+            loading-text="Đang tải danh sách giao dịch..."
+            class="elevation-1">
             <template #item.amount="{ item }">
                 {{ formatCurrency(item.amount) }}
             </template>
             <template #item.transaction_date="{ item }">
                 {{ new Date(item.transaction_date).toLocaleDateString() }}
+            </template>
+            <template #item.transaction_type="{ item }">
+                <v-chip 
+                    :color="item.transaction_type === 'income' ? 'success' : 'error'" 
+                    size="small"
+                    variant="tonal">
+                    {{ item.transaction_type === 'income' ? 'Thu nhập' : 'Chi tiêu' }}
+                </v-chip>
             </template>
 
             <template v-slot:item.actions="{ item }">

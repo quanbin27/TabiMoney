@@ -30,11 +30,11 @@
                     </v-list-item>
                     <v-list-item>
                         <v-list-item-title class="font-weight-bold">Loại</v-list-item-title>
-                        <v-list-item-subtitle>{{ props.detailsGoal?.goal_type }}</v-list-item-subtitle>
+                        <v-list-item-subtitle>{{ formatGoalType(props.detailsGoal?.goal_type) }}</v-list-item-subtitle>
                     </v-list-item>
                     <v-list-item>
                         <v-list-item-title class="font-weight-bold">Mức độ ưu tiên</v-list-item-title>
-                        <v-list-item-subtitle>{{ props.detailsGoal?.priority }}</v-list-item-subtitle>
+                        <v-list-item-subtitle>{{ formatPriority(props.detailsGoal?.priority) }}</v-list-item-subtitle>
                     </v-list-item>
                 </v-list>
             </v-card-text>
@@ -65,5 +65,26 @@ const closeDialog = () => {
 
 const goEdit = (goal) => {
     emit('open-edit', goal)
+}
+
+const formatGoalType = (type) => {
+    const typeMap = {
+        'savings': 'Tiết kiệm',
+        'debt_payment': 'Trả nợ',
+        'investment': 'Đầu tư',
+        'purchase': 'Mua sắm',
+        'other': 'Khác'
+    }
+    return typeMap[type] || type || '—'
+}
+
+const formatPriority = (priority) => {
+    const priorityMap = {
+        'low': 'Thấp',
+        'medium': 'Trung bình',
+        'high': 'Cao',
+        'urgent': 'Khẩn cấp'
+    }
+    return priorityMap[priority] || priority || '—'
 }
 </script>
